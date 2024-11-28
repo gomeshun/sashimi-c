@@ -9,7 +9,32 @@ from numpy.polynomial.hermite import hermgauss
 import warnings
 warnings.filterwarnings("ignore", category=RuntimeWarning, append=1)
 
+import tensorflow.experimental.numpy as tnp
+import tensorflow_probability as tfp
 
+
+def set_numpy(mode):
+    """Set the numpy mode to 'numpy' or 'tensorflow'"""
+    global np
+    global tnp
+    global tf
+    if mode == 'numpy':
+        import numpy as _np
+        print("Using numpy")
+        np = _np
+    elif mode == 'tensorflow':
+        print("Using tensorflow.experimental.numpy")
+        import tensorflow.experimental.numpy as _tnp
+        import tensorflow as _tf
+        np = _tnp
+        tnp = _tnp
+        tf = _tf
+        tnp.experimental_enable_numpy_behavior()
+    else:
+        raise ValueError("mode should be either 'numpy' or 'tensorflow'")
+
+
+set_numpy('numpy')
 
 
 class units_and_constants:
@@ -121,6 +146,21 @@ class halo_model(cosmology):
         beta_cMz_2  = 0.0223-0.0944*(1.+z)**-0.3907
         c_Mz_2      = pow(10,alpha_cMz_2+beta_cMz_2*np.log10(M200/self.Msun))
         return np.where(z<=4.,c_Mz_1,c_Mz_2)
+    
+
+    def conc200_smooth(self,M200,z):
+        """Correa et al. (2015) with smooth transition """
+        alpha_cMz_1 = 1.7543-0.2766*(1.+z)+0.02039*(1.+z)**2
+        beta_cMz_1  = 0.2753+0.00351*(1.+z)-0.3038*(1.+z)**0.0269
+        gamma_cMz_1 = -0.01537+0.02102*(1.+z)**-0.1475
+        c_Mz_1      = np.power(10.,alpha_cMz_1+beta_cMz_1*np.log10(M200/self.Msun) \
+                               *(1+gamma_cMz_1*np.log10(M200/self.Msun)**2))
+        alpha_cMz_2 = 1.3081-0.1078*(1.+z)+0.00398*(1.+z)**2
+        beta_cMz_2  = 0.0223-0.0944*(1.+z)**-0.3907
+        c_Mz_2      = pow(10,alpha_cMz_2+beta_cMz_2*np.log10(M200/self.Msun))
+        # To connect the two models smoothly, we use a sigmoid function
+        zc = 4.0
+        return c_Mz_1+(c_Mz_2-c_Mz_1)/(1+np.exp(-(z-zc)/0.01))
 
     
     def Mvir_from_M200(self, M200, z):
@@ -148,8 +188,8 @@ class halo_model(cosmology):
             p = a2 + a3*np.log(f) + a4*np.power(np.log(f),2.0)
             return np.power(a1*np.power(f,2.0*p)+(3.0/4.0)**2,-0.5)+2.0*f
         return self.Delc(Oz-1)/200.0*M200 \
-            *np.power(self.conc200(M200,z) \
-            *xfunc(self.Delc(Oz-1)/200.0*ffunc(1.0/self.conc200(M200,z))),-3.0)
+            *np.power(self.conc200_smooth(M200,z) \
+            *xfunc(self.Delc(Oz-1)/200.0*ffunc(1.0/self.conc200_smooth(M200,z))),-3.0)
 
     
     def Mzi(self, M0, z):
@@ -232,8 +272,33 @@ class subhalo_properties(halo_model):
 
     
     def Na_calc(self, ma, zacc, Mhost, z0=0., N_herm=200, Nrand=1000, Na_model=3):
-        """ Returns Na, Eq. (3) of Yang et al. (2011) """
-        zacc_2d   = zacc.reshape(-1,1)
+        """ Returns Na, Eq. (3) of Yang et al. (2011).
+
+        Here Na means the number density of subhalos within the volume element of
+            \delta\ln_ma * \delta\ln(1+zacc)
+
+        Parameters
+        ----------
+        ma: array_like, shape (Na,)
+            Subhalo mass at accretion.
+        zacc: array_like, shape (Nz,)
+            Redshift at accretion.
+        Mhost: float
+            Host halo mass at redshift
+        z0: float
+            Redshift at which the host halo mass is defined.
+        N_herm: int
+            Number of grid in Gauss-Hermite quadrature for integral over concentration.
+        Nrand: int
+            Number of random samples over redshift.
+        Na_model: int
+            Model number of EPS defined in Yang et al. (2011).
+
+        Returns
+        -------
+        Na: array_like, shape (Nz, Na)
+        """
+        zacc_2d = np.array(zacc).reshape(-1,1)
         M200_0    = self.Mzzi(Mhost,zacc_2d,z0)
         logM200_0 = np.log10(M200_0)
 
@@ -247,18 +312,48 @@ class subhalo_properties(halo_model):
             
         mmax = np.minimum(M200,Mhost/2.)
         Mmax = np.minimum(M200_0+mmax,Mhost)
+
+        if np == tnp:
+            gamma = lambda x: np.exp(tf.math.lgamma(x))
+            gammainc = tf.math.igamma
+            hyp2f1 = tfp.math.hypergeometric
+        else:
+            gamma = special.gamma
+            gammainc = special.gammainc
+            hyp2f1 = special.hyp2f1
         
         if Na_model==3:
-            zlist    = zacc_2d*np.linspace(1,0,Nrand)
-            iMmax    = np.argmin(np.abs(self.Mzzi(Mhost,zlist,z0)-Mmax),axis=-1)
-            z_Max    = zlist[np.arange(len(zlist)),iMmax]
-            z_Max_3d = z_Max.reshape(N_herm,len(zlist),1)
+            if np == tnp:
+                z_min = tf.zeros_like(zacc_2d)
+                z_max = zacc_2d
+
+                def equation(z):
+                    return self.Mzzi(Mhost, z, z0) - Mmax
+
+                # ルート検索の実行
+                result = tfp.math.find_root_chandrupatla(
+                    objective_fn=equation,
+                    low=z_min,
+                    high=z_max,
+                    position_tolerance=1e-6,
+                    value_tolerance=1e-6,
+                    max_iterations=50
+                )
+
+                z_Max = result.estimated_root
+                z_Max_3d = tf.reshape(z_Max, [N_herm, -1, 1])
+            else:
+                zlist    = zacc_2d*np.linspace(1,0,Nrand)
+                iMmax    = np.argmin(np.abs(self.Mzzi(Mhost,zlist,z0)-Mmax),axis=-1)
+                z_Max    = zlist[np.arange(len(zlist)),iMmax]
+                z_Max_3d = z_Max.reshape(N_herm,len(zlist),1)
             delcM    = self.deltac_func(z_Max_3d)
             delca    = self.deltac_func(zacc_2d)
             sM       = self.s_func(Mmax)
             sa       = self.s_func(ma)
             xmax     = (delca-delcM)**2/(2.*(self.s_func(mmax)-sM))
-            normB    = special.gamma(0.5)*special.gammainc(0.5,xmax)/np.sqrt(np.pi)
+            # normB    = gamma(tf.constant(0.5,dtype=tf.float64))*gammainc(tf.constant(0.5,dtype=tf.float64),xmax)/np.sqrt(np.pi)
+            normB    = gamma(0.5)*gammainc(0.5,xmax)/np.sqrt(np.pi)
             # those reside in the exponential part of Eq. (14) 
             Phi      = self.Ffunc_Yang(delcM,delca,sM,sa)/normB*np.heaviside(mmax-ma,0)
         elif Na_model==1:
@@ -276,7 +371,7 @@ class subhalo_properties(halo_model):
             normB    = 1./np.sqrt(2.*np.pi)*delca*0.57 \
                            *(delca/np.sqrt(sM))**-0.01*(2./(1.-0.38))*sM**(-0.38/2.) \
                            *xmin**(0.5*(0.38-1.)) \
-                           *special.hyp2f1(0.5*(1-0.38),-0.38/2.,0.5*(3.-0.38),-sM/xmin)
+                           *hyp2f1(0.5*(1-0.38),-0.38/2.,0.5*(3.-0.38),-sM/xmin)
             Phi      = self.Ffunc(delca,sM,sa)*self.Gfunc(delca,sM,sa)/normB \
                            *np.heaviside(mmax-ma,0)
 
@@ -284,8 +379,192 @@ class subhalo_properties(halo_model):
             F2t = np.nan_to_num(Phi)
             F2  =F2t.reshape((len(zacc_2d),len(ma)))
         else:
-            F2 = np.sum(np.nan_to_num(Phi)*wwi/np.sqrt(np.pi),axis=0)
+            # F2 = np.sum(np.nan_to_num(Phi)*wwi/np.sqrt(np.pi),axis=0)
+            # NOTE: replace np.nan_to_num by np.where to avoid numerical issues
+            F2 = np.sum(np.where(np.isnan(Phi),0,Phi)*wwi/np.sqrt(np.pi),axis=0)
         Na = F2*self.dsdm(ma,0.)*self.dMdz(Mhost,zacc_2d,z0)*(1.+zacc_2d)
+        return Na
+    
+
+    def _Na_calc(self, ma, zacc, Mhost, z0=0., N_herm=200, Nrand=1000, Na_model=3):
+        """ Returns Na, Eq. (3) of Yang et al. (2011).
+
+        Parameters
+        ----------
+        ma: array_like, shape (N,)
+            Subhalo mass at accretion.
+        zacc: array_like, shape (N,)
+            Redshift at accretion.
+        Mhost: float
+            Host halo mass at redshift
+        z0: float
+            Redshift at which the host halo mass is defined.
+        N_herm: int
+            Number of grid in Gauss-Hermite quadrature for integral over concentration.
+        Nrand: int
+            Number of random samples over redshift.
+        Na_model: int
+            Model number of EPS defined in Yang et al. (2011).
+
+        Returns
+        -------
+        Na: array_like, shape (Nz, Na)
+        """
+        M200_0    = self.Mzzi(Mhost,zacc,z0)
+        logM200_0 = np.log10(M200_0)
+
+        xxi,wwi = hermgauss(N_herm)
+        xxi = xxi.reshape(-1,1)
+        wwi = wwi.reshape(-1,1)
+        # Eq. (21) in Yang et al. (2011) 
+        sigmalogM200 = 0.12-0.15*np.log10(M200_0/Mhost)
+        logM200 = np.sqrt(2.)*sigmalogM200*xxi+logM200_0
+        M200 = 10.**logM200
+            
+        mmax = np.minimum(M200,Mhost/2.)
+        Mmax = np.minimum(M200_0+mmax,Mhost)
+
+        if np == tnp:
+            gamma = lambda x: np.exp(tf.math.lgamma(x))
+            gammainc = tf.math.igamma
+            hyp2f1 = tfp.math.hypergeometric
+        else:
+            gamma = special.gamma
+            gammainc = special.gammainc
+            hyp2f1 = special.hyp2f1
+        
+        if Na_model==3:
+            if np == tnp:
+                z_min = tf.zeros_like(zacc)
+                z_max = zacc
+
+                def equation(z):
+                    return self.Mzzi(Mhost, z, z0) - Mmax
+
+                # ルート検索の実行
+                result = tfp.math.find_root_chandrupatla(
+                    objective_fn=equation,
+                    low=z_min,
+                    high=z_max,
+                    position_tolerance=1e-6,
+                    value_tolerance=1e-6,
+                    max_iterations=50
+                )
+
+                z_Max = result.estimated_root
+                z_Max = tf.reshape(z_Max, [N_herm, -1])
+            else:
+                raise NotImplementedError
+            delcM    = self.deltac_func(z_Max)
+            delca    = self.deltac_func(zacc)
+            sM       = self.s_func(Mmax)
+            sa       = self.s_func(ma)
+            xmax     = (delca-delcM)**2/(2.*(self.s_func(mmax)-sM))
+            normB    = gamma(tf.constant(0.5,dtype=tf.float64))*gammainc(tf.constant(0.5,dtype=tf.float64),xmax)/np.sqrt(np.pi)
+            # those reside in the exponential part of Eq. (14) 
+            Phi      = self.Ffunc_Yang(delcM,delca,sM,sa)/normB*np.heaviside(mmax-ma,0)
+        elif Na_model==1:
+            delca    = self.deltac_func(zacc)
+            sM       = self.s_func(M200)
+            sa       = self.s_func(ma)
+            xmin     = self.s_func(mmax)-self.s_func(M200)
+            normB    = 1./np.sqrt(2*np.pi)*delca*2./xmin**0.5*special.hyp2f1(0.5,0.,1.5,-sM/xmin)
+            Phi      = self.Ffunc(delca,sM,sa)/normB*np.heaviside(mmax-ma,0)
+        elif Na_model==2:
+            delca    = self.deltac_func(zacc)
+            sM       = self.s_func(M200)
+            sa       = self.s_func(ma)
+            xmin     = self.s_func(mmax)-self.s_func(M200)
+            normB    = 1./np.sqrt(2.*np.pi)*delca*0.57 \
+                           *(delca/np.sqrt(sM))**-0.01*(2./(1.-0.38))*sM**(-0.38/2.) \
+                           *xmin**(0.5*(0.38-1.)) \
+                           *hyp2f1(0.5*(1-0.38),-0.38/2.,0.5*(3.-0.38),-sM/xmin)
+            Phi      = self.Ffunc(delca,sM,sa)*self.Gfunc(delca,sM,sa)/normB \
+                           *np.heaviside(mmax-ma,0)
+
+        if N_herm==1:
+            raise NotImplementedError
+        else:
+            # F2 = np.sum(np.nan_to_num(Phi)*wwi/np.sqrt(np.pi),axis=0)
+            # NOTE: replace np.nan_to_num by np.where to avoid numerical issues
+            F2 = np.sum(np.where(np.isnan(Phi),0,Phi)*wwi/np.sqrt(np.pi),axis=0)
+        Na = F2*self.dsdm(ma,0.)*self.dMdz(Mhost,zacc,z0)*(1.+zacc)
+        return Na
+
+    
+
+    def Na_calc_general(self, ma, zacc, M200, Mhost, z0=0., N_herm=200, Nrand=1000, Na_model=3):
+        """ Returns Na, Eq. (3) of Yang et al. (2011) """
+        ma = np.array(ma)
+        zacc = np.array(zacc)
+        M200 = np.array(M200)
+        Mhost = np.array(Mhost)
+        M200_0    = self.Mzzi(Mhost,zacc,z0)
+        logM200_0 = np.log10(M200_0)
+
+        # xxi,wwi = hermgauss(N_herm)
+        # xxi = xxi.reshape(-1,1,1)
+        # wwi = wwi.reshape(-1,1,1)
+        # # Eq. (21) in Yang et al. (2011) 
+        # sigmalogM200 = 0.12-0.15*np.log10(M200_0/Mhost)
+        # logM200 = np.sqrt(2.)*sigmalogM200*xxi+logM200_0
+        # M200 = 10.**logM200
+            
+        mmax = np.minimum(M200,Mhost/2.)
+        Mmax = np.minimum(M200_0+mmax,Mhost)
+
+        if np == tnp:
+            gamma = lambda x: np.exp(tf.math.lgamma(x))
+            gammainc = tf.math.igamma
+            hyp2f1 = tfp.math.hypergeometric
+        else:
+            gamma = special.gamma
+            gammainc = special.gammainc
+            hyp2f1 = special.hyp2f1
+        
+        if Na_model==3:
+            # Get z_max: where Mzzi(Mhost, z_max, z0) = Mmax, 0 < z_max < zacc
+            # To be differentiable, we use an approximation (softmax)
+            zlist    = np.linspace(zacc,0,Nrand).reshape(-1,1)
+            Mlist    = self.Mzzi(Mhost,zlist,z0)
+            weight = tf.nn.softmax(-tf.abs(Mlist-Mmax), axis=0)
+            zmax = tf.reduce_sum(zlist * weight, axis=0)
+            
+            delcM    = self.deltac_func(zmax)
+            delca    = self.deltac_func(zacc)
+            sM       = self.s_func(Mmax)
+            sa       = self.s_func(ma)
+            xmax     = (delca-delcM)**2/(2.*(self.s_func(mmax)-sM))
+            normB    = gamma(0.5)*gammainc(0.5,xmax)/np.sqrt(np.pi)
+            # those reside in the exponential part of Eq. (14) 
+            Phi      = self.Ffunc_Yang(delcM,delca,sM,sa)/normB*np.heaviside(mmax-ma,0)
+        elif Na_model==1:
+            delca    = self.deltac_func(zacc)
+            sM       = self.s_func(M200)
+            sa       = self.s_func(ma)
+            xmin     = self.s_func(mmax)-self.s_func(M200)
+            normB    = 1./np.sqrt(2*np.pi)*delca*2./xmin**0.5*special.hyp2f1(0.5,0.,1.5,-sM/xmin)
+            Phi      = self.Ffunc(delca,sM,sa)/normB*np.heaviside(mmax-ma,0)
+        elif Na_model==2:
+            delca    = self.deltac_func(zacc)
+            sM       = self.s_func(M200)
+            sa       = self.s_func(ma)
+            xmin     = self.s_func(mmax)-self.s_func(M200)
+            normB    = 1./np.sqrt(2.*np.pi)*delca*0.57 \
+                           *(delca/np.sqrt(sM))**-0.01*(2./(1.-0.38))*sM**(-0.38/2.) \
+                           *xmin**(0.5*(0.38-1.)) \
+                           *hyp2f1(0.5*(1-0.38),-0.38/2.,0.5*(3.-0.38),-sM/xmin)
+            Phi      = self.Ffunc(delca,sM,sa)*self.Gfunc(delca,sM,sa)/normB \
+                           *np.heaviside(mmax-ma,0)
+
+        # F2 = np.sum(np.nan_to_num(Phi)*wwi/np.sqrt(np.pi),axis=0)
+        # NOTE: replace np.nan_to_num by np.where to avoid numerical issues
+        F2 = np.where(np.isnan(Phi),0,Phi)
+        # print(F2)
+        # print(self.dsdm(ma,0.)) 
+        # print(self.dMdz(Mhost,zacc,z0))
+        # print((1.+zacc).shape)
+        Na = F2*self.dsdm(ma,0.)*self.dMdz(Mhost,zacc,z0)*(1.+zacc)
         return Na
 
     
@@ -419,13 +698,13 @@ class subhalo_properties(halo_model):
 
         Na           = self.Na_calc(ma,zdist,M0,z0=0.,N_herm=N_hermNa,Nrand=1000,
                                     Na_model=Na_model)
-        Na_total     = integrate.simps(integrate.simps(Na,x=np.log(ma)),x=np.log(1+zdist))
+        Na_total     = integrate.simpson(integrate.simpson(Na,x=np.log(ma)),x=np.log(1+zdist))
         weight       = Na/(1.+zdist.reshape(-1,1))
         weight       = weight/np.sum(weight)*Na_total
         weight       = (weight.reshape((len(zdist),1,len(ma))))*w1/np.sqrt(np.pi)
         z_acc        = (zdist.reshape(-1,1,1))*np.ones((1,N_herm,N_ma))
         z_acc        = z_acc.reshape(-1)
-        ma200        = ma200*np.ones((len(zdist),N_herm,1))
+        maNa200        = ma200*np.ones((len(zdist),N_herm,1))
         ma200        = ma200.reshape(-1)
         m_z0         = m0_matrix.reshape(-1)
         rs_acc       = rs_acc.reshape(-1)
