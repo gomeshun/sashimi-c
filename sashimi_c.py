@@ -840,7 +840,190 @@ class subhalo_properties(halo_model):
 
         return ma200, z_acc, rs_acc, rhos_acc, m_z0, rs_z0, rhos_z0, ct_z0, weight, survive
 
+    
+    def subhalo_properties_r_dependence_calc(self, M0, q, redshift=0.0, dz=0.1, zmax=7.0, N_ma=500, 
+                                             sigmalogc=0.128, N_herm=5, logmamin=-6, logmamax=None,
+                                             N_hermNa=200, Na_model=3, ct_th=0.77, profile_change=True,
+                                             M0_at_redshift=False, A=0.45, alpha=2.3):
+        """
+        This is the main function of SASHIMI-C, which makes a semi-analytical subhalo catalog at a
+        given radius q = r/r_vir. The weight of this function 
+        
+        -----
+        Input
+        -----
+        M0: Mass of the host halo defined as M_{200} (200 times critial density) at *z = 0*.
+            Note that this is *not* the host mass at the given redshift! It can be obtained
+            via Mzi(M0,redshift). If you want to give this parameter as the mass at the given
+            redshift, then turn 'M0_at_redshift' parameter on (see below).
+        
+        (Optional) redshift:       Redshift of interest. (default: 0)
+        (Optional) dz:             Grid of redshift of halo accretion. (default 0.1)
+        (Optional) zmax:           Maximum redshift to start the calculation of evolution from. (default: 7.)
+        (Optional) N_ma:           Number of logarithmic grid of subhalo mass at accretion defined as M_{200}).
+                                   (default: 500)
+        (Optional) sigmalogc:      rms scatter of concentration parameter defined for log_{10}(c).
+                                   (default: 0.128)
+        (Optional) N_herm:         Number of grid in Gauss-Hermite quadrature for integral over concentration.
+                                   (default: 5)
+        (Optional) logmamin:       Minimum value of subhalo mass at accretion defined as log_{10}(m_{min}/Msun)). 
+                                   (default: -6)
+        (Optional) logmamax:       Maximum value of subhalo mass at accretion defined as log_{10}(m_{max}/Msun).
+                                   If None, m_{max}=0.1*M0. (default: None)
+        (Optional) N_hermNa:       Number of grid in Gauss-Hermite quadrature for integral over host evoluation, 
+                                   used in Na_calc. (default: 200)
+        (Optional) Na_model:       Model number of EPS defined in Yang et al. (2011). (default: 3)
+        (Optional) ct_th:          Threshold value for c_t(=r_t/r_s) parameter, below which a subhalo is assumed to
+                                   be completely desrupted. Suggested values: 0.77 (default) or 0 (no desruption).
+        (Optional) profile_change: Whether we implement the evolution of subhalo density profile through tidal
+                                   mass loss. (default: True)
+        (Optional) M0_at_redshift: If True, M0 is regarded as the mass at a given redshift, instead of z=0.
+        
+        ------
+        Output
+        ------
+        List of subhalos that are characterized by the following parameters.
+        ma200:    Mass m_{200} at accretion.
+        z_acc:    Redshift at accretion.
+        rs_acc:   Scale radius r_s at accretion.
+        rhos_acc: Characteristic density \rho_s at accretion.
+        m_z0:     Mass up to tidal truncation radius at a given redshift.
+        rs_z0:    Scale radius r_s at a given redshift.
+        rhos_z0:  Characteristic density \rho_s at a given redshift.
+        ct_z0:    Tidal truncation radius in units of r_s at a given redshift.
+        weight:   Effective number of subhalos that are characterized by the same set of the parameters above.
+        survive:  If that subhalo survive against tidal disruption or not.
+        
+        """
 
+        if M0_at_redshift:
+            Mz        = M0
+            M0_list   = np.logspace(0.,3.,1000)*Mz
+            fint      = interp1d(self.Mzi(M0_list,redshift),M0_list)
+            M0        = fint(Mz)
+        self.M0       = M0
+        self.redshift = redshift
+        
+        zdist = np.arange(redshift+dz,zmax+dz,dz)
+        if logmamax==None:
+            logmamax = np.log10(0.1*M0/self.Msun)
+        ma200     = np.logspace(logmamin,logmamax,N_ma)*self.Msun
+        rs_acc    = np.zeros((len(zdist),N_herm,len(ma200)))
+        rhos_acc  = np.zeros((len(zdist),N_herm,len(ma200)))
+        rs_z0     = np.zeros((len(zdist),N_herm,len(ma200)))
+        rhos_z0   = np.zeros((len(zdist),N_herm,len(ma200)))
+        ct_z0     = np.zeros((len(zdist),N_herm,len(ma200)))
+        survive   = np.zeros((len(zdist),N_herm,len(ma200)))
+        m0_matrix = np.zeros((len(zdist),N_herm,len(ma200)))
+
+        def Mzvir(z):
+            Mz200 = self.Mzzi(M0,z,0.)
+            Mvir = self.Mvir_from_M200(Mz200,z)
+            return Mvir
+
+        def AMz(z):
+            log10a = (-0.0003*np.log10(Mzvir(z)/self.Msun)+0.02)*z \
+                         +(0.011*np.log10(Mzvir(z)/self.Msun)-0.354)
+            return 10.**log10a
+
+        def zetaMz(z):
+            return (0.00012*np.log10(Mzvir(z)/self.Msun)-0.0033)*z \
+                       +(-0.0011*np.log10(Mzvir(z)/self.Msun)+0.026)
+
+        def tdynz(z):
+            Oz_z = self.OmegaM*(1.+z)**3/self.g(z)
+            return 1.628/self.h*(self.Delc(Oz_z-1.)/178.0)**-0.5/(self.Hubble(z)/self.H0)*1.e9*self.yr
+        
+        def mdot_r(r):
+            a = 1.34
+            b = 1.39
+            c = 2.87
+            eq = a-b*(1+(1.-r)**c)**(-1./c)
+            return 10.**eq
+
+        def msolve(m, z, r):
+            return mdot_r(r)*AMz(z)*(m/tdynz(z))*(m/Mzvir(z))**zetaMz(z)/(self.Hubble(z)*(1+z))
+
+        for iz,za in tqdm.tqdm(enumerate(zdist),total=len(zdist)):
+            ma           = self.Mvir_from_M200(ma200,za)
+            Oz           = self.OmegaM*(1.+za)**3/self.g(za)
+            zcalc        = np.linspace(za,redshift,100)
+            sol          = odeint(msolve,ma,zcalc,args=(q,))
+            m0           = sol[-1]
+            c200sub      = self.conc200(ma200,za)
+            rvirsub      = (3.*ma/(4.*np.pi*self.rhocrit0*self.g(za) \
+                               *self.Delc(Oz-1)))**(1./3.)
+            r200sub      = (3.*ma200/(4.*np.pi*self.rhocrit0*self.g(za)*200.))**(1./3.)
+            c_mz         = c200sub*rvirsub/r200sub
+            x1,w1        = hermgauss(N_herm)
+            x1           = x1.reshape(len(x1),1)
+            w1           = w1.reshape(len(w1),1)
+            log10c_sub   = np.sqrt(2.)*sigmalogc*x1+np.log10(c_mz)
+            c_sub        = 10.0**log10c_sub
+            rs_acc[iz]   = rvirsub/c_sub
+            rhos_acc[iz] = ma/(4.*np.pi*rs_acc[iz]**3*self.fc(c_sub))
+            if(profile_change==True):
+                rmax_acc    = rs_acc[iz]*2.163
+                Vmax_acc    = np.sqrt(rhos_acc[iz]*4*np.pi*self.G/4.625)*rs_acc[iz]
+                Vmax_z0     = Vmax_acc*(2.**0.4*(m0/ma)**0.3*(1+m0/ma)**-0.4)
+                rmax_z0     = rmax_acc*(2.**-0.3*(m0/ma)**0.4*(1+m0/ma)**0.3)
+                rs_z0[iz]   = rmax_z0/2.163
+                rhos_z0[iz] = (4.625/(4.*np.pi*self.G))*(Vmax_z0/rs_z0[iz])**2
+            else:
+                rs_z0[iz]   = rs_acc[iz]
+                rhos_z0[iz] = rhos_acc[iz]
+            ctemp         = np.linspace(0,100,1000)
+            ftemp         = interp1d(self.fc(ctemp),ctemp,fill_value='extrapolate')
+            ct_z0[iz]     = ftemp(m0/(4.*np.pi*rhos_z0[iz]*rs_z0[iz]**3))
+            survive[iz]   = np.where(ct_z0[iz]>ct_th,1,0)
+            m0_matrix[iz] = m0*np.ones((N_herm,1))
+
+        Na           = self.Na_calc(ma,zdist,M0,z0=0.,N_herm=N_hermNa,Nrand=1000,
+                                    Na_model=Na_model)
+        Na_total     = integrate.simps(integrate.simps(Na,x=np.log(ma)),x=np.log(1+zdist))
+
+        a_0          = np.linspace(0.001,1./(1.+redshift),num=10000)
+        integrand_0  = 1./np.sqrt(self.OmegaM/a_0**3+self.OmegaL)/self.H0/a_0
+        time_0       = integrate.simps(integrand_0,x=a_0)
+        a            = np.linspace(0.001,1./(1.+zdist),num=1000)
+        integrand_a  = 1./np.sqrt(self.OmegaM/a**3+self.OmegaL)/self.H0/a
+        time_a       = integrate.simps(integrand_a,x=a,axis=0)
+        qmin         = A*np.exp(-(time_0-time_a)/(alpha*tdynz(zdist)))
+        qmin_3d      = qmin.reshape(-1,1,1)
+        #qmin_3d      = np.maximum(0.01,qmin).reshape(-1,1,1)
+        #print(qmin_3d.reshape(-1))
+
+        Oz           = self.OmegaM*(1.+redshift)**3/self.g(redshift)
+        Mvir0        = self.Mvir_from_M200(M0,redshift)
+        r200_host    = np.cbrt(3.*M0/(4.*np.pi*self.rhocrit0*self.g(redshift)*200))
+        rvir_host    = np.cbrt(3.*Mvir0/(4.*np.pi*self.rhocrit0*self.g(redshift) \
+                               *self.Delc(Oz-1)))
+        c200_host    = self.conc200(M0,redshift)
+        cvir_host    = c200_host/r200_host*rvir_host
+        Pq           = q/(q+1./cvir_host)**2
+        Pq           = Pq*np.heaviside(q-qmin_3d,1.)*np.heaviside(1.-q,1.)
+        Pq           = Pq/(np.log((1.+cvir_host)/(1.+qmin_3d*cvir_host)) \
+                           +1./(1.+cvir_host)-1./(1.+qmin_3d*cvir_host))
+ 
+        weight       = Na/(1.+zdist.reshape(-1,1))
+        weight       = weight/np.sum(weight)*Na_total
+        weight       = (weight.reshape((len(zdist),1,len(ma))))*w1/np.sqrt(np.pi)
+        density      = weight*Pq/(4.*np.pi*q**2*rvir_host**3)
+        z_acc        = (zdist.reshape(-1,1,1))*np.ones((1,N_herm,N_ma))
+        z_acc        = z_acc.reshape(-1)
+        ma200        = ma200*np.ones((len(zdist),N_herm,1))
+        ma200        = ma200.reshape(-1)
+        m_z0         = m0_matrix.reshape(-1)
+        rs_acc       = rs_acc.reshape(-1)
+        rhos_acc     = rhos_acc.reshape(-1)
+        rs_z0        = rs_z0.reshape(-1)
+        rhos_z0      = rhos_z0.reshape(-1)
+        ct_z0        = ct_z0.reshape(-1)
+        weight       = weight.reshape(-1)
+        density      = density.reshape(-1)
+        survive      = (survive==1).reshape(-1)
+
+        return ma200, z_acc, rs_acc, rhos_acc, m_z0, rs_z0, rhos_z0, ct_z0, weight, density, survive, Pq
 
 
 class subhalo_observables(subhalo_properties):
