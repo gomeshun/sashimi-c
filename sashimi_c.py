@@ -9,6 +9,8 @@ from scipy.integrate import cumulative_trapezoid
 from scipy.interpolate import interp1d
 from scipy.interpolate import griddata
 from scipy.special import erf
+import tqdm
+import multiprocessing
 from numpy.polynomial.hermite import hermgauss
 import warnings
 warnings.filterwarnings("ignore", category=RuntimeWarning, append=1)
@@ -841,7 +843,7 @@ class subhalo_properties(halo_model):
         return ma200, z_acc, rs_acc, rhos_acc, m_z0, rs_z0, rhos_z0, ct_z0, weight, survive
 
     
-    def subhalo_properties_r_dependence_calc(self, M0, q, redshift=0.0, dz=0.1, zmax=7.0, N_ma=500, 
+    def _subhalo_properties_r_dependence_calc(self, M0, q, redshift=0.0, dz=0.1, zmax=7.0, N_ma=500, 
                                              sigmalogc=0.128, N_herm=5, logmamin=-6, logmamax=None,
                                              N_hermNa=200, Na_model=3, ct_th=0.77, profile_change=True,
                                              M0_at_redshift=False, A=0.45, alpha=2.3):
@@ -893,7 +895,7 @@ class subhalo_properties(halo_model):
         ct_z0:    Tidal truncation radius in units of r_s at a given redshift.
         weight:   Effective number of subhalos that are characterized by the same set of the parameters above.
         survive:  If that subhalo survive against tidal disruption or not.
-        
+        Pq:       Probability distribution of subhalos at a given radius q = r/r_vir.
         """
 
         if M0_at_redshift:
@@ -1024,6 +1026,77 @@ class subhalo_properties(halo_model):
         survive      = (survive==1).reshape(-1)
 
         return ma200, z_acc, rs_acc, rhos_acc, m_z0, rs_z0, rhos_z0, ct_z0, weight, density, survive, Pq
+
+
+
+    def subhalo_properties_r_dependence_calc(self, M0, q_bin=100, redshift=0.0, dz=0.1, zmax=7.0, N_ma=500,
+                                                 sigmalogc=0.128, N_herm=5, logmamin=-6, logmamax=None,
+                                                 N_hermNa=200, Na_model=3, ct_th=0.77, profile_change=True,
+                                                 M0_at_redshift=False, A=0.45, alpha=2.3):
+        """
+        This is the main function of SASHIMI-C, which makes a semi-analytical subhalo catalog at a
+        given radius q = r/r_vir. The weight of this function
+
+        -----
+        Input
+        -----
+        M0: Mass of the host halo defined as M_{200} (200 times critial density) at *z = 0*.
+            Note that this is *not* the host mass at the given redshift! It can be obtained
+            via Mzi(M0,redshift). If you want to give this parameter as the mass at the given
+            redshift, then turn 'M0_at_redshift' parameter on (see below).
+        q_bin: List of radius bins q = r/r_vir. The probability distribution of subhalos is calculated at the center of each bin.
+            When q_bin is an integer, q_bin = np.linspace(0,1,q_bin+1).
+            When q_bin is a list, q_bin = [q1, q2, ..., qn] where q1 < q2 < ... < qn.
+            (default: 100)
+        
+        For other input parameters, see the 'subhalo_properties_r_dependence_calc' function.
+
+        ------
+
+        Output
+        ------
+        List of subhalos that are characterized by the following parameters.
+        ma200:    Mass m_{200} at accretion.
+        z_acc:    Redshift at accretion.
+        rs_acc:   Scale radius r_s at accretion.
+        rhos_acc: Characteristic density \rho_s at accretion.
+        m_z0:     Mass up to tidal truncation radius at a given redshift.
+        rs_z0:    Scale radius r_s at a given redshift.
+        rhos_z0:  Characteristic density \rho_s at a given redshift.
+        ct_z0:    Tidal truncation radius in units of r_s at a given redshift.
+        weight:   Effective number of subhalos that are characterized by the same set of the parameters above.
+        survive:  If that subhalo survive against tidal disruption or not.
+        q:        Radius q = r/r_vir.
+        """
+        if type(q_bin)==int:
+            q_bin = np.linspace(0,1,q_bin+1)
+        else:
+            q_bin = q_bin
+        q_arr = 0.5*(q_bin[1:]+q_bin[:-1])
+        dq_arr = q_bin[1:]-q_bin[:-1]
+        with multiprocessing.Pool() as pool:
+            results = pool.starmap(self._subhalo_properties_r_dependence_calc,
+                                   [(M0, q, redshift, dz, zmax, N_ma, sigmalogc, N_herm, logmamin, logmamax,
+                                     N_hermNa, Na_model, ct_th, profile_change, M0_at_redshift, A, alpha) for q in q_arr])
+        ma200, z_acc, rs_acc, rhos_acc, m_z0, rs_z0, rhos_z0, ct_z0, weight, density, survive, Pq = zip(*results)
+        # NOTE: The default weight is normalized to be np.sum(weight) = N_sh for each q, not for the whole sample.
+        #       To descretize the distribution for the q-axis, we need to normalize the weight for q, as follows:
+        #           \int P(q) * dq --> \sum P(q_j) * \delta{q}_j = \sum weight_{q,j} 
+        #       Once weight_q is normalized, combined weight weight * weight_q is also normalized
+        #       since weight is already normalized:
+        #           \sum_i \sum_j weight_i * weight_q_j = \sum_i weight_i * \sum_j weight_q_j 
+        #                                               = \sum_i weight_i
+        #                                               = N_sh
+        assert np.all([weight[0]==weight[i] for i in range(len(weight))])
+        # NOTE: Pq.shape = (N_q, N_z, 1, 1)
+        # NOTE: dq_arr.shape = (N_q,)
+        # broadcast the weight_q to (N_q, N_z, 1, 1) -> (N_q, N_z, N_herm, N_ma)
+        weight_q = dq_arr.reshape(-1,1,1,1)*Pq*np.ones((1,1,N_herm,N_ma))
+        assert np.allclose(np.sum(weight_q,axis=0),1,atol=0.1,rtol=0), f"The probability distribution is not normalized. Please consider to use finer q_bin. \nnp.sum(weight_q)={np.sum(weight_q,axis=0)}" 
+        weight_combined = weight*(weight_q.reshape(len(q_arr),-1))
+        q = q_arr.reshape(-1,1)*np.ones_like(ma200)
+        return ma200, z_acc, rs_acc, rhos_acc, m_z0, rs_z0, rhos_z0, ct_z0, weight_combined, density, survive, q
+
 
 
 class subhalo_observables(subhalo_properties):
