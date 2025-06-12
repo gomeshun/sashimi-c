@@ -614,6 +614,43 @@ class TidalStrippingSolver(halo_model):
 
 
 
+class TidalStrippingSolverGeneralized(TidalStrippingSolver):
+    """ Solver for the tidal stripping equation for a given subhalo.
+    This class is a generalized version of the TidalStrippingSolver class
+    where we can a factor k to the mass stripping rate Phi(z).
+    """
+
+    def __init__(self, M0, z_min=0.0, z_max=7.0, n_z_interp=64, k=1.0):
+        self._k = k  # update k without calling setter
+        super().__init__(M0, z_min, z_max, n_z_interp)
+
+    @property
+    def k(self):
+        """ Get the factor k for the mass stripping rate. """
+        return self._k
+
+    @k.setter
+    def k(self, value):
+        """ Set the factor k for the mass stripping rate. """
+        # show message if k is assigned a new value
+        print(f"Setting k from {self._k} to {value}")
+        # update the value of k
+        self._k = value
+        self.reset_interpolation(
+            z_max=self.z_max, 
+            z_min=self.z_min,
+            n_z=self.n_z_interp)
+        
+    def Phi(self,z):
+        """ subhalo stripping factor assuming zetaMz(z) = 0.
+        The stripping rate dm/dt is given by
+          dm/dt(z) = m(z) * k * Phi(z) * (m(z)/Mzvir(z))**zetaMz(z)
+        where k is a factor that can be set by the user.
+        The default value of k is 1.
+        
+        """
+        return self.k * self.AMz(z)/self.tdynz(z)/self.Hubble(z)/(1+z)
+
     
 class subhalo_properties(halo_model):
 
@@ -918,40 +955,49 @@ class subhalo_properties(halo_model):
         survive   = np.zeros((len(zdist),N_herm,len(ma200)))
         m0_matrix = np.zeros((len(zdist),N_herm,len(ma200)))
 
-        def Mzvir(z):
-            Mz200 = self.Mzzi(M0,z,0.)
-            Mvir = self.Mvir_from_M200(Mz200,z)
-            return Mvir
+        # def Mzvir(z):
+        #     Mz200 = self.Mzzi(M0,z,0.)
+        #     Mvir = self.Mvir_from_M200(Mz200,z)
+        #     return Mvir
 
-        def AMz(z):
-            log10a = (-0.0003*np.log10(Mzvir(z)/self.Msun)+0.02)*z \
-                         +(0.011*np.log10(Mzvir(z)/self.Msun)-0.354)
-            return 10.**log10a
+        # def AMz(z):
+        #     log10a = (-0.0003*np.log10(Mzvir(z)/self.Msun)+0.02)*z \
+        #                  +(0.011*np.log10(Mzvir(z)/self.Msun)-0.354)
+        #     return 10.**log10a
 
-        def zetaMz(z):
-            return (0.00012*np.log10(Mzvir(z)/self.Msun)-0.0033)*z \
-                       +(-0.0011*np.log10(Mzvir(z)/self.Msun)+0.026)
+        # def zetaMz(z):
+        #     return (0.00012*np.log10(Mzvir(z)/self.Msun)-0.0033)*z \
+        #                +(-0.0011*np.log10(Mzvir(z)/self.Msun)+0.026)
 
-        def tdynz(z):
-            Oz_z = self.OmegaM*(1.+z)**3/self.g(z)
-            return 1.628/self.h*(self.Delc(Oz_z-1.)/178.0)**-0.5/(self.Hubble(z)/self.H0)*1.e9*self.yr
+        # def tdynz(z):
+        #     Oz_z = self.OmegaM*(1.+z)**3/self.g(z)
+        #     return 1.628/self.h*(self.Delc(Oz_z-1.)/178.0)**-0.5/(self.Hubble(z)/self.H0)*1.e9*self.yr
         
-        def mdot_r(r):
+        def mdot_r(q):
             a = 1.34
             b = 1.39
             c = 2.87
-            eq = a-b*(1+(1.-r)**c)**(-1./c)
+            eq = a-b*(1+(1.-q)**c)**(-1./c)
             return 10.**eq
 
-        def msolve(m, z, r):
-            return mdot_r(r)*AMz(z)*(m/tdynz(z))*(m/Mzvir(z))**zetaMz(z)/(self.Hubble(z)*(1+z))
+        # def msolve(m, z, r):
+        #     return mdot_r(r)*AMz(z)*(m/tdynz(z))*(m/Mzvir(z))**zetaMz(z)/(self.Hubble(z)*(1+z))
+
+        solver = TidalStrippingSolverGeneralized(
+            M0 = M0,
+            z_min = redshift,
+            z_max = zmax,
+            n_z_interp=64
+        )
+        solver.k = mdot_r(q)
 
         for iz,za in tqdm.tqdm(enumerate(zdist),total=len(zdist)):
-            ma           = self.Mvir_from_M200(ma200,za)
+            ma           = self.Mvir_from_M200_fit(ma200,za)
             Oz           = self.OmegaM*(1.+za)**3/self.g(za)
-            zcalc        = np.linspace(za,redshift,100)
-            sol          = odeint(msolve,ma,zcalc,args=(q,))
-            m0           = sol[-1]
+            # zcalc        = np.linspace(za,redshift,100)
+            # sol          = odeint(msolve,ma,zcalc,args=(q,))
+            # m0           = sol[-1]
+            m0           = solver.subhalo_mass_stripped(ma, za, redshift, method="pert2_shanks")
             c200sub      = self.conc200(ma200,za)
             rvirsub      = (3.*ma/(4.*np.pi*self.rhocrit0*self.g(za) \
                                *self.Delc(Oz-1)))**(1./3.)
@@ -990,13 +1036,13 @@ class subhalo_properties(halo_model):
         a            = np.linspace(0.001,1./(1.+zdist),num=1000)
         integrand_a  = 1./np.sqrt(self.OmegaM/a**3+self.OmegaL)/self.H0/a
         time_a       = integrate.simps(integrand_a,x=a,axis=0)
-        qmin         = A*np.exp(-(time_0-time_a)/(alpha*tdynz(zdist)))
+        qmin         = A*np.exp(-(time_0-time_a)/(alpha*solver.tdynz(zdist)))
         qmin_3d      = qmin.reshape(-1,1,1)
         #qmin_3d      = np.maximum(0.01,qmin).reshape(-1,1,1)
         #print(qmin_3d.reshape(-1))
 
         Oz           = self.OmegaM*(1.+redshift)**3/self.g(redshift)
-        Mvir0        = self.Mvir_from_M200(M0,redshift)
+        Mvir0        = self.Mvir_from_M200_fit(M0,redshift)
         r200_host    = np.cbrt(3.*M0/(4.*np.pi*self.rhocrit0*self.g(redshift)*200))
         rvir_host    = np.cbrt(3.*Mvir0/(4.*np.pi*self.rhocrit0*self.g(redshift) \
                                *self.Delc(Oz-1)))
@@ -1092,7 +1138,8 @@ class subhalo_properties(halo_model):
         # NOTE: dq_arr.shape = (N_q,)
         # broadcast the weight_q to (N_q, N_z, 1, 1) -> (N_q, N_z, N_herm, N_ma)
         weight_q = dq_arr.reshape(-1,1,1,1)*Pq*np.ones((1,1,N_herm,N_ma))
-        assert np.allclose(np.sum(weight_q,axis=0),1,atol=0.1,rtol=0), f"The probability distribution is not normalized. Please consider to use finer q_bin. \nnp.sum(weight_q)={np.sum(weight_q,axis=0)}" 
+        weight_q = weight_q/np.sum(weight_q,axis=0)  # force to be normalized
+        # assert np.allclose(np.sum(weight_q,axis=0),1,atol=0.1,rtol=0), f"The probability distribution is not normalized. Please consider to use finer q_bin. \nnp.sum(weight_q)={np.sum(weight_q,axis=0)}" 
         weight_combined = weight*(weight_q.reshape(len(q_arr),-1))
         q = q_arr.reshape(-1,1)*np.ones_like(ma200)
         return ma200, z_acc, rs_acc, rhos_acc, m_z0, rs_z0, rhos_z0, ct_z0, weight_combined, density, survive, q
