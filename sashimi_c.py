@@ -3,7 +3,11 @@ from scipy import integrate
 from scipy import interpolate
 from scipy import optimize
 from scipy import special
-from scipy.integrate import simpson
+try:
+    from scipy.integrate import simpson
+except ImportError:
+    from scipy.integrate import simps as simpson
+    print("Warning: simpson function is not available. Using simps (older version) instead.")
 from scipy.integrate import odeint
 from scipy.integrate import cumulative_trapezoid
 from scipy.interpolate import interp1d
@@ -883,7 +887,7 @@ class subhalo_properties(halo_model):
     def _subhalo_properties_r_dependence_calc(self, M0, q, redshift=0.0, dz=0.1, zmax=7.0, N_ma=500, 
                                              sigmalogc=0.128, N_herm=5, logmamin=-6, logmamax=None,
                                              N_hermNa=200, Na_model=3, ct_th=0.77, profile_change=True,
-                                             M0_at_redshift=False, A=0.45, alpha=2.3):
+                                             M0_at_redshift=False, mdot_fitting_type=0, A=0.45, alpha=2.3):
         """
         This is the main function of SASHIMI-C, which makes a semi-analytical subhalo catalog at a
         given radius q = r/r_vir. The weight of this function 
@@ -973,12 +977,67 @@ class subhalo_properties(halo_model):
         #     Oz_z = self.OmegaM*(1.+z)**3/self.g(z)
         #     return 1.628/self.h*(self.Delc(Oz_z-1.)/178.0)**-0.5/(self.Hubble(z)/self.H0)*1.e9*self.yr
         
-        def mdot_r(q):
-            a = 1.34
-            b = 1.39
-            c = 2.87
-            eq = a-b*(1+(1.-q)**c)**(-1./c)
-            return 10.**eq
+        if mdot_fitting_type==0:
+            def mdot_r(q):
+                a = 1.34
+                b = 1.39
+                c = 2.87
+                eq = a-b*(1+(1.-q)**c)**(-1./c)
+                return 10.**eq
+        elif mdot_fitting_type==1:
+            def mdot_r(q):
+                """ Factor to modify the mass stripping rate as a function of radius q = r/r_vir.
+                The stripping rate dm/dt is given by
+                    mdot_r(q) * mdot
+                where mdot is the mass stripping rate given by the original SASHIMI-C code.
+                """
+                q_ref = 0.62
+                beta = -0.29
+                return (q/q_ref)**beta
+        elif mdot_fitting_type==2:
+            def mdot_r(q):
+                """ Factor to modify the mass stripping rate as a function of radius q = r/r_vir.
+                The stripping rate dm/dt is given by
+                    mdot_r(q) * mdot
+                where mdot is the mass stripping rate given by the original SASHIMI-C code.
+                
+                In this case, we modify the dynamical time scale \tau_{dyn} as a function of radius q = r/r_vir:
+
+                t_dyn --> t_dyn(q) = t_dyn * k * rho_nfw_mean_normalized(q)
+
+                where 
+                  - t_dyn: dynamical time scale at the virial radius, used in the original SASHIMI-C code.
+                  - k: a factor to modify the dynamical time scale.
+                  - rho_nfw_mean_normalized(q): mean NFW density normalized by the outermost density (q=1):
+                The mean NFW density is given by
+
+                  rho_nfw_mean(q) = 3 * rho_s * (log(1+c*q) - c*q/(1+c*q)) / (c*q)^3
+                                  = 3 * rho_s * a_nfw(c*q) / (c*q)^3
+                where
+                  a_nfw(x) = log(1+x) - x/(1+x)
+                Here, we can use the following definitions:
+                  - M(<r) = 4 * pi * rho_s * r_s^3 * (log(1+r/r_s) - r/r_s/(1+r/r_s))
+                  - V(<r) = 4 * pi * r**3 / 3
+                and c = r_vir / r_s, q = r / r_vir, so that r/r_s = c * q.
+                where c is the concentration parameter.
+                The normalization is done by dividing by rho_nfw_mean(1), so
+                rho_nfw_mean_normalized(q) = rho_nfw_mean(q) / rho_nfw_mean(1)
+                                           = a_nfw(c*q) / a_nfw(c) * q**-3
+
+                Finally, since the mass loss rate is proportional to the inverse of the dynamical time scale,
+                we can write the modified mass loss rate as:
+
+                  mdot_r(q) = 1 / (k * rho_nfw_mean_normalized(q))
+
+                """
+                c_host = 6
+                k = 0.2624
+                a_nfw = lambda x: np.log1p(x) - x / (1 + x)
+                rho = a_nfw(c_host*q) / a_nfw(c_host) * q**-3  # mean NFW density normalized at q=1
+                return 1.0 / (k * rho)  # modified mass loss rate
+
+        else:
+            raise ValueError("mdot_fitting_type must be 0 or 1.")
 
         # def msolve(m, z, r):
         #     return mdot_r(r)*AMz(z)*(m/tdynz(z))*(m/Mzvir(z))**zetaMz(z)/(self.Hubble(z)*(1+z))
@@ -1030,14 +1089,23 @@ class subhalo_properties(halo_model):
                                     Na_model=Na_model)
         Na_total     = integrate.simps(integrate.simps(Na,x=np.log(ma)),x=np.log(1+zdist))
 
-        a_0          = np.linspace(0.001,1./(1.+redshift),num=10000)
-        integrand_0  = 1./np.sqrt(self.OmegaM/a_0**3+self.OmegaL)/self.H0/a_0
-        time_0       = integrate.simps(integrand_0,x=a_0)
-        a            = np.linspace(0.001,1./(1.+zdist),num=1000)
-        integrand_a  = 1./np.sqrt(self.OmegaM/a**3+self.OmegaL)/self.H0/a
-        time_a       = integrate.simps(integrand_a,x=a,axis=0)
-        qmin         = A*np.exp(-(time_0-time_a)/(alpha*solver.tdynz(zdist)))
+        def calc_qmin(redshift, zdist, A=A, alpha=alpha):
+            """ Calculate the minimum radius q_min for the given redshift and zdist.
+            """
+            a_0          = np.linspace(0.001,1./(1.+redshift),num=10000)
+            integrand_0  = 1./np.sqrt(self.OmegaM/a_0**3+self.OmegaL)/self.H0/a_0
+            time_0       = integrate.simps(integrand_0,x=a_0)
+            a            = np.linspace(0.001,1./(1.+zdist),num=1000)
+            integrand_a  = 1./np.sqrt(self.OmegaM/a**3+self.OmegaL)/self.H0/a
+            time_a       = integrate.simps(integrand_a,x=a,axis=0)
+            qmin         = A*np.exp(-(time_0-time_a)/(alpha*solver.tdynz(zdist)))
+            return qmin
+        qmin = calc_qmin(redshift, zdist, A=A, alpha=alpha)
         qmin_3d      = qmin.reshape(-1,1,1)
+        # print("qmin_3d:", qmin_3d.reshape(-1))
+        # DEBUG: DISABLE qmin
+        # qmin_3d = np.zeros_like(qmin_3d)
+
         #qmin_3d      = np.maximum(0.01,qmin).reshape(-1,1,1)
         #print(qmin_3d.reshape(-1))
 
@@ -1078,7 +1146,7 @@ class subhalo_properties(halo_model):
     def subhalo_properties_r_dependence_calc(self, M0, q_bin=100, redshift=0.0, dz=0.1, zmax=7.0, N_ma=500,
                                                  sigmalogc=0.128, N_herm=5, logmamin=-6, logmamax=None,
                                                  N_hermNa=200, Na_model=3, ct_th=0.77, profile_change=True,
-                                                 M0_at_redshift=False, A=0.45, alpha=2.3):
+                                                 M0_at_redshift=False, mdot_fitting_type=0,A=0.45, alpha=2.3):
         """
         This is the main function of SASHIMI-C, which makes a semi-analytical subhalo catalog at a
         given radius q = r/r_vir. The weight of this function
@@ -1122,8 +1190,10 @@ class subhalo_properties(halo_model):
         dq_arr = q_bin[1:]-q_bin[:-1]
         with multiprocessing.Pool() as pool:
             results = pool.starmap(self._subhalo_properties_r_dependence_calc,
-                                   [(M0, q, redshift, dz, zmax, N_ma, sigmalogc, N_herm, logmamin, logmamax,
-                                     N_hermNa, Na_model, ct_th, profile_change, M0_at_redshift, A, alpha) for q in q_arr])
+                                   [(M0, q, redshift, dz, zmax, N_ma, 
+                                     sigmalogc, N_herm, logmamin, logmamax,
+                                     N_hermNa, Na_model, ct_th, profile_change,
+                                     M0_at_redshift, mdot_fitting_type, A, alpha) for q in q_arr])
         ma200, z_acc, rs_acc, rhos_acc, m_z0, rs_z0, rhos_z0, ct_z0, weight, density, survive, Pq = zip(*results)
         # NOTE: The default weight is normalized to be np.sum(weight) = N_sh for each q, not for the whole sample.
         #       To descretize the distribution for the q-axis, we need to normalize the weight for q, as follows:
