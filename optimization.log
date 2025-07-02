@@ -1,0 +1,23 @@
+2025-07-02 18:15:17 [INFO] ============================================================
+2025-07-02 18:15:17 [INFO] HYPERPARAMETER OPTIMIZATION LOG
+2025-07-02 18:15:17 [INFO] ============================================================
+2025-07-02 18:15:17 [INFO] Parameters: q_bin=32, m0_min=0.1, m0_max=1.0, mdot_fitting_type=2
+2025-07-02 18:16:50 [INFO] Initial guess: A=1, alpha=1, loss=358.098371
+2025-07-02 18:16:50 [INFO] Logging to file: optimization.log
+2025-07-02 18:21:40 [INFO] ============================================================
+2025-07-02 18:21:40 [INFO] HYPERPARAMETER OPTIMIZATION LOG
+2025-07-02 18:21:40 [INFO] ============================================================
+2025-07-02 18:21:40 [INFO] Parameters: q_bin=32, m0_min=0.1, m0_max=1.0, mdot_fitting_type=2
+2025-07-02 18:21:40 [INFO] Starting optimization with initial guess: A=1, alpha=1
+2025-07-02 18:21:40 [INFO] Logging to file: optimization.log
+2025-07-02 18:22:55 [INFO] Function call 1: A=1.0000, alpha=1.0000, loss=358.098371
+2025-07-02 18:24:35 [INFO] Function call 2: A=1.0500, alpha=1.0000, loss=nan
+2025-07-02 18:26:13 [INFO] Function call 3: A=1.0000, alpha=1.0500, loss=355.441521
+2025-07-02 18:27:56 [INFO] Function call 4: A=0.9500, alpha=1.0500, loss=355.344469
+2025-07-02 18:29:31 [INFO] Function call 5: A=0.9000, alpha=1.0750, loss=353.419388
+2025-07-02 18:31:04 [INFO] Function call 6: A=0.9000, alpha=1.1250, loss=351.956308
+2025-07-02 18:32:52 [INFO] Function call 7: A=0.8500, alpha=1.1875, loss=348.880945
+2025-07-02 18:34:20 [INFO] Function call 8: A=0.7500, alpha=1.2125, loss=347.700264
+2025-07-02 18:35:51 [INFO] Function call 9: A=0.6250, alpha=1.2937, loss=344.285491
+2025-07-02 18:37:22 [INFO] Function call 10: A=0.5750, alpha=1.4062, loss=339.120737
+2025-07-02 18:39:05 [INFO] Function call 11: A=0.4125, alpha=1.5719, loss=330.594107
