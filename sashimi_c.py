@@ -620,13 +620,40 @@ class TidalStrippingSolver(halo_model):
 
 class TidalStrippingSolverGeneralized(TidalStrippingSolver):
     """ Solver for the tidal stripping equation for a given subhalo.
-    This class is a generalized version of the TidalStrippingSolver class
-    where we can a factor k to the mass stripping rate Phi(z).
+    This class is a generalized version of the :class:`TidalStrippingSolver`
+    class where we can introduce a factor ``k`` to the mass stripping rate
+    ``Phi(z)``.
+
+    Parameters
+    ----------
+    M0 : float
+        Mass of the host halo defined as :math:`M_{200}` at ``z=0``.
+    z_min : float, optional
+        Minimum redshift to end the calculation of evolution. (default: 0)
+    z_max : float, optional
+        Maximum redshift to start the calculation of evolution from. (default: 7)
+    n_z_interp : int, optional
+        Number of redshifts to interpolate ``Phi``. (default: 64)
+    k : float, optional
+        Factor to scale the mass stripping rate. (default: 1.0)
+    verbose : bool, optional
+        If ``True`` (default), print informative messages when parameters are
+        updated.
     """
 
-    def __init__(self, M0, z_min=0.0, z_max=7.0, n_z_interp=64, k=1.0):
+    def __init__(self, M0, z_min=0.0, z_max=7.0, n_z_interp=64, k=1.0, verbose=True):
         self._k = k  # update k without calling setter
+        self._verbose = verbose
         super().__init__(M0, z_min, z_max, n_z_interp)
+
+    @property
+    def verbose(self):
+        """Return the verbosity flag."""
+        return self._verbose
+
+    @verbose.setter
+    def verbose(self, value):
+        self._verbose = bool(value)
 
     @property
     def k(self):
@@ -637,11 +664,12 @@ class TidalStrippingSolverGeneralized(TidalStrippingSolver):
     def k(self, value):
         """ Set the factor k for the mass stripping rate. """
         # show message if k is assigned a new value
-        print(f"Setting k from {self._k} to {value}")
+        if self.verbose:
+            print(f"Setting k from {self._k} to {value}")
         # update the value of k
         self._k = value
         self.reset_interpolation(
-            z_max=self.z_max, 
+            z_max=self.z_max,
             z_min=self.z_min,
             n_z=self.n_z_interp)
         
@@ -884,10 +912,11 @@ class subhalo_properties(halo_model):
         return ma200, z_acc, rs_acc, rhos_acc, m_z0, rs_z0, rhos_z0, ct_z0, weight, survive
 
     
-    def _subhalo_properties_r_dependence_calc(self, M0, q, redshift=0.0, dz=0.1, zmax=7.0, N_ma=500, 
+    def _subhalo_properties_r_dependence_calc(self, M0, q, redshift=0.0, dz=0.1, zmax=7.0, N_ma=500,
                                              sigmalogc=0.128, N_herm=5, logmamin=-6, logmamax=None,
                                              N_hermNa=200, Na_model=3, ct_th=0.77, profile_change=True,
-                                             M0_at_redshift=False, mdot_fitting_type=0, A=0.45, alpha=2.3):
+                                             M0_at_redshift=False, mdot_fitting_type=0, A=0.45, alpha=2.3,
+                                             verbose=True):
         """
         This is the main function of SASHIMI-C, which makes a semi-analytical subhalo catalog at a
         given radius q = r/r_vir. The weight of this function 
@@ -1043,14 +1072,19 @@ class subhalo_properties(halo_model):
         #     return mdot_r(r)*AMz(z)*(m/tdynz(z))*(m/Mzvir(z))**zetaMz(z)/(self.Hubble(z)*(1+z))
 
         solver = TidalStrippingSolverGeneralized(
-            M0 = M0,
-            z_min = redshift,
-            z_max = zmax,
-            n_z_interp=64
+            M0=M0,
+            z_min=redshift,
+            z_max=zmax,
+            n_z_interp=64,
+            verbose=verbose
         )
         solver.k = mdot_r(q)
 
-        for iz,za in tqdm.tqdm(enumerate(zdist),total=len(zdist)):
+        iterable = enumerate(zdist)
+        if verbose:
+            iterable = tqdm.tqdm(iterable, total=len(zdist))
+
+        for iz, za in iterable:
             ma           = self.Mvir_from_M200_fit(ma200,za)
             Oz           = self.OmegaM*(1.+za)**3/self.g(za)
             # zcalc        = np.linspace(za,redshift,100)
@@ -1147,7 +1181,7 @@ class subhalo_properties(halo_model):
                                                  sigmalogc=0.128, N_herm=5, logmamin=-6, logmamax=None,
                                                  N_hermNa=200, Na_model=3, ct_th=0.77, profile_change=True,
                                                  M0_at_redshift=False, mdot_fitting_type=0,A=0.45, alpha=2.3,
-                                                 use_multiprocessing=True):
+                                                 use_multiprocessing=True, verbose=True):
         """
         This is the main function of SASHIMI-C, which makes a semi-analytical subhalo catalog at a
         given radius q = r/r_vir. The weight of this function
@@ -1165,6 +1199,7 @@ class subhalo_properties(halo_model):
             (default: 100)
         use_multiprocessing: Use multiprocessing to parallelize the calculation over q bins.
             If False, a sequential for loop is used instead. (default: True)
+        verbose: If True, display progress bars and messages. (default: True)
         
         For other input parameters, see the 'subhalo_properties_r_dependence_calc' function.
 
@@ -1194,7 +1229,8 @@ class subhalo_properties(halo_model):
         args_list = [(M0, q, redshift, dz, zmax, N_ma,
                       sigmalogc, N_herm, logmamin, logmamax,
                       N_hermNa, Na_model, ct_th, profile_change,
-                      M0_at_redshift, mdot_fitting_type, A, alpha) for q in q_arr]
+                      M0_at_redshift, mdot_fitting_type, A, alpha,
+                      verbose) for q in q_arr]
         if use_multiprocessing:
             with multiprocessing.Pool() as pool:
                 results = pool.starmap(self._subhalo_properties_r_dependence_calc, args_list)
