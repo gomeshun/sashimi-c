@@ -1,0 +1,4 @@
+# Required libraries for sashimi_c.py
+numpy>=1.20.0
+scipy>=1.6.0
+tqdm>=4.60.0
