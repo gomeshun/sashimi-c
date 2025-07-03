@@ -1087,17 +1087,17 @@ class subhalo_properties(halo_model):
 
         Na           = self.Na_calc(ma,zdist,M0,z0=0.,N_herm=N_hermNa,Nrand=1000,
                                     Na_model=Na_model)
-        Na_total     = integrate.simps(integrate.simps(Na,x=np.log(ma)),x=np.log(1+zdist))
+        Na_total     = integrate.simpson(integrate.simpson(Na,x=np.log(ma)),x=np.log(1+zdist))
 
         def calc_qmin(redshift, zdist, A=A, alpha=alpha):
             """ Calculate the minimum radius q_min for the given redshift and zdist.
             """
             a_0          = np.linspace(0.001,1./(1.+redshift),num=10000)
             integrand_0  = 1./np.sqrt(self.OmegaM/a_0**3+self.OmegaL)/self.H0/a_0
-            time_0       = integrate.simps(integrand_0,x=a_0)
+            time_0       = integrate.simpson(integrand_0,x=a_0)
             a            = np.linspace(0.001,1./(1.+zdist),num=1000)
             integrand_a  = 1./np.sqrt(self.OmegaM/a**3+self.OmegaL)/self.H0/a
-            time_a       = integrate.simps(integrand_a,x=a,axis=0)
+            time_a       = integrate.simpson(integrand_a,x=a,axis=0)
             qmin         = A*np.exp(-(time_0-time_a)/(alpha*solver.tdynz(zdist)))
             return qmin
         qmin = calc_qmin(redshift, zdist, A=A, alpha=alpha)
