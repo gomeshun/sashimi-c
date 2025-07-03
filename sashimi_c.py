@@ -1146,7 +1146,8 @@ class subhalo_properties(halo_model):
     def subhalo_properties_r_dependence_calc(self, M0, q_bin=100, redshift=0.0, dz=0.1, zmax=7.0, N_ma=500,
                                                  sigmalogc=0.128, N_herm=5, logmamin=-6, logmamax=None,
                                                  N_hermNa=200, Na_model=3, ct_th=0.77, profile_change=True,
-                                                 M0_at_redshift=False, mdot_fitting_type=0,A=0.45, alpha=2.3):
+                                                 M0_at_redshift=False, mdot_fitting_type=0,A=0.45, alpha=2.3,
+                                                 use_multiprocessing=True):
         """
         This is the main function of SASHIMI-C, which makes a semi-analytical subhalo catalog at a
         given radius q = r/r_vir. The weight of this function
@@ -1162,6 +1163,8 @@ class subhalo_properties(halo_model):
             When q_bin is an integer, q_bin = np.linspace(0,1,q_bin+1).
             When q_bin is a list, q_bin = [q1, q2, ..., qn] where q1 < q2 < ... < qn.
             (default: 100)
+        use_multiprocessing: Use multiprocessing to parallelize the calculation over q bins.
+            If False, a sequential for loop is used instead. (default: True)
         
         For other input parameters, see the 'subhalo_properties_r_dependence_calc' function.
 
@@ -1188,12 +1191,15 @@ class subhalo_properties(halo_model):
             q_bin = q_bin
         q_arr = 0.5*(q_bin[1:]+q_bin[:-1])
         dq_arr = q_bin[1:]-q_bin[:-1]
-        with multiprocessing.Pool() as pool:
-            results = pool.starmap(self._subhalo_properties_r_dependence_calc,
-                                   [(M0, q, redshift, dz, zmax, N_ma, 
-                                     sigmalogc, N_herm, logmamin, logmamax,
-                                     N_hermNa, Na_model, ct_th, profile_change,
-                                     M0_at_redshift, mdot_fitting_type, A, alpha) for q in q_arr])
+        args_list = [(M0, q, redshift, dz, zmax, N_ma,
+                      sigmalogc, N_herm, logmamin, logmamax,
+                      N_hermNa, Na_model, ct_th, profile_change,
+                      M0_at_redshift, mdot_fitting_type, A, alpha) for q in q_arr]
+        if use_multiprocessing:
+            with multiprocessing.Pool() as pool:
+                results = pool.starmap(self._subhalo_properties_r_dependence_calc, args_list)
+        else:
+            results = [self._subhalo_properties_r_dependence_calc(*args) for args in args_list]
         ma200, z_acc, rs_acc, rhos_acc, m_z0, rs_z0, rhos_z0, ct_z0, weight, density, survive, Pq = zip(*results)
         # NOTE: The default weight is normalized to be np.sum(weight) = N_sh for each q, not for the whole sample.
         #       To descretize the distribution for the q-axis, we need to normalize the weight for q, as follows:
