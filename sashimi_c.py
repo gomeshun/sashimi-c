@@ -1191,20 +1191,15 @@ class subhalo_properties(halo_model):
             q_bin = q_bin
         q_arr = 0.5*(q_bin[1:]+q_bin[:-1])
         dq_arr = q_bin[1:]-q_bin[:-1]
+        args_list = [(M0, q, redshift, dz, zmax, N_ma,
+                      sigmalogc, N_herm, logmamin, logmamax,
+                      N_hermNa, Na_model, ct_th, profile_change,
+                      M0_at_redshift, mdot_fitting_type, A, alpha) for q in q_arr]
         if use_multiprocessing:
             with multiprocessing.Pool() as pool:
-                results = pool.starmap(self._subhalo_properties_r_dependence_calc,
-                                       [(M0, q, redshift, dz, zmax, N_ma,
-                                         sigmalogc, N_herm, logmamin, logmamax,
-                                         N_hermNa, Na_model, ct_th, profile_change,
-                                         M0_at_redshift, mdot_fitting_type, A, alpha) for q in q_arr])
+                results = pool.starmap(self._subhalo_properties_r_dependence_calc, args_list)
         else:
-            results = [self._subhalo_properties_r_dependence_calc(
-                        M0, q, redshift, dz, zmax, N_ma,
-                        sigmalogc, N_herm, logmamin, logmamax,
-                        N_hermNa, Na_model, ct_th, profile_change,
-                        M0_at_redshift, mdot_fitting_type, A, alpha)
-                       for q in q_arr]
+            results = [self._subhalo_properties_r_dependence_calc(*args) for args in args_list]
         ma200, z_acc, rs_acc, rhos_acc, m_z0, rs_z0, rhos_z0, ct_z0, weight, density, survive, Pq = zip(*results)
         # NOTE: The default weight is normalized to be np.sum(weight) = N_sh for each q, not for the whole sample.
         #       To descretize the distribution for the q-axis, we need to normalize the weight for q, as follows:
