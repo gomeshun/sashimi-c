@@ -3,6 +3,7 @@ from scipy import integrate
 from scipy import interpolate
 from scipy import optimize
 from scipy import special
+import numexpr as ne
 try:
     from scipy.integrate import simpson
 except ImportError:
@@ -677,11 +678,26 @@ class subhalo_properties(halo_model):
         return G0*pow(sig2/sig1,gamma1)*pow(dela/sig1,gamma2)
 
     
-    def Ffunc_Yang(self, delc1, delc2, s1, s2):
+    def _Ffunc_Yang(self, delc1, delc2, s1, s2):
         """ Returns Eq. (14) of Yang et al. (2011) """
         return 1./np.sqrt(2.*np.pi)*(delc2-delc1)/(s2-s1)**1.5 \
             *np.exp(-(delc2-delc1)**2/(2.*(s2-s1)))
+    
 
+    def _Ffunc_Yang_numexpr(self, delc1, delc2, s1, s2):
+        """ Returns Eq. (14) of Yang et al. (2011) using numexpr for speedup """
+        return ne.evaluate(
+            "1./sqrt(2.*pi)*(delc2-delc1)/(s2-s1)**1.5 * exp(-(delc2-delc1)**2/(2.*(s2-s1)))",
+            local_dict={"pi":np.pi, "delc1":delc1, "delc2":delc2, "s1":s1, "s2":s2}
+        )
+
+
+    def Ffunc_Yang(self, delc1, delc2, s1, s2,  use_numexpr=True):
+        """ Returns Eq. (14) of Yang et al. (2011) """
+        if use_numexpr:
+            return self._Ffunc_Yang_numexpr(delc1, delc2, s1, s2)
+        else:
+            return self._Ffunc_Yang(delc1, delc2, s1, s2)
     
     def Na_calc(self, ma, zacc, Mhost, z0=0., N_herm=200, Nrand=1000, Na_model=3):
         """ Returns Na, Eq. (3) of Yang et al. (2011) """
@@ -1116,11 +1132,13 @@ class subhalo_properties(halo_model):
                                *self.Delc(Oz-1)))
         c200_host    = self.conc200(M0,redshift)
         cvir_host    = c200_host/r200_host*rvir_host
-        Pq           = q/(q+1./cvir_host)**2
-        Pq           = Pq*np.heaviside(q-qmin_3d,1.)*np.heaviside(1.-q,1.)
-        Pq           = Pq/(np.log((1.+cvir_host)/(1.+qmin_3d*cvir_host)) \
-                           +1./(1.+cvir_host)-1./(1.+qmin_3d*cvir_host))
- 
+        def calc_Pq(q, qmin_3d, cvir_host):
+            Pq           = q/(q+1./cvir_host)**2
+            Pq           = Pq*np.heaviside(q-qmin_3d,1.)*np.heaviside(1.-q,1.)
+            Pq           = Pq/(np.log((1.+cvir_host)/(1.+qmin_3d*cvir_host)) \
+                            +1./(1.+cvir_host)-1./(1.+qmin_3d*cvir_host))
+            return Pq
+        Pq           = calc_Pq(q,qmin_3d,cvir_host)
         weight       = Na/(1.+zdist.reshape(-1,1))
         weight       = weight/np.sum(weight)*Na_total
         weight       = (weight.reshape((len(zdist),1,len(ma))))*w1/np.sqrt(np.pi)
@@ -1196,7 +1214,8 @@ class subhalo_properties(halo_model):
                       N_hermNa, Na_model, ct_th, profile_change,
                       M0_at_redshift, mdot_fitting_type, A, alpha) for q in q_arr]
         if use_multiprocessing:
-            with multiprocessing.Pool() as pool:
+            n_pools = min(multiprocessing.cpu_count(), len(args_list)) // 2  # Use half of the available CPU cores
+            with multiprocessing.Pool(n_pools) as pool:
                 results = pool.starmap(self._subhalo_properties_r_dependence_calc, args_list)
         else:
             results = [self._subhalo_properties_r_dependence_calc(*args) for args in args_list]
