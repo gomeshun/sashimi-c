@@ -2,6 +2,9 @@ from sashimi_c import *
 import os
 import tqdm
 
+# Set this flag to control progress bar and print outputs
+VERBOSE = True
+
 n_values = [0,1,2,3]
 
 if not os.path.exists('data/boost'):
@@ -22,8 +25,12 @@ list_fsh = np.empty_like(list_ma)
 list_Bsh = np.empty_like(list_ma)
 
 for n in n_values:
-    print(f"Running for n = {n}")
-    for i,za in tqdm.tqdm(enumerate(list_za),total=len(list_za)):
+    if VERBOSE:
+        print(f"Running for n = {n}")
+    iterable = enumerate(list_za)
+    if VERBOSE:
+        iterable = tqdm.tqdm(iterable, total=len(list_za))
+    for i, za in iterable:
         #print(za)
         #print(np.log10(list_ma[i]/sh.Msun))
         for j,ma in enumerate(list_ma[i]):
