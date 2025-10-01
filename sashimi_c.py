@@ -912,7 +912,7 @@ class subhalo_properties(halo_model):
         return qmin
     
 
-    def calc_Pq(self, q, qmin_3d, cvir_host):
+    def calc_Pq_NFW(self, q, qmin_3d, cvir_host):
         """ Calculate the probability distribution of subhalos at a given radius q = r/r_vir.
         """
         Pq           = q/(q+1./cvir_host)**2
@@ -920,6 +920,67 @@ class subhalo_properties(halo_model):
         Pq           = Pq/(np.log((1.+cvir_host)/(1.+qmin_3d*cvir_host)) \
                         +1./(1.+cvir_host)-1./(1.+qmin_3d*cvir_host))
         return Pq
+    
+
+    def mdot_r_0(self,q):
+        a = 1.34
+        b = 1.39
+        c = 2.87
+        eq = a-b*(1+(1.-q)**c)**(-1./c)
+        return 10.**eq
+    
+
+    def mdot_r_1(self,q):
+        """ Factor to modify the mass stripping rate as a function of radius q = r/r_vir.
+        The stripping rate dm/dt is given by
+            mdot_r(q) * mdot
+        where mdot is the mass stripping rate given by the original SASHIMI-C code.
+        """
+        q_ref = 0.62
+        beta = -0.29
+        return (q/q_ref)**beta
+
+
+    def mdot_r_2(self,q):
+        """ Factor to modify the mass stripping rate as a function of radius q = r/r_vir.
+        The stripping rate dm/dt is given by
+            mdot_r(q) * mdot
+        where mdot is the mass stripping rate given by the original SASHIMI-C code.
+        
+        In this case, we modify the dynamical time scale \tau_{dyn} as a function of radius q = r/r_vir:
+
+        t_dyn --> t_dyn(q) = t_dyn * k * rho_nfw_mean_normalized(q)
+
+        where 
+            - t_dyn: dynamical time scale at the virial radius, used in the original SASHIMI-C code.
+            - k: a factor to modify the dynamical time scale.
+            - rho_nfw_mean_normalized(q): mean NFW density normalized by the outermost density (q=1):
+        The mean NFW density is given by
+
+            rho_nfw_mean(q) = 3 * rho_s * (log(1+c*q) - c*q/(1+c*q)) / (c*q)^3
+                            = 3 * rho_s * a_nfw(c*q) / (c*q)^3
+        where
+            a_nfw(x) = log(1+x) - x/(1+x)
+        Here, we can use the following definitions:
+            - M(<r) = 4 * pi * rho_s * r_s^3 * (log(1+r/r_s) - r/r_s/(1+r/r_s))
+            - V(<r) = 4 * pi * r**3 / 3
+        and c = r_vir / r_s, q = r / r_vir, so that r/r_s = c * q.
+        where c is the concentration parameter.
+        The normalization is done by dividing by rho_nfw_mean(1), so
+        rho_nfw_mean_normalized(q) = rho_nfw_mean(q) / rho_nfw_mean(1)
+                                    = a_nfw(c*q) / a_nfw(c) * q**-3
+
+        Finally, since the mass loss rate is proportional to the inverse of the dynamical time scale,
+        we can write the modified mass loss rate as:
+
+            mdot_r(q) = 1 / (k * rho_nfw_mean_normalized(q))
+
+        """
+        c_host = 6
+        k = 0.2624
+        a_nfw = lambda x: np.log1p(x) - x / (1 + x)
+        rho = a_nfw(c_host*q) / a_nfw(c_host) * q**-3  # mean NFW density normalized at q=1
+        return 1.0 / (k * rho)  # modified mass loss rate
     
     
     def _subhalo_properties_r_dependence_calc(self, M0, q, redshift=0.0, dz=0.1, zmax=7.0, N_ma=500, 
@@ -996,90 +1057,16 @@ class subhalo_properties(halo_model):
         ct_z0     = np.zeros((len(zdist),N_herm,len(ma200)))
         survive   = np.zeros((len(zdist),N_herm,len(ma200)))
         m0_matrix = np.zeros((len(zdist),N_herm,len(ma200)))
-
-        # def Mzvir(z):
-        #     Mz200 = self.Mzzi(M0,z,0.)
-        #     Mvir = self.Mvir_from_M200(Mz200,z)
-        #     return Mvir
-
-        # def AMz(z):
-        #     log10a = (-0.0003*np.log10(Mzvir(z)/self.Msun)+0.02)*z \
-        #                  +(0.011*np.log10(Mzvir(z)/self.Msun)-0.354)
-        #     return 10.**log10a
-
-        # def zetaMz(z):
-        #     return (0.00012*np.log10(Mzvir(z)/self.Msun)-0.0033)*z \
-        #                +(-0.0011*np.log10(Mzvir(z)/self.Msun)+0.026)
-
-        # def tdynz(z):
-        #     Oz_z = self.OmegaM*(1.+z)**3/self.g(z)
-        #     return 1.628/self.h*(self.Delc(Oz_z-1.)/178.0)**-0.5/(self.Hubble(z)/self.H0)*1.e9*self.yr
         
         if mdot_fitting_type==0:
-            def mdot_r(q):
-                a = 1.34
-                b = 1.39
-                c = 2.87
-                eq = a-b*(1+(1.-q)**c)**(-1./c)
-                return 10.**eq
+            mdot_r = self.mdot_r_0
         elif mdot_fitting_type==1:
-            def mdot_r(q):
-                """ Factor to modify the mass stripping rate as a function of radius q = r/r_vir.
-                The stripping rate dm/dt is given by
-                    mdot_r(q) * mdot
-                where mdot is the mass stripping rate given by the original SASHIMI-C code.
-                """
-                q_ref = 0.62
-                beta = -0.29
-                return (q/q_ref)**beta
+            mdot_r = self.mdot_r_1
         elif mdot_fitting_type==2:
-            def mdot_r(q):
-                """ Factor to modify the mass stripping rate as a function of radius q = r/r_vir.
-                The stripping rate dm/dt is given by
-                    mdot_r(q) * mdot
-                where mdot is the mass stripping rate given by the original SASHIMI-C code.
-                
-                In this case, we modify the dynamical time scale \tau_{dyn} as a function of radius q = r/r_vir:
-
-                t_dyn --> t_dyn(q) = t_dyn * k * rho_nfw_mean_normalized(q)
-
-                where 
-                  - t_dyn: dynamical time scale at the virial radius, used in the original SASHIMI-C code.
-                  - k: a factor to modify the dynamical time scale.
-                  - rho_nfw_mean_normalized(q): mean NFW density normalized by the outermost density (q=1):
-                The mean NFW density is given by
-
-                  rho_nfw_mean(q) = 3 * rho_s * (log(1+c*q) - c*q/(1+c*q)) / (c*q)^3
-                                  = 3 * rho_s * a_nfw(c*q) / (c*q)^3
-                where
-                  a_nfw(x) = log(1+x) - x/(1+x)
-                Here, we can use the following definitions:
-                  - M(<r) = 4 * pi * rho_s * r_s^3 * (log(1+r/r_s) - r/r_s/(1+r/r_s))
-                  - V(<r) = 4 * pi * r**3 / 3
-                and c = r_vir / r_s, q = r / r_vir, so that r/r_s = c * q.
-                where c is the concentration parameter.
-                The normalization is done by dividing by rho_nfw_mean(1), so
-                rho_nfw_mean_normalized(q) = rho_nfw_mean(q) / rho_nfw_mean(1)
-                                           = a_nfw(c*q) / a_nfw(c) * q**-3
-
-                Finally, since the mass loss rate is proportional to the inverse of the dynamical time scale,
-                we can write the modified mass loss rate as:
-
-                  mdot_r(q) = 1 / (k * rho_nfw_mean_normalized(q))
-
-                """
-                c_host = 6
-                k = 0.2624
-                a_nfw = lambda x: np.log1p(x) - x / (1 + x)
-                rho = a_nfw(c_host*q) / a_nfw(c_host) * q**-3  # mean NFW density normalized at q=1
-                return 1.0 / (k * rho)  # modified mass loss rate
-
+            mdot_r = self.mdot_r_2
         else:
             raise ValueError("mdot_fitting_type must be 0 or 1.")
-
-        # def msolve(m, z, r):
-        #     return mdot_r(r)*AMz(z)*(m/tdynz(z))*(m/Mzvir(z))**zetaMz(z)/(self.Hubble(z)*(1+z))
-
+        # initialize the tidal stripping solver with modified (local) mass stripping rate
         solver = TidalStrippingSolverGeneralized(
             M0 = M0,
             z_min = redshift,
@@ -1127,7 +1114,6 @@ class subhalo_properties(halo_model):
                                     Na_model=Na_model)
         Na_total     = integrate.simpson(integrate.simpson(Na,x=np.log(ma)),x=np.log(1+zdist))
 
-
         Oz           = self.OmegaM*(1.+redshift)**3/self.g(redshift)
         Mvir0        = self.Mvir_from_M200_fit(M0,redshift)
         r200_host    = np.cbrt(3.*M0/(4.*np.pi*self.rhocrit0*self.g(redshift)*200))
@@ -1136,14 +1122,15 @@ class subhalo_properties(halo_model):
         c200_host    = self.conc200(M0,redshift)
         cvir_host    = c200_host/r200_host*rvir_host
         # generate spacial grid for q
-        qmin = self.calc_qmin(redshift, zdist, A=A, alpha=alpha, solver=solver)
-        qmin_3d      = qmin.reshape(-1,1,1)
-        # print("qmin_3d:", qmin_3d.reshape(-1))
-        # DEBUG: DISABLE qmin
-        # qmin_3d = np.zeros_like(qmin_3d)
-        #qmin_3d      = np.maximum(0.01,qmin).reshape(-1,1,1)
-        #print(qmin_3d.reshape(-1))
-        Pq           = self.calc_Pq(q,qmin_3d,cvir_host)
+        # args_calc_Pq = (redshift, A, alpha, zdist, solver, cvir_host)
+        args_calc_Pq = {
+            "redshift": redshift, 
+            "A": A, "alpha": alpha, 
+            "zdist": zdist, 
+            "solver": solver, 
+            "cvir_host": cvir_host
+        }
+        Pq = self.calc_spatial_weight_NFW(q, **args_calc_Pq)
         weight       = Na/(1.+zdist.reshape(-1,1))
         weight       = weight/np.sum(weight)*Na_total
         weight       = (weight.reshape((len(zdist),1,len(ma))))*w1/np.sqrt(np.pi)
@@ -1163,6 +1150,37 @@ class subhalo_properties(halo_model):
         survive      = (survive==1).reshape(-1)
 
         return ma200, z_acc, rs_acc, rhos_acc, m_z0, rs_z0, rhos_z0, ct_z0, weight, density, survive, Pq
+
+
+    def calc_spatial_weight_NFW(self, q, redshift, A, alpha, zdist, solver, cvir_host):
+        """ Calculate the conditional spatial distribution P(q|z_acc) asuming the NFW-like subhalo distribution.
+        
+        Parameters
+        ----------
+        q : float
+            Radius normalized by the virial radius, q = r/r_vir.
+        redshift : float
+            Redshift of interest.
+        A : float
+            Parameter to determine the minimum radius of subhalo distribution.
+        alpha : float
+            Parameter to determine the minimum radius of subhalo distribution.
+        zdist : array-like
+            Array of redshift at accretion.
+        solver : TidalStrippingSolver
+            An instance of the TidalStrippingSolver class.
+        cvir_host : float
+            Concentration parameter of the host halo defined at the virial radius.
+        """
+        qmin = self.calc_qmin(redshift, zdist, A=A, alpha=alpha, solver=solver)
+        qmin_3d      = qmin.reshape(-1,1,1)
+        # print("qmin_3d:", qmin_3d.reshape(-1))
+        # DEBUG: DISABLE qmin
+        # qmin_3d = np.zeros_like(qmin_3d)
+        #qmin_3d      = np.maximum(0.01,qmin).reshape(-1,1,1)
+        #print(qmin_3d.reshape(-1))
+        Pq           = self.calc_Pq_NFW(q,qmin_3d,cvir_host)
+        return Pq
 
 
 
@@ -1208,6 +1226,8 @@ class subhalo_properties(halo_model):
         survive:  If that subhalo survive against tidal disruption or not.
         q:        Radius q = r/r_vir.
         """
+        # generate q grid. Discretize P(q)dq --> P(q_j)*dq_j
+        # The mid-point of each bin as the representative value and dq as the weight.
         if type(q_bin)==int:
             q_bin = np.linspace(0,1,q_bin+1)
         else:
