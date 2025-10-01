@@ -756,7 +756,6 @@ class subhalo_properties(halo_model):
         Na = F2*self.dsdm(ma,0.)*self.dMdz(Mhost,zacc_2d,z0)*(1.+zacc_2d)
         return Na
 
-    
     def subhalo_properties_calc(self, M0, redshift=0.0, dz=0.01, zmax=7.0, N_ma=500, sigmalogc=0.128,
                                 N_herm=5, logmamin=-6, logmamax=None, N_hermNa=200, Na_model=3, 
                                 ct_th=0.77, profile_change=True, M0_at_redshift=False, method="pert2_shanks", **kwargs):
@@ -899,6 +898,29 @@ class subhalo_properties(halo_model):
 
         return ma200, z_acc, rs_acc, rhos_acc, m_z0, rs_z0, rhos_z0, ct_z0, weight, survive
 
+
+    def calc_qmin(self, redshift, zdist, A, alpha, solver):
+        """ Calculate the minimum radius q_min for the given redshift and zdist.
+        """
+        a_0          = np.linspace(0.001,1./(1.+redshift),num=10000)
+        integrand_0  = 1./np.sqrt(self.OmegaM/a_0**3+self.OmegaL)/self.H0/a_0
+        time_0       = integrate.simpson(integrand_0,x=a_0)
+        a            = np.linspace(0.001,1./(1.+zdist),num=1000)
+        integrand_a  = 1./np.sqrt(self.OmegaM/a**3+self.OmegaL)/self.H0/a
+        time_a       = integrate.simpson(integrand_a,x=a,axis=0)
+        qmin         = A*np.exp(-(time_0-time_a)/(alpha*solver.tdynz(zdist)))
+        return qmin
+    
+
+    def calc_Pq(self, q, qmin_3d, cvir_host):
+        """ Calculate the probability distribution of subhalos at a given radius q = r/r_vir.
+        """
+        Pq           = q/(q+1./cvir_host)**2
+        Pq           = Pq*np.heaviside(q-qmin_3d,1.)*np.heaviside(1.-q,1.)
+        Pq           = Pq/(np.log((1.+cvir_host)/(1.+qmin_3d*cvir_host)) \
+                        +1./(1.+cvir_host)-1./(1.+qmin_3d*cvir_host))
+        return Pq
+    
     
     def _subhalo_properties_r_dependence_calc(self, M0, q, redshift=0.0, dz=0.1, zmax=7.0, N_ma=500, 
                                              sigmalogc=0.128, N_herm=5, logmamin=-6, logmamax=None,
@@ -1105,25 +1127,6 @@ class subhalo_properties(halo_model):
                                     Na_model=Na_model)
         Na_total     = integrate.simpson(integrate.simpson(Na,x=np.log(ma)),x=np.log(1+zdist))
 
-        def calc_qmin(redshift, zdist, A=A, alpha=alpha):
-            """ Calculate the minimum radius q_min for the given redshift and zdist.
-            """
-            a_0          = np.linspace(0.001,1./(1.+redshift),num=10000)
-            integrand_0  = 1./np.sqrt(self.OmegaM/a_0**3+self.OmegaL)/self.H0/a_0
-            time_0       = integrate.simpson(integrand_0,x=a_0)
-            a            = np.linspace(0.001,1./(1.+zdist),num=1000)
-            integrand_a  = 1./np.sqrt(self.OmegaM/a**3+self.OmegaL)/self.H0/a
-            time_a       = integrate.simpson(integrand_a,x=a,axis=0)
-            qmin         = A*np.exp(-(time_0-time_a)/(alpha*solver.tdynz(zdist)))
-            return qmin
-        qmin = calc_qmin(redshift, zdist, A=A, alpha=alpha)
-        qmin_3d      = qmin.reshape(-1,1,1)
-        # print("qmin_3d:", qmin_3d.reshape(-1))
-        # DEBUG: DISABLE qmin
-        # qmin_3d = np.zeros_like(qmin_3d)
-
-        #qmin_3d      = np.maximum(0.01,qmin).reshape(-1,1,1)
-        #print(qmin_3d.reshape(-1))
 
         Oz           = self.OmegaM*(1.+redshift)**3/self.g(redshift)
         Mvir0        = self.Mvir_from_M200_fit(M0,redshift)
@@ -1132,13 +1135,15 @@ class subhalo_properties(halo_model):
                                *self.Delc(Oz-1)))
         c200_host    = self.conc200(M0,redshift)
         cvir_host    = c200_host/r200_host*rvir_host
-        def calc_Pq(q, qmin_3d, cvir_host):
-            Pq           = q/(q+1./cvir_host)**2
-            Pq           = Pq*np.heaviside(q-qmin_3d,1.)*np.heaviside(1.-q,1.)
-            Pq           = Pq/(np.log((1.+cvir_host)/(1.+qmin_3d*cvir_host)) \
-                            +1./(1.+cvir_host)-1./(1.+qmin_3d*cvir_host))
-            return Pq
-        Pq           = calc_Pq(q,qmin_3d,cvir_host)
+        # generate spacial grid for q
+        qmin = self.calc_qmin(redshift, zdist, A=A, alpha=alpha, solver=solver)
+        qmin_3d      = qmin.reshape(-1,1,1)
+        # print("qmin_3d:", qmin_3d.reshape(-1))
+        # DEBUG: DISABLE qmin
+        # qmin_3d = np.zeros_like(qmin_3d)
+        #qmin_3d      = np.maximum(0.01,qmin).reshape(-1,1,1)
+        #print(qmin_3d.reshape(-1))
+        Pq           = self.calc_Pq(q,qmin_3d,cvir_host)
         weight       = Na/(1.+zdist.reshape(-1,1))
         weight       = weight/np.sum(weight)*Na_total
         weight       = (weight.reshape((len(zdist),1,len(ma))))*w1/np.sqrt(np.pi)
