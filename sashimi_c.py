@@ -646,7 +646,25 @@ class subhalo_properties(halo_model):
 
     
     def Na_calc(self, ma, zacc, Mhost, z0=0., N_herm=200, Nrand=1000, Na_model=3):
-        """ Returns Na, Eq. (3) of Yang et al. (2011) """
+        """ Returns Na, Eq. (3) of Yang et al. (2011) 
+        
+        Parameters
+        ----------
+        ma : array_like
+            1d or 2d array of subhalo mass at accretion.
+            When 2d array is given, the shape must be (len(zacc), N).
+        zacc : array_like
+            1d array of redshift at accretion.
+        Mhost : float
+            mass of the host halo at z0.
+
+        Returns
+        -------
+        Na : 2d array
+            2d array of subhalo mass function. The shape is:
+            - (len(zacc), len(ma)) if ma is 1d
+            - (len(zacc), ma.shape[1]) if ma is 2d
+        """
         zacc_2d   = zacc.reshape(-1,1)
         M200_0    = self.Mzzi(Mhost,zacc_2d,z0)
         logM200_0 = np.log10(M200_0)
@@ -693,6 +711,8 @@ class subhalo_properties(halo_model):
                            *special.hyp2f1(0.5*(1-0.38),-0.38/2.,0.5*(3.-0.38),-sM/xmin)
             Phi      = self.Ffunc(delca,sM,sa)*self.Gfunc(delca,sM,sa)/normB \
                            *np.heaviside(mmax-ma,0)
+        else:
+            raise ValueError("Na_model must be 1, 2, or 3.")
 
         if N_herm==1:
             F2t = np.nan_to_num(Phi)
