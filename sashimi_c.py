@@ -819,12 +819,12 @@ class subhalo_properties(halo_model):
             survive[iz]   = np.where(ct_z0[iz]>ct_th,1,0)
             m0_matrix[iz] = m0*np.ones((N_herm,1))
 
-        Na           = self.Na_calc(ma,zdist,M0,z0=0.,N_herm=N_hermNa,Nrand=1000,
+        Na           = self.Na_calc(ma200,zdist,M0,z0=0.,N_herm=N_hermNa,Nrand=1000,
                                     Na_model=Na_model)
-        Na_total     = integrate.simpson(integrate.simpson(Na,x=np.log(ma)),x=np.log(1+zdist))
+        Na_total     = integrate.simpson(integrate.simpson(Na,x=np.log(ma200)),x=np.log(1+zdist))
         weight       = Na/(1.+zdist.reshape(-1,1))
         weight       = weight/np.sum(weight)*Na_total
-        weight       = (weight.reshape((len(zdist),1,len(ma))))*w1/np.sqrt(np.pi)
+        weight       = (weight.reshape((len(zdist),1,len(ma200))))*w1/np.sqrt(np.pi)
         z_acc        = (zdist.reshape(-1,1,1))*np.ones((1,N_herm,N_ma))
         z_acc        = z_acc.reshape(-1)
         ma200        = ma200*np.ones((len(zdist),N_herm,1))
