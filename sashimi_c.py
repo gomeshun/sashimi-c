@@ -702,61 +702,87 @@ class subhalo_properties(halo_model):
                                 N_herm=5, logmamin=-6, logmamax=None, N_hermNa=200, Na_model=3, 
                                 ct_th=0.77, profile_change=True, M0_at_redshift=False, method="pert2_shanks", **kwargs):
         """
-        This is the main function of SASHIMI-C, which makes a semi-analytical subhalo catalog.
+        Generate a semi-analytical subhalo catalog using SASHIMI-C.
         
-        -----
-        Input
-        -----
-        M0: Mass of the host halo defined as M_{200} (200 times critial density) at *z = 0*.
+        This is the main function of SASHIMI-C, which creates a semi-analytical 
+        subhalo catalog by calculating subhalo properties and their evolution.
+
+        Parameters
+        ----------
+        M0 : float
+            Mass of the host halo defined as M_{200} (200 times critical density) at z = 0.
             Note that this is *not* the host mass at the given redshift! It can be obtained
             via Mzi(M0,redshift). If you want to give this parameter as the mass at the given
-            redshift, then turn 'M0_at_redshift' parameter on (see below).
-        
-        (Optional) redshift:       Redshift of interest. (default: 0)
-        (Optional) dz:             Grid of redshift of halo accretion. (default 0.1)
-        (Optional) zmax:           Maximum redshift to start the calculation of evolution from. (default: 7.)
-        (Optional) N_ma:           Number of logarithmic grid of subhalo mass at accretion defined as M_{200}.
-                                   (default: 500)
-        (Optional) sigmalogc:      rms scatter of concentration parameter defined for log_{10}(c).
-                                   (default: 0.128)
-        (Optional) N_herm:         Number of grid in Gauss-Hermite quadrature for integral over concentration.
-                                   (default: 5)
-        (Optional) logmamin:       Minimum value of subhalo mass at accretion defined as log_{10}(m_{min}/Msun). 
-                                   (default: -6)
-        (Optional) logmamax:       Maximum value of subhalo mass at accretion defined as log_{10}(m_{max}/Msun).
-                                   If None, m_{max}=0.1*M0. (default: None)
-        (Optional) N_hermNa:       Number of grid in Gauss-Hermite quadrature for integral over host evoluation, 
-                                   used in Na_calc. (default: 200)
-        (Optional) Na_model:       Model number of EPS defined in Yang et al. (2011). (default: 3)
-        (Optional) ct_th:          Threshold value for c_t(=r_t/r_s) parameter, below which a subhalo is assumed to
-                                   be completely desrupted. Suggested values: 0.77 (default) or 0 (no desruption).
-        (Optional) profile_change: Whether we implement the evolution of subhalo density profile through tidal
-                                   mass loss. (default: True)
-        (Optional) M0_at_redshift: If True, M0 is regarded as the mass at a given redshift, instead of z=0.
-        (Optional) method:         Method to calculate the subhalo mass stripping. (default: "pert2_shanks")
-                                   - "odeint" : use odeint to solve the differential equation.
-                                   - "pert0" : use perturbative method with zeroth-order correction.
-                                   - "pert1" : use perturbative method with first-order correction.
-                                   - "pert2" : use perturbative method with second-order correction.
-                                   - "pert2_shanks" : use perturbative method with second-order correction 
-                                     and Shanks transformation.
-                                   - "pert3" : use perturbative method with third-order correction.
-        (Optional) kwargs:         Additional arguments for the odeint function.
-        
-        ------
-        Output
-        ------
-        List of subhalos that are characterized by the following parameters.
-        ma200:    Mass m_{200} at accretion.
-        z_acc:    Redshift at accretion.
-        rs_acc:   Scale radius r_s at accretion.
-        rhos_acc: Characteristic density \rho_s at accretion.
-        m_z0:     Mass up to tidal truncation radius at a given redshift.
-        rs_z0:    Scale radius r_s at a given redshift.
-        rhos_z0:  Characteristic density \rho_s at a given redshift.
-        ct_z0:    Tidal truncation radius in units of r_s at a given redshift.
-        weight:   Effective number of subhalos that are characterized by the same set of the parameters above.
-        survive:  If that subhalo survive against tidal disruption or not.
+            redshift, then turn 'M0_at_redshift' parameter on.
+        redshift : float, optional
+            Redshift of interest (default: 0.0).
+        dz : float, optional
+            Grid spacing of redshift for halo accretion (default: 0.01).
+        zmax : float, optional
+            Maximum redshift to start the calculation of evolution from (default: 7.0).
+        N_ma : int, optional
+            Number of logarithmic grid points for subhalo mass at accretion defined as M_{200}
+            (default: 500).
+        sigmalogc : float, optional
+            RMS scatter of concentration parameter defined for log_{10}(c) (default: 0.128).
+        N_herm : int, optional
+            Number of grid points in Gauss-Hermite quadrature for integral over concentration
+            (default: 5).
+        logmamin : float, optional
+            Minimum value of subhalo mass at accretion defined as log_{10}(m_{min}/Msun)
+            (default: -6).
+        logmamax : float or None, optional
+            Maximum value of subhalo mass at accretion defined as log_{10}(m_{max}/Msun).
+            If None, m_{max}=0.1*M0 (default: None).
+        N_hermNa : int, optional
+            Number of grid points in Gauss-Hermite quadrature for integral over host evolution,
+            used in Na_calc (default: 200).
+        Na_model : int, optional
+            Model number of EPS defined in Yang et al. (2011) (default: 3).
+        ct_th : float, optional
+            Threshold value for c_t(=r_t/r_s) parameter, below which a subhalo is assumed to
+            be completely disrupted. Suggested values: 0.77 (default) or 0 (no disruption).
+        profile_change : bool, optional
+            Whether to implement the evolution of subhalo density profile through tidal
+            mass loss (default: True).
+        M0_at_redshift : bool, optional
+            If True, M0 is regarded as the mass at a given redshift, instead of z=0
+            (default: False).
+        method : str, optional
+            Method to calculate the subhalo mass stripping (default: "pert2_shanks").
+            Options are:
+            - "odeint" : use odeint to solve the differential equation
+            - "pert0" : use perturbative method with zeroth-order correction
+            - "pert1" : use perturbative method with first-order correction
+            - "pert2" : use perturbative method with second-order correction
+            - "pert2_shanks" : use perturbative method with second-order correction 
+              and Shanks transformation
+            - "pert3" : use perturbative method with third-order correction
+        **kwargs
+            Additional arguments for the odeint function.
+
+        Returns
+        -------
+        ma200 : ndarray
+            Mass m_{200} at accretion.
+        z_acc : ndarray
+            Redshift at accretion.
+        rs_acc : ndarray
+            Scale radius r_s at accretion.
+        rhos_acc : ndarray
+            Characteristic density ρ_s at accretion.
+        m_z0 : ndarray
+            Mass up to tidal truncation radius at a given redshift.
+        rs_z0 : ndarray
+            Scale radius r_s at a given redshift.
+        rhos_z0 : ndarray
+            Characteristic density ρ_s at a given redshift.
+        ct_z0 : ndarray
+            Tidal truncation radius in units of r_s at a given redshift.
+        weight : ndarray
+            Effective number of subhalos that are characterized by the same set of parameters.
+        survive : ndarray
+            Boolean array indicating if subhalo survives against tidal disruption.
         
         """
 
