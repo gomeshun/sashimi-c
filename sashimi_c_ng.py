@@ -254,6 +254,28 @@ class subhalo_properties(halo_model):
         return f_NL * alpha / sigma2**beta
     
 
+    def S4_fit(self, f_NL, M):
+        """
+        Compute the fitting function for S_4 = <δ(R)^4>/<δ(R)^2>^3 using the empirical relation:
+            S_4 \simeq f_NL^2 * gamma / (sigma^2)^theta
+        where:
+            gamma = 8.43e-8
+            theta = 0.99
+            sigma^2 = s_func(M) is the mass variance
+        
+        Parameters:
+            f_NL: non-Gaussianity parameter.
+            M: mass scale (in Msun/h).
+            
+        Returns:
+            The value of the fitting function for S_4.
+        """
+        gamma = 8.43e-8
+        theta = 0.99
+        sigma2 = self.s_func(M)
+        return f_NL**2 * gamma / sigma2**theta
+    
+
     def R_MVJ(self, M, z, f_NL): 
         """
         The non-Gaussian correction factor to the halo mass function from Matarrese etn al. (2000)
@@ -289,6 +311,70 @@ class subhalo_properties(halo_model):
         return R_LMSV
 
 
+    def R_LMSVQ(self, z, f_NL, M):
+        """
+        The second-order/quadratic non-Gaussian correction factor to the halo mass function from LoVerde et al
+        """
+        beta = 0.4
+        theta = 0.99
+        delta_c = self.deltac_func(z)
+        mass_var = self.s_func(M)
+        sigma_M = np.sqrt(mass_var)
+        nu = delta_c / sigma_M
+        S3 = self.S3_fit(f_NL, M)
+        S4 = self.S4_fit(f_NL, M)
+        H2 = nu**2 - 1
+        H3 = nu**3 - 3*nu
+        H4 = nu**4 - 6*nu**2 + 3
+        H5 = nu**5 - 10*nu**3 + 15*nu
+        H6 = nu**6 - 15*nu**4 + 45*nu**2 - 15
+        R_LMSVQ = 1 + (S3*sigma_M/6)*(H3+(1/nu)*(-2*beta+1)*H2) \
+            + (S3*sigma_M)**2/72*(H6+(2/nu)*(-2*beta+1)*H5) \
+            + (S4*sigma_M**2)/24*(H4+(1/nu)*(-2*theta+2)*H3)
+        return R_LMSVQ
+
+
+    def R_DMNP(self, z, f_NL, M):
+        """
+        The non-Gaussian correction factor to the halo mass function from D’Amico et al. (2011)
+        """
+        delta_c = self.deltac_func(z)
+        mass_var = self.s_func(M)
+        sigma_M = np.sqrt(mass_var)
+        nu = delta_c / sigma_M
+        S3 = self.S3_fit(f_NL, M)
+        S4 = self.S4_fit(f_NL, M)
+        eps1 = sigma_M*S3
+        eps2 = mass_var*S4
+        R_DMNP = np.exp(eps1*nu**3/6 - nu**4*(eps1**2 - eps2/3)/8) \
+            * (1 - eps1*nu*(3-5/(4*nu**2))/4)
+        return R_DMNP
+
+
+    def R_DMNPF(self, z, f_NL, M):
+        """
+        The filter-corrected non-Gaussian factor to the halo mass function from D’Amico et al. (2011)
+        """
+        delta_c = self.deltac_func(z)
+        mass_var = self.s_func(M)
+        sigma_M = np.sqrt(mass_var)
+        nu = delta_c / sigma_M
+        S3 = self.S3_fit(f_NL, M)
+        S4 = self.S4_fit(f_NL, M)
+        eps1 = sigma_M*S3
+        eps2 = mass_var*S4
+        a = 0.8*0.4592
+        b = 0.8*0.0031*(4*np.pi*self.OmegaM*self.rhocrit0/3)**(-1/3)
+        c = 1.e10*self.Msun/self.h
+        tildekappa = a - b*M**(1/3)
+        dlntildekappadlnt = b*(-9.8*c*M**3.296-21.53*c*M**3.373-6.41*M**3.571)/(-a+b*M**(1/3)) \
+            /(c*M**2.963+12.14*c*M**3.04+11.23*M**3.238)
+        R_DMNPF = (1-tildekappa)*np.exp(eps1*nu**3/6 - nu**4*(eps1**2 - eps2/3)/8) \
+            * (1+(1-2*dlntildekappadlnt)*tildekappa*(1-2*nu**-2)*nu**-2/(1-tildekappa) \
+               -eps1*nu*((1-tildekappa)**-1+2)/4+5*eps1*nu**-1/16)
+        return R_DMNPF
+    
+
     def Ffunc_Yang(self, delc1, delc2, s1, s2):
         """ Returns Eq. (14) of Yang et al. (2011) """
         return 1./np.sqrt(2.*np.pi)*(delc2-delc1)/(s2-s1)**1.5 \
@@ -310,6 +396,12 @@ class subhalo_properties(halo_model):
             return self.R_MVJ(M, z, f_NL) * Ffunc_Yang
         elif NG_model == "LMSV":
             return self.R_LMSV(M, z, f_NL) * Ffunc_Yang
+        elif NG_model == "LMSVQ":
+            return self.R_LMSVQ(z, f_NL, M) * Ffunc_Yang
+        elif NG_model == "DMNP":
+            return self.R_DMNP(z, f_NL, M) * Ffunc_Yang
+        elif NG_model == "DMNPF":
+            return self.R_DMNPF(z, f_NL, M) * Ffunc_Yang
 
 
     def Na_calc(self, ma, zacc, Mhost, f_NL=0., NG_model="Gaussian", z0=0., N_herm=200, Nrand=1000, Na_model=3):
@@ -526,7 +618,7 @@ class subhalo_properties(halo_model):
 class subhalo_observables(subhalo_properties):
     
     
-    def __init__(self, M0_per_Msun, F_NL=0., NG_model="Gaussian", redshift=0., dz=0.1, zmax=7.0, N_ma=500, 
+    def __init__(self, M0_per_Msun, f_NL=0., NG_model="Gaussian", redshift=0., dz=0.1, zmax=7.0, N_ma=500, 
                  sigmalogc=0.128, N_herm=5, logmamin=-6, logmamax=None, N_hermNa=200, Na_model=3,
                  ct_th=0.77, profile_change=True, M0_at_redshift=False):
         """
@@ -591,7 +683,7 @@ class subhalo_observables(subhalo_properties):
 
         subhalo_properties.__init__(self)
         ma200, z_a, rs_a, rhos_a, m0, rs0, rhos0, ct0, weight, survive \
-            = self.subhalo_properties_calc(M0_per_Msun*self.Msun,F_NL,NG_model,redshift,dz,zmax,N_ma,sigmalogc,N_herm,
+            = self.subhalo_properties_calc(M0_per_Msun*self.Msun,f_NL,NG_model,redshift,dz,zmax,N_ma,sigmalogc,N_herm,
                                            logmamin,logmamax,N_hermNa,Na_model,ct_th,profile_change,
                                            M0_at_redshift)
         self.ma200  = ma200[survive]
