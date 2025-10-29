@@ -77,8 +77,118 @@ class cosmology(units_and_constants):
         phi0     = self.OmegaM**(4./7.)-self.OmegaL+(1+self.OmegaM/2.)*(1+self.OmegaL/70.)
         dphidz   = dOdz(z)*(-4./7.*Omega_Mz**(-3.0/7.0)+(Omega_Mz-Omega_Lz)/140.+1./70.-3./2.)
         return (phi0/self.OmegaM)*(-dOdz(z)/(phiz*(1+z))-Omega_Mz*(dphidz*(1+z)+phiz)/phiz**2/(1+z)**2)
+    
 
-        
+    def load_transfer_function(self, filename='Tk_CLASS.txt'):
+        if filename == 'Tk_CLASS.txt':
+            self.transfer_function_src = filename
+            data = np.loadtxt(filename)
+            k_data = data[:,0] * self.h / self.Mpc  # Convert from [h/Mpc] to physical units
+            Tk_data = data[:,1]
+            self._transfer_function_interp = interp1d(np.log10(k_data), np.log10(Tk_data), kind='linear', bounds_error=False, fill_value="extrapolate")
+            self._1mtransfer_function = interp1d(np.log10(k_data), np.log10(1-Tk_data), kind='linear', bounds_error=False, fill_value="extrapolate")
+            return self
+        elif filename == 'colossus':
+            self.transfer_function_src = filename
+            from colossus.cosmology import cosmology as colossus_cosmology
+            from colossus.cosmology import power_spectrum
+            cosmo = colossus_cosmology.setCosmology('planck18')
+            params = {
+                "h": cosmo.h, 
+                "Om0": cosmo.Om0,
+                "Ob0": cosmo.Ob0,
+                "Tcmb0": cosmo.Tcmb0
+            }
+            self._transfer_function = lambda k: power_spectrum.modelEisenstein98(k, **params)
+            return self
+        else:
+            raise ValueError("Unsupported transfer function source. Use 'Tk_CLASS.txt' or 'colossus'.")
+
+    def transfer_function(self, k):
+        """
+        Get the transfer function T(k) at wavenumber k (in h/Mpc).
+        """
+        if self.transfer_function_src == 'Tk_CLASS.txt':
+            k_thresh = 1e-2 * (self.h / self.Mpc)
+            return np.where(
+                k>k_thresh, 
+                10**self._transfer_function_interp(np.log10(k)), 
+                1 - 10**self._1mtransfer_function(np.log10(k)))
+        elif self.transfer_function_src == 'colossus':
+            unit_k = self.h / self.Mpc
+            return self._transfer_function(k/unit_k)
+
+
+    def M_transfer(self,k,z):
+        """
+        Define the dimensionless function M(k,z) that connects the gravitational potential to the matter density field (in Fourier space):
+            M(k,z) = 2 * c^2 * k^2 * T(k) * D(z) / (3 * OmegaM * H0^2)
+        where:
+            c = speed of light (in Mpc/s), from sashimi_c
+            k = wavenumber (in h/Mpc, where h is the dimensionless reduced Hubble parameter)
+            T(k) = transfer function (dimensionless), from Tk_CLASS.txt
+            D(z) = growth factor at redshift z (dimensionless), from sashimi_c
+            H0 = (present day) Hubble constant (in s^{-1}), from sashimi_c
+            OmegaM = matter density parameter (dimensionless), from sashimi_c
+        """
+        return 2 * (self.c**2) * k**2 * self.transfer_function(k) * self.growthD(z) / (3 * self.OmegaM * self.H0**2)
+    
+
+    def Window_func(self,k,z,M):
+        """
+        Define the Fourier space window function W(k,R) for a spherical top-hat filter function in real space:
+            W(k,R) = 3 * (sin(kR) - kR * cos(kR)) / (kR)^3 = 3 * j_1(kR) / (kR)
+        where:
+            k = wavenumber (in h/Mpc, array_like or float)
+            R = smoothing scale (in Mpc/h, float)
+            j_1 is spherical Bessel function of the first kind of order 1
+        """
+        R = pow(3 * M / (4 * np.pi * self.OmegaM * self.rhocrit0 * pow(1+z,3)), 1/3)  # Convert M to R using the mass density relation
+        # Use np.where to safely handle k = 0
+        return np.where(k == 0.0, 1.0, 3 * spherical_jn(1, k*R) / (k*R))
+
+    def M_smoothed(self,k,z,M):
+        """
+        Define the function M_smoothed(k,z,R), i.e. M(k,z) smoothed by the window function W(k,R):
+            M_smoothed(k,z,R) = M(k,z) * W(k,R)
+        where M(k,z) and W(k,R) are defined as above.
+        This function computes the smoothed version of M(k,z) by multiplying it with the window function W(k,R).
+        """
+        return self.M_transfer(k,z) * self.Window_func(k,z,M)
+    
+    # Define the power spectrum P_Phi(k):
+    def P_Phi(self,k):
+        """
+        Define the power spectrum P_Phi(k,z) of the gravitational potential:
+            P_Phi(k) = 2 * pi^2 / k^3 * A_s * (k/k_ref)^(n_s - 1)
+        where:
+            k = wavenumber (in h/Mpc, array_like or float)
+            A_s = amplitude of the primordial power spectrum
+            n_s = 0.96605 is the scalar spectral index
+            k_ref = pivot scale (in h/Mpc, typically chosen to be 0.05 Mpc^{-1})
+        """
+        # Define the constants (from Table 1 of arxiv:1807.06209)
+        A_s = np.exp(3.0448) / 1e10   # since ln(10^{10} * A_s) = 3.0448
+        n_s = 0.96605
+        k_ref = 0.05 * (1/self.Mpc)  # pivot scale in 1/Mpc
+        # NOTE: 9/25 factor comes from the conversion between curvature perturbation and gravitational potential
+        return (9/25) * 2 * np.pi**2 * k**-3 * A_s * (k/k_ref)**(n_s - 1) # definition from arXiv:1103.2586, this significantly improves the results
+
+
+    def _2pt_function(self, M1, M2, z):
+        prefactor = 1 / (2 * np.pi**2)
+        def integrand(lnk):
+            k = np.exp(lnk)
+            return k**3 * self.M_smoothed(k, z, M1) * self.M_smoothed(k, z, M2) * self.P_Phi(k)
+        # result, err = quad(integrand, -8.0, 8.0, epsabs=1e-6)
+        # simpson integration
+        lnk_values = np.linspace(-8.0, 20.0, 1000)
+        integrand_values = integrand(lnk_values)
+        result = integrate.simpson(integrand_values, x=lnk_values)
+        return prefactor * result
+
+    def sigma(self, M, z):
+        return np.vectorize(self._2pt_function)(M, M, z)**0.5
 
 
 class halo_model(cosmology):
@@ -175,7 +285,7 @@ class halo_model(cosmology):
         beta  = -fMzi
         return Mzi0*np.power(1.+z-zi,alpha)*np.exp(beta*(z-zi))
 
-    
+
     def dMdz(self, M0, z, zi):
         Mzi0    = self.Mzi(M0,zi)
         zf      = -0.0064*np.log10(M0/self.Msun)**2+0.0237*np.log10(M0/self.Msun)+1.8837
@@ -334,7 +444,7 @@ class subhalo_properties(halo_model):
         return R_LMSVQ
 
 
-    def R_DMNP(self, z, f_NL, M):
+    def R_DMNP(self, z, f_NL, M, c1=1.0, c2=1.0):
         """
         The non-Gaussian correction factor to the halo mass function from D’Amico et al. (2011)
         """
@@ -347,7 +457,7 @@ class subhalo_properties(halo_model):
         eps1 = sigma_M*S3
         eps2 = mass_var*S4
         R_DMNP = np.exp(eps1*nu**3/6 - nu**4*(eps1**2 - eps2/3)/8) \
-            * (1 - eps1*nu*(3-5/(4*nu**2))/4)
+            * (1 - eps1*nu/4*((4-c1)+(c1-c2/4-2)/nu**2))
         return R_DMNP
 
 
@@ -400,6 +510,10 @@ class subhalo_properties(halo_model):
             return self.R_LMSVQ(z, f_NL, M) * Ffunc_Yang
         elif NG_model == "DMNP":
             return self.R_DMNP(z, f_NL, M) * Ffunc_Yang
+        elif isinstance(NG_model, tuple) and NG_model[0] == "DMNP":
+            c1 = NG_model[1] if len(NG_model) > 1 else 1.0
+            c2 = NG_model[2] if len(NG_model) > 2 else 1.0
+            return self.R_DMNP(z, f_NL, M, c1=c1, c2=c2) * Ffunc_Yang
         elif NG_model == "DMNPF":
             return self.R_DMNPF(z, f_NL, M) * Ffunc_Yang
 
@@ -476,7 +590,7 @@ class subhalo_properties(halo_model):
             Note that this is *not* the host mass at the given redshift! It can be obtained
             via Mzi(M0,redshift). If you want to give this parameter as the mass at the given
             redshift, then turn 'M0_at_redshift' parameter on (see below).
-        
+
         (Optional) redshift:       Redshift of interest. (default: 0)
         (Optional) dz:             Grid of redshift of halo accretion. (default 0.1)
         (Optional) zmax:           Maximum redshift to start the calculation of evolution from. (default: 7.)
@@ -538,7 +652,7 @@ class subhalo_properties(halo_model):
 
         def Mzvir(z):
             Mz200 = self.Mzzi(M0,z,0.)
-            Mvir = self.Mvir_from_M200(Mz200,z)
+            Mvir = self.Mvir_from_M200_fit(Mz200,z)
             return Mvir
 
         def AMz(z):
@@ -558,7 +672,7 @@ class subhalo_properties(halo_model):
             return AMz(z)*(m/tdynz(z))*(m/Mzvir(z))**zetaMz(z)/(self.Hubble(z)*(1+z))
 
         for iz in range(len(zdist)):
-            ma           = self.Mvir_from_M200(ma200,zdist[iz])
+            ma           = self.Mvir_from_M200_fit(ma200,zdist[iz])
             Oz           = self.OmegaM*(1.+zdist[iz])**3/self.g(zdist[iz])
             zcalc        = np.linspace(zdist[iz],redshift,100)
             sol          = odeint(msolve,ma,zcalc)
@@ -593,7 +707,7 @@ class subhalo_properties(halo_model):
 
         Na           = self.Na_calc(ma,zdist,M0,f_NL=f_NL,NG_model=NG_model,z0=0.,N_herm=N_hermNa,Nrand=1000,
                                     Na_model=Na_model)
-        Na_total     = integrate.simps(integrate.simps(Na,x=np.log(ma)),x=np.log(1+zdist))
+        Na_total     = integrate.simpson(integrate.simpson(Na,x=np.log(ma)),x=np.log(1+zdist))
         weight       = Na/(1.+zdist.reshape(-1,1))
         weight       = weight/np.sum(weight)*Na_total
         weight       = (weight.reshape((len(zdist),1,len(ma))))*w1/np.sqrt(np.pi)
