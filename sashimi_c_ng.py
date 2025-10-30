@@ -15,6 +15,22 @@ warnings.filterwarnings("ignore", category=RuntimeWarning, append=1)
 
 
 class units_and_constants:
+    """ Defines units and physical constants in a system where:
+        - Length is measured in Megaparsecs (Mpc)
+        - Mass is measured in Solar masses (Msun)
+        - Time is measured in seconds (s)
+    
+    We use these units throughout the code to ensure consistency and simplify calculations.
+    We define physical quantities as the product of a dimensionless number and the corresponding unit:
+            physical_quantity = dimensionless_number * unit
+    For example, the speed of light c is defined as:
+            c = (value of c in cm/s) * (cm/s)
+              = 2.9979e10 * (cm/s)
+    Another example is the Hubble constant H0:
+            H0 = (value of H0 in h*km/s/Mpc) * (h*km/s/Mpc)
+               = 100 * h * (km/s/Mpc)
+    Throughout the code, arguments/output of most functions are assumed to be physical quantities.
+    """
 
 
     def __init__(self):
@@ -106,7 +122,7 @@ class cosmology(units_and_constants):
 
     def transfer_function(self, k):
         """
-        Get the transfer function T(k) at wavenumber k (in h/Mpc).
+        Get the transfer function T(k) at wavenumber k.
         """
         if self.transfer_function_src == 'Tk_CLASS.txt':
             k_thresh = 1e-2 * (self.h / self.Mpc)
