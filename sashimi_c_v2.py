@@ -60,6 +60,7 @@ class UnitsAndConstants:
     km = 1.e5 * cm
     s = 1.
     yr = 3.15576e7 * s
+    Gyr = 1.e9 * yr
     Msun = 1.
     gram = Msun / 1.988e33
     c = 2.9979e10 * cm / s
@@ -74,6 +75,7 @@ class Cosmology:
     
     def __init__(self):
         u = UnitsAndConstants
+        self.Msun       = u.Msun
         self.OmegaB        = 0.049
         self.OmegaM        = 0.315
         self.OmegaC        = self.OmegaM-self.OmegaB
