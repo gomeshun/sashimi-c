@@ -144,17 +144,8 @@ class Cosmology:
         phi0     = self.phi0
         dphidz   = dOdz(z)*(-4./7.*Omega_Mz**(-3.0/7.0)+(Omega_Mz-Omega_Lz)/140.+1./70.-3./2.)
         return (phi0/self.OmegaM)*(-dOdz(z)/(phiz*(1+z))-Omega_Mz*(dphidz*(1+z)+phiz)/phiz**2/(1+z)**2)
-
-cosmology = Cosmology  # For backwards compatibility
-
-
-class halo_model(cosmology):
-
     
-    def __init__(self):
-        cosmology.__init__(self)
 
-        
     def xi(self, M):
         return (M/((1.e10*self.Msun)/self.h))**-1
 
@@ -170,14 +161,55 @@ class halo_model(cosmology):
     
     def s_func(self, M):
         return self.sigmaMz(M,0)**2
+    
 
+    def Delc(self, x):
+        return 18.*np.pi**2+82.*x-39.*x**2
+    
+
+    def dsdm(self,M,z):  
+        """ Ludlow et al. (2016) """
+        s         = self.sigmaMz(M,z)**2
+        dsdsigma  = 2.*self.sigmaMz(M,z)
+        dxidm     = -1.e10*self.Msun/self.h/M**2
+        dsigmadxi = self.sigmaMz(M,z)*(0.292/self.xi(M)-(0.275*1.53*self.xi(M)**-0.725+0.198*3.36* \
+            self.xi(M)**-0.802)/(1.+1.53*self.xi(M)**0.275+3.36*self.xi(M)**0.198))
+        return dsdsigma*dsigmadxi*dxidm
+
+    
+    def dlogSdlogM(self,M,z):  
+        """ Ludlow et al. (2016) """
+        s         = self.sigmaMz(M,z)**2
+        dsdsigma  = 2.*self.sigmaMz(M,z)
+        dxidm     = -1.e10*self.Msun/self.h/M**2
+        dsigmadxi = self.sigmaMz(M,z)*(0.292*pow(self.xi(M),-1)-(0.275*1.53*pow(self.xi(M),-0.725)+0.198*3.36* \
+            pow(self.xi(M),-0.802))*pow(1.+1.53*pow(self.xi(M),0.275)+3.36*pow(self.xi(M),0.198),-1))
+        return (M/s)*dsdsigma*dsigmadxi*dxidm
+
+
+
+cosmology = Cosmology  # For backwards compatibility
+
+
+class halo_model(Cosmology):
+
+    
+    def __init__(self):
+        Cosmology.__init__(self)  # For backwards compatibility
+        self.cosmology = Cosmology()
+        self.rhocrit0 = self.cosmology.rhocrit0
+        self.Msun      = self.cosmology.Msun
+
+
+    def g(self,z):
+        return self.cosmology.g(z)
+    
+    def Hubble(self, z):
+        return self.cosmology.Hubble(z)
+    
 
     def fc(self, x):
         return np.log(1+x)-x*pow(1+x,-1)
-
-    
-    def Delc(self, x):
-        return 18.*np.pi**2+82.*x-39.*x**2
 
     
     def conc200(self,M200,z): 
@@ -252,24 +284,6 @@ class halo_model(cosmology):
         return (beta+alpha/(1.+z-zi))*Mzzivir
 
     
-    def dsdm(self,M,z):  
-        """ Ludlow et al. (2016) """
-        s         = self.sigmaMz(M,z)**2
-        dsdsigma  = 2.*self.sigmaMz(M,z)
-        dxidm     = -1.e10*self.Msun/self.h/M**2
-        dsigmadxi = self.sigmaMz(M,z)*(0.292/self.xi(M)-(0.275*1.53*self.xi(M)**-0.725+0.198*3.36* \
-            self.xi(M)**-0.802)/(1.+1.53*self.xi(M)**0.275+3.36*self.xi(M)**0.198))
-        return dsdsigma*dsigmadxi*dxidm
-
-    
-    def dlogSdlogM(self,M,z):  
-        """ Ludlow et al. (2016) """
-        s         = self.sigmaMz(M,z)**2
-        dsdsigma  = 2.*self.sigmaMz(M,z)
-        dxidm     = -1.e10*self.Msun/self.h/M**2
-        dsigmadxi = self.sigmaMz(M,z)*(0.292*pow(self.xi(M),-1)-(0.275*1.53*pow(self.xi(M),-0.725)+0.198*3.36* \
-            pow(self.xi(M),-0.802))*pow(1.+1.53*pow(self.xi(M),0.275)+3.36*pow(self.xi(M),0.198),-1))
-        return (M/s)*dsdsigma*dsigmadxi*dxidm
 
 
 
@@ -288,7 +302,10 @@ class TidalStrippingSolver(halo_model):
         (Optional) z_max:          Maximum redshift to start the calculation of evolution from. (default: 7.)
         (Optional) n_z_interp:     Number of redshifts to calculate epsilon functions. (default: 64)
         """
-        halo_model.__init__(self)
+        halo_model.__init__(self)  # For backwards compatibility
+        self.halo_model = halo_model()
+        self.cosmology = self.halo_model.cosmology
+        self.Msun = self.halo_model.Msun
         self.z_min       = z_min
         self.z_max       = z_max
         self.n_z_interp  = n_z_interp
@@ -371,12 +388,14 @@ class TidalStrippingSolver(halo_model):
 
 
     def tdynz(self,z):
-        Oz_z = self.OmegaM*(1.+z)**3/self.g(z)
-        return 1.628/self.h*(self.Delc(Oz_z-1.)/178.0)**-0.5/(self.Hubble(z)/self.H0)*1.e9*self.yr
+        cosmo = self.cosmology
+        Oz_z = cosmo.OmegaM*(1.+z)**3/cosmo.g(z)
+        return 1.628/cosmo.h*(cosmo.Delc(Oz_z-1.)/178.0)**-0.5/(cosmo.Hubble(z)/cosmo.H0)*UnitsAndConstants.Gyr
 
 
     def msolve(self,m, z):
-        return self.AMz(z)*(m/self.tdynz(z))*(m/self.Mzvir(z))**self.zetaMz(z)/(self.Hubble(z)*(1+z))
+        cosmo = self.cosmology
+        return self.AMz(z)*(m/self.tdynz(z))*(m/self.Mzvir(z))**self.zetaMz(z)/(cosmo.Hubble(z)*(1+z))
 
 
     def subhalo_mass_stripped_odeint(self, ma, za, z0, **kwargs):
