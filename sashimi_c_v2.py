@@ -11,7 +11,7 @@ from scipy.interpolate import griddata
 from scipy.special import erf
 from numpy.polynomial.hermite import hermgauss
 import warnings
-warnings.filterwarnings("ignore", category=RuntimeWarning, append=1)
+warnings.filterwarnings("ignore", category=RuntimeWarning, append=True)
 
 
 
