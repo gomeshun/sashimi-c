@@ -49,38 +49,38 @@ def memoize_with_pickle(cache_dir="cache"):
 
 
 
-
-class units_and_constants:
-
+class UnitsAndConstants:
+    """Physical units and constants as class attributes (read-only)."""
     
-    def __init__(self):
-        self.Mpc      = 1.
-        self.kpc      = self.Mpc/1000.
-        self.pc       = self.kpc/1000.
-        self.cm       = self.pc/3.086e18
-        self.km       = 1.e5*self.cm
-        self.s        = 1.
-        self.yr       = 3.15576e7*self.s
-        self.Msun     = 1.
-        self.gram     = self.Msun/1.988e33
-        self.c        = 2.9979e10*self.cm/self.s
-        self.G        = 6.6742e-8*self.cm**3/self.gram/self.s**2
+    # Define all constants as class attributes
+    Mpc = 1.
+    kpc = Mpc / 1000.
+    pc = kpc / 1000.
+    cm = pc / 3.086e18
+    km = 1.e5 * cm
+    s = 1.
+    yr = 3.15576e7 * s
+    Msun = 1.
+    gram = Msun / 1.988e33
+    c = 2.9979e10 * cm / s
+    G = 6.6742e-8 * cm**3 / gram / s**2
 
+units_and_constants = UnitsAndConstants  # For backwards compatibility
 
 
         
-class cosmology(units_and_constants):
+class Cosmology:
     
     
     def __init__(self):
-        units_and_constants.__init__(self)
+        u = UnitsAndConstants
         self.OmegaB        = 0.049
         self.OmegaM        = 0.315
         self.OmegaC        = self.OmegaM-self.OmegaB
         self.OmegaL        = 1.-self.OmegaM
         self.h             = 0.674
-        self.H0            = self.h*100*self.km/self.s/self.Mpc 
-        self.rhocrit0      = 3*self.H0**2/(8.0*np.pi*self.G)
+        self.H0            = self.h*100*u.km/u.s/u.Mpc 
+        self.rhocrit0      = 3*self.H0**2/(8.0*np.pi*u.G)
 
 
     def g(self, z):
@@ -92,28 +92,58 @@ class cosmology(units_and_constants):
 
     
     def rhocrit(self, z):
-        return 3.*self.Hubble(z)**2/(np.pi*8.0*self.G)
+        """ Critical density at redshift z """
+        return 3.*self.Hubble(z)**2/(np.pi*8.0*UnitsAndConstants.G)
+    
+
+    def OmegaLz(self, z):
+        """ Omega_L at redshift z """
+        return self.OmegaL/(self.OmegaL+self.OmegaM*(1.+z)**3)
+    
+
+    def OmegaMz(self, z):
+        """ Omega_M at redshift z """
+        return 1.-self.OmegaLz(z)
+    
+
+    def phiz(self, z):
+        """auxiliary function for growth factor"""
+        Omega_Lz = self.OmegaLz(z)
+        Omega_Mz = self.OmegaMz(z)
+        return Omega_Mz**(4./7.)-Omega_Lz+(1.+Omega_Mz/2.0)*(1.+Omega_Lz/70.0)
+    
+    @property
+    def phi0(self):
+        """auxiliary function for growth factor at z=0"""
+        return self.OmegaM**(4./7.)-self.OmegaL+(1.+self.OmegaM/2.0)*(1.+self.OmegaL/70.0)
 
 
     def growthD(self, z):
-        Omega_Lz = self.OmegaL/(self.OmegaL+self.OmegaM*(1.+z)**3)
-        Omega_Mz = 1-Omega_Lz
-        phiz     = Omega_Mz**(4./7.)-Omega_Lz+(1.+Omega_Mz/2.0)*(1.+Omega_Lz/70.0)
-        phi0     = self.OmegaM**(4./7.)-self.OmegaL+(1.+self.OmegaM/2.0)*(1.+self.OmegaL/70.0)
+        # Omega_Lz = self.OmegaL/(self.OmegaL+self.OmegaM*(1.+z)**3)
+        Omega_Lz = self.OmegaLz(z)
+        Omega_Mz = self.OmegaMz(z)
+        # phiz     = Omega_Mz**(4./7.)-Omega_Lz+(1.+Omega_Mz/2.0)*(1.+Omega_Lz/70.0)
+        phiz     = self.phiz(z)
+        # phi0     = self.OmegaM**(4./7.)-self.OmegaL+(1.+self.OmegaM/2.0)*(1.+self.OmegaL/70.0)
+        phi0     = self.phi0
         return (Omega_Mz/self.OmegaM)*(phi0/phiz)/(1.+z)
 
         
     def dDdz(self, z):
         def dOdz(z):
             return -self.OmegaL*3*self.OmegaM*(1+z)**2*(self.OmegaL+self.OmegaM*(1+z)**3.)**-2
-        Omega_Lz = self.OmegaL*pow(self.OmegaL+self.OmegaM*pow(self.h,-2)*pow(1+z,3),-1)
-        Omega_Mz = 1-Omega_Lz
-        phiz     = Omega_Mz**(4./7.)-Omega_Lz+(1+Omega_Mz/2.)*(1+Omega_Lz/70.)
-        phi0     = self.OmegaM**(4./7.)-self.OmegaL+(1+self.OmegaM/2.)*(1+self.OmegaL/70.)
+        # Omega_Lz = self.OmegaL*pow(self.OmegaL+self.OmegaM*pow(self.h,-2)*pow(1+z,3),-1)
+        # Omega_Mz = 1-Omega_Lz
+        Omega_Lz = self.OmegaLz(z)
+        Omega_Mz = self.OmegaMz(z)
+        # phiz     = Omega_Mz**(4./7.)-Omega_Lz+(1+Omega_Mz/2.)*(1+Omega_Lz/70.)
+        # phi0     = self.OmegaM**(4./7.)-self.OmegaL+(1+self.OmegaM/2.)*(1+self.OmegaL/70.)
+        phiz     = self.phiz(z)
+        phi0     = self.phi0
         dphidz   = dOdz(z)*(-4./7.*Omega_Mz**(-3.0/7.0)+(Omega_Mz-Omega_Lz)/140.+1./70.-3./2.)
         return (phi0/self.OmegaM)*(-dOdz(z)/(phiz*(1+z))-Omega_Mz*(dphidz*(1+z)+phiz)/phiz**2/(1+z)**2)
 
-        
+cosmology = Cosmology  # For backwards compatibility
 
 
 class halo_model(cosmology):
