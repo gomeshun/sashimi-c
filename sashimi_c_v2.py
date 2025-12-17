@@ -19,7 +19,6 @@ from scipy import optimize
 from scipy import special
 from scipy.integrate import simpson
 from scipy.integrate import odeint
-from scipy.integrate import cumulative_trapezoid
 from scipy.interpolate import interp1d
 from scipy.interpolate import griddata
 from scipy.special import erf
@@ -167,6 +166,102 @@ def memoize_with_pickle(cache_dir="cache"):
     return decorator
 
 
+def _bench_stripping_jit_vs_loop(M0=1e12, redshift=0.0, dz=0.05, zmax=2.0, N_ma=400):
+    """Quick local benchmark (developer utility).
+
+    Compares the old Python loop vs the JIT-batched path for the default
+    `method="pert2_shanks"` stripping kernel.
+    """
+    props = subhalo_properties()
+    zdist = np.arange(redshift + dz, zmax + dz, dz)
+    ma200 = np.logspace(-6, np.log10(0.1 * M0 / props.Msun), N_ma) * props.Msun
+
+    solver = TidalStrippingSolver(M0=M0, z_min=redshift, z_max=zmax, n_z_interp=64)
+
+    Nz = len(zdist)
+    Nm = len(ma200)
+    z2d = zdist.reshape(Nz, 1)
+    ma200_2d = ma200.reshape(1, Nm)
+    ma_2d = props.Mvir_from_M200_fit(ma200_2d, z2d)
+
+    # JIT path (warmup + timed)
+    t0 = time.perf_counter()
+    out_jit = solver.subhalo_mass_stripped_pert2_shanks_batch_jit(ma_2d, zdist, redshift)
+    out_jit.block_until_ready()
+    t1 = time.perf_counter()
+    out_jit2 = solver.subhalo_mass_stripped_pert2_shanks_batch_jit(ma_2d, zdist, redshift)
+    out_jit2.block_until_ready()
+    t2 = time.perf_counter()
+
+    # Loop path (timed)
+    t3 = time.perf_counter()
+    m0_list = []
+    for iz in range(Nz):
+        m0_list.append(solver.subhalo_mass_stripped(ma_2d[iz], zdist[iz], redshift, method="pert2_shanks"))
+    out_loop = np.stack(m0_list, axis=0)
+    # Force materialization for fair-ish timing
+    _ = np.asarray(out_loop)
+    t4 = time.perf_counter()
+
+    return {
+        "jit_compile_and_run_s": t1 - t0,
+        "jit_cached_run_s": t2 - t1,
+        "python_loop_run_s": t4 - t3,
+    }
+
+
+def _jit_warmup_import_time() -> None:
+    """Warm up the most expensive JITs at import time (opt-in).
+
+    Enable with `SASHIMI_JIT_WARMUP=1`.
+        You can tune representative shapes via:
+      - `SASHIMI_JIT_WARMUP_NZ` (default: 8)
+            - `SASHIMI_JIT_WARMUP_NM` (default: 128)
+      - `SASHIMI_JIT_WARMUP_ZMAX` (default: 1.0)
+      - `SASHIMI_JIT_WARMUP_M0` (default: 1e12)
+            - `SASHIMI_JIT_WARMUP_METHODS` (default: "pert2_shanks")
+    """
+    if not _env_flag("SASHIMI_JIT_WARMUP", default=False):
+        return
+
+    try:
+        nz = int(os.environ.get("SASHIMI_JIT_WARMUP_NZ", "8"))
+        nm = int(os.environ.get("SASHIMI_JIT_WARMUP_NM", "128"))
+        zmax = float(os.environ.get("SASHIMI_JIT_WARMUP_ZMAX", "1.0"))
+        m0 = float(os.environ.get("SASHIMI_JIT_WARMUP_M0", "1e12"))
+        methods = os.environ.get("SASHIMI_JIT_WARMUP_METHODS", "pert2_shanks")
+    except Exception:
+        nz, nm, zmax, m0, methods = 8, 128, 1.0, 1e12, "pert2_shanks"
+
+    try:
+        solver = TidalStrippingSolver(M0=m0, z_min=0.0, z_max=zmax, n_z_interp=64)
+        za = np.linspace(zmax, max(1e-3, zmax / 10.0), nz)
+        ma = np.logspace(6.0, 12.0, nm) * UnitsAndConstants.Msun
+        ma_2d = np.broadcast_to(ma.reshape(1, nm), (nz, nm))
+
+        method_list = [m.strip() for m in methods.split(",") if m.strip()]
+        fns = {
+            "pert0": solver.subhalo_mass_stripped_pert0_batch_jit,
+            "pert1": solver.subhalo_mass_stripped_pert1_batch_jit,
+            "pert2": solver.subhalo_mass_stripped_pert2_batch_jit,
+            "pert2_shanks": solver.subhalo_mass_stripped_pert2_shanks_batch_jit,
+            "pert3": solver.subhalo_mass_stripped_pert3_batch_jit,
+        }
+        for m in method_list:
+            fn = fns.get(m)
+            if fn is None:
+                continue
+            out = fn(ma_2d, za, 0.0)
+            out.block_until_ready()
+    except Exception:
+        # Best-effort: warmup should never make import fail.
+        return
+
+
+# Optional import-time warmup to shift JIT latency earlier.
+_jit_warmup_import_time()
+
+
 
 class UnitsAndConstants:
     """Physical units and constants as class attributes (read-only)."""
@@ -195,7 +290,19 @@ class Cosmology:
     
     def __init__(self):
         u = UnitsAndConstants
-        self.Msun       = u.Msun
+        # expose units/constants as instance attributes (backwards compatibility)
+        self.Mpc = u.Mpc
+        self.kpc = u.kpc
+        self.pc = u.pc
+        self.cm = u.cm
+        self.km = u.km
+        self.s = u.s
+        self.yr = u.yr
+        self.Gyr = u.Gyr
+        self.Msun = u.Msun
+        self.gram = u.gram
+        self.c = u.c
+        self.G = u.G
         self.OmegaB        = 0.049
         self.OmegaM        = 0.315
         self.OmegaC        = self.OmegaM-self.OmegaB
@@ -465,9 +572,38 @@ class halo_model(Cosmology):
         return (beta+alpha/(1.+z-zi))*Mzzivir
 
     
+class NFW(halo_model):
 
+    """ NFW density profile inspired by astropy.modeling.models.NFW 
+    ut accepting vectorized inputs. """
 
+    def __init__(self,
+                 mass,
+                 concentration,
+                 redshift,
+                 massfactor = "virial"):
+        """ Initialize NFW profile.
 
+        Parameters
+        ----------
+        mass : float or array-like
+            Mass of the halo.
+        concentration : float or array-like
+            Concentration parameter of the halo.
+        redshift : float or array-like
+            Redshift of the halo.
+        massfactor : str, optional
+            Type of mass definition (default is "200c").
+            - "virial": Virial mass.
+            - "200c": Mass within radius where density is 200 times critical density.
+        """
+        self.cosmology = Cosmology()
+        if massfactor not in ["virial", "200c"]:
+            raise ValueError("massfactor must be 'virial' or '200c'")
+        if massfactor == "200c":
+            mvir = self.halo_model.Mvir_from_M200_fit(mass, redshift)
+
+            
 
 class TidalStrippingSolver(halo_model):
     """ Solve the tidal stripping equation for a given subhalo. """
@@ -1030,15 +1166,10 @@ class subhalo_properties(halo_model):
         """
         zacc_2d   = zacc.reshape(-1,1)
         M200_0    = self.Mzzi(Mhost,zacc_2d,z0)
-        logM200_0 = np.log10(M200_0)
 
-        xxi,wwi = hermgauss(N_herm)
-        xxi = xxi.reshape(-1,1,1)
-        wwi = wwi.reshape(-1,1,1)
-        # Eq. (21) in Yang et al. (2011) 
+        # Eq. (21) in Yang et al. (2011)
         sigmalogM200 = 0.12-0.15*np.log10(M200_0/Mhost)
-        logM200 = np.sqrt(2.)*sigmalogM200*xxi+logM200_0
-        M200 = 10.**logM200
+        M200, wwi = self.log10_lognormal_scatter_gh(M200_0, sigmalogM200, N_herm)
             
         mmax = np.minimum(M200,Mhost/2.)
         Mmax = np.minimum(M200_0+mmax,Mhost)
@@ -1081,9 +1212,44 @@ class subhalo_properties(halo_model):
             F2t = np.nan_to_num(Phi)
             F2  =F2t.reshape((len(zacc_2d),len(ma)))
         else:
-            F2 = np.sum(np.nan_to_num(Phi)*wwi/np.sqrt(np.pi),axis=0)
+            F2 = np.sum(np.nan_to_num(Phi)*wwi,axis=0)
         Na = F2*self.dsdm_native(ma,0.)*self.dMdz(Mhost,zacc_2d,z0)*(1.+zacc_2d)
         return Na
+    
+
+    def log10_lognormal_scatter_gh(self, mean, sigmalog10, N_herm):
+        """Gauss-Hermite quadrature for log-normal scatter in base-10 log.
+
+        Adds a new axis for the Hermite grid at the front.
+
+        Parameters
+        ----------
+        mean : array_like
+            Mean of the positive quantity (in linear space).
+        sigmalog10 : float or array_like
+            RMS scatter defined for log_{10}(x). Can broadcast with mean.
+        N_herm : int
+            Number of grid points in Gauss-Hermite quadrature.
+
+        Returns
+        -------
+        x_herm : array
+            Quantity with scatter. Shape is (N_herm, *mean.shape).
+        w_herm : array
+            Gauss-Hermite weights normalized by 1/sqrt(pi), so w_herm.sum(axis=0)=1.
+            Shape is (N_herm, 1, 1, ..., 1) with as many trailing singleton axes
+            as needed to broadcast with x_herm.
+        """
+        input_shape = mean.shape
+        mean = mean.reshape((1,) + input_shape)
+        x, w = hermgauss(N_herm)
+        x = x.reshape((N_herm,) + (1,) * len(input_shape))
+        w = w.reshape((N_herm,) + (1,) * len(input_shape))
+        log10x = np.log10(mean) + np.sqrt(2.0) * sigmalog10 * x
+        x_herm = 10.0 ** log10x
+        w_herm = w / np.sqrt(np.pi)
+        return x_herm, w_herm
+
 
     
     def subhalo_properties_calc(self, M0, redshift=0.0, dz=0.01, zmax=7.0, N_ma=500, sigmalogc=0.128,
@@ -1168,10 +1334,6 @@ class subhalo_properties(halo_model):
             n_z_interp=64
         )
 
-        x1,w1        = hermgauss(N_herm)
-        x1           = x1.reshape(1, len(x1), 1)  # (1, N_herm, 1)
-        w1           = w1.reshape(len(w1), 1)
-
         # Vectorize z-dependent precomputations (shapes: Nz=len(zdist), Nm=len(ma200))
         Nz = len(zdist)
         Nm = len(ma200)
@@ -1184,8 +1346,9 @@ class subhalo_properties(halo_model):
         r200sub_2d = (3.0 * ma200_2d / (4.0 * np.pi * self.rhocrit0 * self.g(z2d) * 200.0)) ** (1.0 / 3.0)
         c_mz_2d = c200sub_2d * rvirsub_2d / r200sub_2d
 
-        log10c_sub = np.sqrt(2.0) * sigmalogc * x1 + np.log10(c_mz_2d.reshape(Nz, 1, Nm))
-        c_sub = 10.0 ** log10c_sub
+        c_sub, w1 = self.log10_lognormal_scatter_gh(c_mz_2d, sigmalogc, N_herm)
+        c_sub = np.transpose(c_sub, (1, 0, 2))  # (Nz, N_herm, Nm)
+        w1 = w1.reshape(1, N_herm, 1)  # for broadcasting (Nz, N_herm, Nm)
         rs_acc = rvirsub_2d.reshape(Nz, 1, Nm) / c_sub
         rhos_acc = ma_2d.reshape(Nz, 1, Nm) / (4.0 * np.pi * rs_acc ** 3 * self.fc(c_sub))
 
@@ -1236,7 +1399,7 @@ class subhalo_properties(halo_model):
         Na_total     = integrate.simpson(integrate.simpson(Na,x=np.log(ma)),x=np.log(1+zdist))
         weight       = Na/(1.+zdist.reshape(-1,1))
         weight       = weight/np.sum(weight)*Na_total
-        weight       = (weight.reshape((len(zdist),1,len(ma))))*w1/np.sqrt(np.pi)
+        weight       = (weight.reshape((len(zdist),1,len(ma))))*w1
         z_acc        = (zdist.reshape(-1,1,1))*np.ones((1,N_herm,N_ma))
         z_acc        = z_acc.reshape(-1)
         ma200        = ma200*np.ones((len(zdist),N_herm,1))
