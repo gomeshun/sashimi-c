@@ -920,13 +920,6 @@ class subhalo_properties(halo_model):
         if logmamax==None:
             logmamax = np.log10(0.1*M0/self.Msun)
         ma200     = np.logspace(logmamin,logmamax,N_ma)*self.Msun
-        rs_acc    = np.zeros((len(zdist),N_herm,len(ma200)))
-        rhos_acc  = np.zeros((len(zdist),N_herm,len(ma200)))
-        rs_z0     = np.zeros((len(zdist),N_herm,len(ma200)))
-        rhos_z0   = np.zeros((len(zdist),N_herm,len(ma200)))
-        ct_z0     = np.zeros((len(zdist),N_herm,len(ma200)))
-        survive   = np.zeros((len(zdist),N_herm,len(ma200)))
-        m0_matrix = np.zeros((len(zdist),N_herm,len(ma200)))
 
         solver = TidalStrippingSolver(
             M0 = M0,
@@ -936,38 +929,54 @@ class subhalo_properties(halo_model):
         )
 
         x1,w1        = hermgauss(N_herm)
-        x1           = x1.reshape(len(x1),1)
-        w1           = w1.reshape(len(w1),1)
+        x1           = x1.reshape(1, len(x1), 1)  # (1, N_herm, 1)
+        w1           = w1.reshape(len(w1), 1)
 
-        for iz in range(len(zdist)):
-            ma           = self.Mvir_from_M200_fit(ma200,zdist[iz])
-            # Oz           = self.OmegaM*(1.+zdist[iz])**3/self.g(zdist[iz])
-            c200sub      = self.conc200(ma200,zdist[iz])
-            # rvirsub      = (3.*ma/(4.*np.pi*self.rhocrit0*self.g(zdist[iz]) \
-            #                    *self.Delc(Oz-1)))**(1./3.)
-            rvirsub      = (3.*ma/(4.*np.pi*self.cosmology.rhocrit(zdist[iz])*self.Delcz(zdist[iz])))**(1./3.)
-            r200sub      = (3.*ma200/(4.*np.pi*self.rhocrit0*self.g(zdist[iz])*200.))**(1./3.)
-            c_mz         = c200sub*rvirsub/r200sub
-            log10c_sub   = np.sqrt(2.)*sigmalogc*x1+np.log10(c_mz)
-            c_sub        = 10.0**log10c_sub
-            rs_acc       = rs_acc.at[iz].set(rvirsub/c_sub)
-            rhos_acc     = rhos_acc.at[iz].set(ma/(4.*np.pi*rs_acc[iz]**3*self.fc(c_sub)))
-            m0           = solver.subhalo_mass_stripped(ma, zdist[iz], redshift, method=method, **kwargs)
-            if(profile_change==True):
-                rmax_acc    = rs_acc[iz]*2.163
-                Vmax_acc    = np.sqrt(rhos_acc[iz]*4*np.pi*self.G/4.625)*rs_acc[iz]
-                Vmax_z0     = Vmax_acc*(2.**0.4*(m0/ma)**0.3*(1+m0/ma)**-0.4)
-                rmax_z0     = rmax_acc*(2.**-0.3*(m0/ma)**0.4*(1+m0/ma)**0.3)
-                rs_z0       = rs_z0.at[iz].set(rmax_z0/2.163)
-                rhos_z0     = rhos_z0.at[iz].set((4.625/(4.*np.pi*self.G))*(Vmax_z0/rs_z0[iz])**2)
-            else:
-                rs_z0       = rs_z0.at[iz].set(rs_acc[iz])
-                rhos_z0     = rhos_z0.at[iz].set(rhos_acc[iz])
-            ctemp         = np.linspace(0,100,1000)
-            ftemp         = interp1d(self.fc(ctemp),ctemp,fill_value='extrapolate')
-            ct_z0         = ct_z0.at[iz].set(ftemp(m0/(4.*np.pi*rhos_z0[iz]*rs_z0[iz]**3)))
-            survive       = survive.at[iz].set(np.where(ct_z0[iz]>ct_th,1,0))
-            m0_matrix     = m0_matrix.at[iz].set(m0*np.ones((N_herm,1)))
+        # Vectorize z-dependent precomputations (shapes: Nz=len(zdist), Nm=len(ma200))
+        Nz = len(zdist)
+        Nm = len(ma200)
+        z2d = zdist.reshape(Nz, 1)
+        ma200_2d = ma200.reshape(1, Nm)
+
+        ma_2d = self.Mvir_from_M200_fit(ma200_2d, z2d)  # (Nz, Nm)
+        c200sub_2d = self.conc200(ma200_2d, z2d)        # (Nz, Nm)
+        rvirsub_2d = (3.0 * ma_2d / (4.0 * np.pi * self.cosmology.rhocrit(z2d) * self.Delcz(z2d))) ** (1.0 / 3.0)
+        r200sub_2d = (3.0 * ma200_2d / (4.0 * np.pi * self.rhocrit0 * self.g(z2d) * 200.0)) ** (1.0 / 3.0)
+        c_mz_2d = c200sub_2d * rvirsub_2d / r200sub_2d
+
+        log10c_sub = np.sqrt(2.0) * sigmalogc * x1 + np.log10(c_mz_2d.reshape(Nz, 1, Nm))
+        c_sub = 10.0 ** log10c_sub
+        rs_acc = rvirsub_2d.reshape(Nz, 1, Nm) / c_sub
+        rhos_acc = ma_2d.reshape(Nz, 1, Nm) / (4.0 * np.pi * rs_acc ** 3 * self.fc(c_sub))
+
+        # Only the stripping solver remains in a loop
+        m0_list = []
+        for iz in range(Nz):
+            m0_list.append(
+                solver.subhalo_mass_stripped(ma_2d[iz], zdist[iz], redshift, method=method, **kwargs)
+            )
+        m0_2d = np.stack(m0_list, axis=0)  # (Nz, Nm)
+
+        if profile_change == True:
+            rmax_acc = rs_acc * 2.163
+            Vmax_acc = np.sqrt(rhos_acc * 4.0 * np.pi * self.G / 4.625) * rs_acc
+            ratio = m0_2d.reshape(Nz, 1, Nm) / ma_2d.reshape(Nz, 1, Nm)
+            Vmax_z0 = Vmax_acc * (2.0 ** 0.4 * ratio ** 0.3 * (1.0 + ratio) ** -0.4)
+            rmax_z0 = rmax_acc * (2.0 ** -0.3 * ratio ** 0.4 * (1.0 + ratio) ** 0.3)
+            rs_z0 = rmax_z0 / 2.163
+            rhos_z0 = (4.625 / (4.0 * np.pi * self.G)) * (Vmax_z0 / rs_z0) ** 2
+        else:
+            rs_z0 = rs_acc
+            rhos_z0 = rhos_acc
+
+        ctemp = np.linspace(0, 100, 1000)
+        ftemp = interp1d(self.fc(ctemp), ctemp, fill_value='extrapolate')
+        ct_z0 = np.asarray(ftemp(m0_2d.reshape(Nz, 1, Nm) / (4.0 * np.pi * rhos_z0 * rs_z0 ** 3)))
+        survive = np.where(ct_z0 > ct_th, 1, 0)
+        m0_matrix = np.broadcast_to(m0_2d.reshape(Nz, 1, Nm), (Nz, N_herm, Nm))
+
+        # Keep legacy behaviour: subsequent code expects 'ma' to be the last-loop value
+        ma = ma_2d[-1]
 
         Na           = self.Na_calc(ma,zdist,M0,z0=0.,N_herm=N_hermNa,Nrand=1000,
                                     Na_model=Na_model)
