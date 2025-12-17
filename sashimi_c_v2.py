@@ -1,4 +1,6 @@
-import numpy as np
+import numpy  # NOTE: Only for jax unfrended functions
+import jax.numpy as np
+from jax import jit, vmap, grad
 from scipy import integrate
 from scipy import interpolate
 from scipy import optimize
@@ -11,6 +13,7 @@ from scipy.interpolate import griddata
 from scipy.special import erf
 from numpy.polynomial.hermite import hermgauss
 import warnings
+from functools import partial
 warnings.filterwarnings("ignore", category=RuntimeWarning, append=True)
 
 
@@ -92,6 +95,10 @@ class Cosmology:
         self.H0            = self.h*100*u.km/u.s/u.Mpc 
         self.rhocrit0      = 3*self.H0**2/(8.0*np.pi*u.G)
 
+        # # jit compile functions
+        # self._Svar_jit = jit(self.Svar)
+        # self._dsdm_jit = jit(grad(self.Svar, argnums=0))
+
 
     def g(self, z):
         return self.OmegaM*(1.+z)**3+self.OmegaL
@@ -166,16 +173,28 @@ class Cosmology:
     def deltac_func(self, z):
         return 1.686/self.growthD(z)
 
+    # @partial(jit, static_argnums=(0,))
+    def Svar(self, M, z):
+        """ Variance of the linear density field at redshift z """
+        return self.sigmaMz(M,z)**2
     
-    def s_func(self, M):
+    def Svar0(self, M):
+        """ Variance of the linear density field at z=0 """
         return self.sigmaMz(M,0)**2
     
+    def s_func0(self, M):
+        """ See Svar0 for backwards compatibility """
+        return self.Svar0(M)
 
     def Delc(self, x):
         return 18.*np.pi**2+82.*x-39.*x**2
     
+    # @partial(jit, static_argnums=(0,))
+    def dsdm_jax(self,M,z):
+        return grad(self.Svar, argnums=0)(M, z)
+        
 
-    def dsdm(self,M,z):  
+    def dsdm_native(self,M,z):  
         """ Ludlow et al. (2016) """
         s         = self.sigmaMz(M,z)**2
         dsdsigma  = 2.*self.sigmaMz(M,z)
@@ -183,6 +202,14 @@ class Cosmology:
         dsigmadxi = self.sigmaMz(M,z)*(0.292/self.xi(M)-(0.275*1.53*self.xi(M)**-0.725+0.198*3.36* \
             self.xi(M)**-0.802)/(1.+1.53*self.xi(M)**0.275+3.36*self.xi(M)**0.198))
         return dsdsigma*dsigmadxi*dxidm
+    
+
+    def dsdm(self,M,z, method='jax'):  
+        """ Derivative of variance with respect to mass """
+        if method=='jax':
+            return self.dsdm_jax(M,z)
+        else:
+            return self.dsdm_native(M,z)
 
     
     def dlogSdlogM(self,M,z):  
@@ -743,24 +770,24 @@ class subhalo_properties(halo_model):
             z_Max_3d = z_Max.reshape(N_herm,len(zlist),1)
             delcM    = self.deltac_func(z_Max_3d)
             delca    = self.deltac_func(zacc_2d)
-            sM       = self.s_func(Mmax)
-            sa       = self.s_func(ma)
-            xmax     = (delca-delcM)**2/(2.*(self.s_func(mmax)-sM))
+            sM       = self.Svar0(Mmax)
+            sa       = self.Svar0(ma)
+            xmax     = (delca-delcM)**2/(2.*(self.Svar0(mmax)-sM))
             normB    = special.gamma(0.5)*special.gammainc(0.5,xmax)/np.sqrt(np.pi)
             # those reside in the exponential part of Eq. (14) 
             Phi      = self.Ffunc_Yang(delcM,delca,sM,sa)/normB*np.heaviside(mmax-ma,0)
         elif Na_model==1:
             delca    = self.deltac_func(zacc_2d)
-            sM       = self.s_func(M200)
-            sa       = self.s_func(ma)
-            xmin     = self.s_func(mmax)-self.s_func(M200)
+            sM       = self.Svar0(M200)
+            sa       = self.Svar0(ma)
+            xmin     = self.Svar0(mmax)-self.Svar0(M200)
             normB    = 1./np.sqrt(2*np.pi)*delca*2./xmin**0.5*special.hyp2f1(0.5,0.,1.5,-sM/xmin)
             Phi      = self.Ffunc(delca,sM,sa)/normB*np.heaviside(mmax-ma,0)
         elif Na_model==2:
             delca    = self.deltac_func(zacc_2d)
-            sM       = self.s_func(M200)
-            sa       = self.s_func(ma)
-            xmin     = self.s_func(mmax)-self.s_func(M200)
+            sM       = self.Svar0(M200)
+            sa       = self.Svar0(ma)
+            xmin     = self.Svar0(mmax)-self.Svar0(M200)
             normB    = 1./np.sqrt(2.*np.pi)*delca*0.57 \
                            *(delca/np.sqrt(sM))**-0.01*(2./(1.-0.38))*sM**(-0.38/2.) \
                            *xmin**(0.5*(0.38-1.)) \
@@ -775,7 +802,7 @@ class subhalo_properties(halo_model):
             F2  =F2t.reshape((len(zacc_2d),len(ma)))
         else:
             F2 = np.sum(np.nan_to_num(Phi)*wwi/np.sqrt(np.pi),axis=0)
-        Na = F2*self.dsdm(ma,0.)*self.dMdz(Mhost,zacc_2d,z0)*(1.+zacc_2d)
+        Na = F2*self.dsdm_native(ma,0.)*self.dMdz(Mhost,zacc_2d,z0)*(1.+zacc_2d)
         return Na
 
     
