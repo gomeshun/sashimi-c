@@ -430,6 +430,21 @@ class TidalStrippingSolver(halo_model):
         _, _eps_10, _eps_11 = self._eps_1(z_max, z_min, n_z)
         _, _eps_20, _eps_21, _eps_22 = self._eps_2(z_max, z_min, n_z)
         _, _eps_30, _eps_31, _eps_32, _eps_33 = self._eps_3(z_max, z_min, n_z)
+
+        # Store ascending grids for JAX interpolation (np.interp expects ascending xp).
+        # Use NumPy arrays here because cumulative_trapezoid/odeint are SciPy (non-JAX).
+        z_asc = numpy.asarray(_z)[::-1]
+        self._z_grid_asc = np.asarray(z_asc)
+        self._eps_0_grid_asc = np.asarray(numpy.asarray(_eps_0)[::-1])
+        self._eps_10_grid_asc = np.asarray(numpy.asarray(_eps_10)[::-1])
+        self._eps_11_grid_asc = np.asarray(numpy.asarray(_eps_11)[::-1])
+        self._eps_20_grid_asc = np.asarray(numpy.asarray(_eps_20)[::-1])
+        self._eps_21_grid_asc = np.asarray(numpy.asarray(_eps_21)[::-1])
+        self._eps_22_grid_asc = np.asarray(numpy.asarray(_eps_22)[::-1])
+        self._eps_30_grid_asc = np.asarray(numpy.asarray(_eps_30)[::-1])
+        self._eps_31_grid_asc = np.asarray(numpy.asarray(_eps_31)[::-1])
+        self._eps_32_grid_asc = np.asarray(numpy.asarray(_eps_32)[::-1])
+        self._eps_33_grid_asc = np.asarray(numpy.asarray(_eps_33)[::-1])
         # get the interpolation functions as indefinite integrals
         self._eps_0_interp = lambda z: np.interp(z, _z[::-1], _eps_0[::-1])
         self._eps_10_interp = lambda z: np.interp(z, _z[::-1], _eps_10[::-1])
@@ -452,6 +467,128 @@ class TidalStrippingSolver(halo_model):
         self.eps_31 = lambda _za, _z: self._eps_31_interp(_z) - self._eps_31_interp(_za)
         self.eps_32 = lambda _za, _z: self._eps_32_interp(_z) - self._eps_32_interp(_za)
         self.eps_33 = lambda _za, _z: self._eps_33_interp(_z) - self._eps_33_interp(_za)
+
+
+    def _eps_definite_from_grid(self, eps_grid_asc, za, z):
+        return np.interp(z, self._z_grid_asc, eps_grid_asc) - np.interp(za, self._z_grid_asc, eps_grid_asc)
+
+
+    @partial(jit, static_argnums=(0,))
+    def subhalo_mass_stripped_pert2_shanks_jit(self, ma, za, z):
+        eps_0 = self._eps_definite_from_grid(self._eps_0_grid_asc, za, z)
+        eps_10 = self._eps_definite_from_grid(self._eps_10_grid_asc, za, z)
+        eps_11 = self._eps_definite_from_grid(self._eps_11_grid_asc, za, z)
+        eps_20 = self._eps_definite_from_grid(self._eps_20_grid_asc, za, z)
+        eps_21 = self._eps_definite_from_grid(self._eps_21_grid_asc, za, z)
+        eps_22 = self._eps_definite_from_grid(self._eps_22_grid_asc, za, z)
+        ln_ma = np.log(ma)
+        eps_1 = eps_10 + ln_ma * eps_11
+        eps_2 = eps_20 + ln_ma * eps_21 + ln_ma**2 * eps_22
+        eps_2m1 = (eps_20 - eps_10) + ln_ma * (eps_21 - eps_11) + ln_ma**2 * eps_22
+        eps_shanks = - eps_2**2 / eps_2m1
+        eps_shanks = np.where(np.isnan(eps_shanks), 0, eps_shanks)
+        eps_shanks = np.where(np.abs((eps_1 + eps_2) / eps_0) < 0.02, 0, eps_shanks)
+        eps = eps_0 + eps_1 + eps_2 + eps_shanks
+        return ma * np.exp(eps)
+
+
+    @partial(jit, static_argnums=(0,))
+    def subhalo_mass_stripped_pert0_jit(self, ma, za, z):
+        eps_0 = self._eps_definite_from_grid(self._eps_0_grid_asc, za, z)
+        return ma * np.exp(eps_0)
+
+
+    @partial(jit, static_argnums=(0,))
+    def subhalo_mass_stripped_pert1_jit(self, ma, za, z):
+        eps_0 = self._eps_definite_from_grid(self._eps_0_grid_asc, za, z)
+        eps_10 = self._eps_definite_from_grid(self._eps_10_grid_asc, za, z)
+        eps_11 = self._eps_definite_from_grid(self._eps_11_grid_asc, za, z)
+        ln_ma = np.log(ma)
+        eps = eps_0 + eps_10 + ln_ma * eps_11
+        return ma * np.exp(eps)
+
+
+    @partial(jit, static_argnums=(0,))
+    def subhalo_mass_stripped_pert2_jit(self, ma, za, z):
+        eps_0 = self._eps_definite_from_grid(self._eps_0_grid_asc, za, z)
+        eps_10 = self._eps_definite_from_grid(self._eps_10_grid_asc, za, z)
+        eps_11 = self._eps_definite_from_grid(self._eps_11_grid_asc, za, z)
+        eps_20 = self._eps_definite_from_grid(self._eps_20_grid_asc, za, z)
+        eps_21 = self._eps_definite_from_grid(self._eps_21_grid_asc, za, z)
+        eps_22 = self._eps_definite_from_grid(self._eps_22_grid_asc, za, z)
+        ln_ma = np.log(ma)
+        eps = (
+            eps_0
+            + eps_10
+            + ln_ma * eps_11
+            + eps_20
+            + ln_ma * eps_21
+            + ln_ma**2 * eps_22
+        )
+        return ma * np.exp(eps)
+
+
+    @partial(jit, static_argnums=(0,))
+    def subhalo_mass_stripped_pert3_jit(self, ma, za, z):
+        eps_0 = self._eps_definite_from_grid(self._eps_0_grid_asc, za, z)
+        eps_10 = self._eps_definite_from_grid(self._eps_10_grid_asc, za, z)
+        eps_11 = self._eps_definite_from_grid(self._eps_11_grid_asc, za, z)
+        eps_20 = self._eps_definite_from_grid(self._eps_20_grid_asc, za, z)
+        eps_21 = self._eps_definite_from_grid(self._eps_21_grid_asc, za, z)
+        eps_22 = self._eps_definite_from_grid(self._eps_22_grid_asc, za, z)
+        eps_30 = self._eps_definite_from_grid(self._eps_30_grid_asc, za, z)
+        eps_31 = self._eps_definite_from_grid(self._eps_31_grid_asc, za, z)
+        eps_32 = self._eps_definite_from_grid(self._eps_32_grid_asc, za, z)
+        eps_33 = self._eps_definite_from_grid(self._eps_33_grid_asc, za, z)
+        ln_ma = np.log(ma)
+        eps = (
+            eps_0
+            + eps_10
+            + ln_ma * eps_11
+            + eps_20
+            + ln_ma * eps_21
+            + ln_ma**2 * eps_22
+            + eps_30
+            + ln_ma * eps_31
+            + ln_ma**2 * eps_32
+            + ln_ma**3 * eps_33
+        )
+        return ma * np.exp(eps)
+
+
+    @partial(jit, static_argnums=(0,))
+    def subhalo_mass_stripped_pert2_shanks_batch_jit(self, ma_2d, za_1d, z):
+        return vmap(lambda ma_row, za: self.subhalo_mass_stripped_pert2_shanks_jit(ma_row, za, z), in_axes=(0, 0))(
+            ma_2d, za_1d
+        )
+
+
+    @partial(jit, static_argnums=(0,))
+    def subhalo_mass_stripped_pert0_batch_jit(self, ma_2d, za_1d, z):
+        return vmap(lambda ma_row, za: self.subhalo_mass_stripped_pert0_jit(ma_row, za, z), in_axes=(0, 0))(
+            ma_2d, za_1d
+        )
+
+
+    @partial(jit, static_argnums=(0,))
+    def subhalo_mass_stripped_pert1_batch_jit(self, ma_2d, za_1d, z):
+        return vmap(lambda ma_row, za: self.subhalo_mass_stripped_pert1_jit(ma_row, za, z), in_axes=(0, 0))(
+            ma_2d, za_1d
+        )
+
+
+    @partial(jit, static_argnums=(0,))
+    def subhalo_mass_stripped_pert2_batch_jit(self, ma_2d, za_1d, z):
+        return vmap(lambda ma_row, za: self.subhalo_mass_stripped_pert2_jit(ma_row, za, z), in_axes=(0, 0))(
+            ma_2d, za_1d
+        )
+
+
+    @partial(jit, static_argnums=(0,))
+    def subhalo_mass_stripped_pert3_batch_jit(self, ma_2d, za_1d, z):
+        return vmap(lambda ma_row, za: self.subhalo_mass_stripped_pert3_jit(ma_row, za, z), in_axes=(0, 0))(
+            ma_2d, za_1d
+        )
 
 
     def Mzvir(self,z):
@@ -956,13 +1093,26 @@ class subhalo_properties(halo_model):
         rs_acc = rvirsub_2d.reshape(Nz, 1, Nm) / c_sub
         rhos_acc = ma_2d.reshape(Nz, 1, Nm) / (4.0 * np.pi * rs_acc ** 3 * self.fc(c_sub))
 
-        # Only the stripping solver remains in a loop
-        m0_list = []
-        for iz in range(Nz):
-            m0_list.append(
-                solver.subhalo_mass_stripped(ma_2d[iz], zdist[iz], redshift, method=method, **kwargs)
-            )
-        m0_2d = np.stack(m0_list, axis=0)  # (Nz, Nm)
+        # Stripping solver: use JIT-compiled batched kernels for perturbative methods.
+        if len(kwargs) == 0 and method in {"pert0", "pert1", "pert2", "pert2_shanks", "pert3"}:
+            match method:
+                case "pert0":
+                    m0_2d = solver.subhalo_mass_stripped_pert0_batch_jit(ma_2d, zdist, redshift)
+                case "pert1":
+                    m0_2d = solver.subhalo_mass_stripped_pert1_batch_jit(ma_2d, zdist, redshift)
+                case "pert2":
+                    m0_2d = solver.subhalo_mass_stripped_pert2_batch_jit(ma_2d, zdist, redshift)
+                case "pert2_shanks":
+                    m0_2d = solver.subhalo_mass_stripped_pert2_shanks_batch_jit(ma_2d, zdist, redshift)
+                case "pert3":
+                    m0_2d = solver.subhalo_mass_stripped_pert3_batch_jit(ma_2d, zdist, redshift)
+        else:
+            m0_list = []
+            for iz in range(Nz):
+                m0_list.append(
+                    solver.subhalo_mass_stripped(ma_2d[iz], zdist[iz], redshift, method=method, **kwargs)
+                )
+            m0_2d = np.stack(m0_list, axis=0)  # (Nz, Nm)
 
         if profile_change == True:
             rmax_acc = rs_acc * 2.163
