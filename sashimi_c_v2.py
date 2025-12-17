@@ -105,7 +105,8 @@ class Cosmology:
 
 
     def Hubble(self, z):
-        return self.H0*np.sqrt(self.OmegaM*(1.+z)**3+self.OmegaL)
+        # return self.H0*np.sqrt(self.OmegaM*(1.+z)**3+self.OmegaL)
+        return self.H0*np.sqrt(self.g(z))
 
     
     def rhocrit(self, z):
@@ -187,8 +188,37 @@ class Cosmology:
         return self.Svar0(M)
 
     def Delc(self, x):
+        """ overdensity for collapse at redshift z (Bryan & Norman 1998) 
+        
+        Parameters
+        ----------
+        x : float or array-like
+            Omega(z) - 1
+        
+        Returns
+        -------
+        float or array-like
+            Delta_c at redshift z
+        """
         return 18.*np.pi**2+82.*x-39.*x**2
     
+    def Delcz(self, z):
+        """ overdensity for collapse at redshift z (Bryan & Norman 1998) 
+        
+        Parameters
+        ----------
+        z : float or array-like
+            Redshift
+        
+        Returns
+        -------
+        float or array-like
+            Delta_c at redshift z
+        """
+        x = self.OmegaM*(1.+z)**3/self.g(z)-1.
+        return self.Delc(x)
+    
+
     # @partial(jit, static_argnums=(0,))
     def dsdm_jax(self,M,z):
         return grad(self.Svar, argnums=0)(M, z)
@@ -244,6 +274,8 @@ class halo_model(Cosmology):
     def Hubble(self, z):
         return self.cosmology.Hubble(z)
     
+    def rhocrit(self, z):
+        return self.cosmology.rhocrit(z)
 
     def fc(self, x):
         return np.log(1+x)-x*pow(1+x,-1)
@@ -269,7 +301,8 @@ class halo_model(Cosmology):
         rs    = r200/c200
         fc200 = self.fc(c200)
         rhos  = M200/(4*np.pi*rs**3*fc200)
-        Dc    = self.Delc(self.OmegaM*(1.+z)**3/self.g(z)-1.)
+        # Dc    = self.Delc(self.OmegaM*(1.+z)**3/self.g(z)-1.)
+        Dc    = self.Delcz(z)
         rvir  = optimize.fsolve(lambda r: 3.*(rs/r)**3*self.fc(r/rs)*rhos-Dc*self.rhocrit0*gz,r200)
         Mvir  = 4*np.pi*rs**3*rhos*self.fc(rvir/rs)
         return Mvir
@@ -901,32 +934,33 @@ class subhalo_properties(halo_model):
 
         for iz in range(len(zdist)):
             ma           = self.Mvir_from_M200_fit(ma200,zdist[iz])
-            Oz           = self.OmegaM*(1.+zdist[iz])**3/self.g(zdist[iz])
-            m0           = solver.subhalo_mass_stripped(ma, zdist[iz], redshift, method=method, **kwargs)
+            # Oz           = self.OmegaM*(1.+zdist[iz])**3/self.g(zdist[iz])
             c200sub      = self.conc200(ma200,zdist[iz])
-            rvirsub      = (3.*ma/(4.*np.pi*self.rhocrit0*self.g(zdist[iz]) \
-                               *self.Delc(Oz-1)))**(1./3.)
+            # rvirsub      = (3.*ma/(4.*np.pi*self.rhocrit0*self.g(zdist[iz]) \
+            #                    *self.Delc(Oz-1)))**(1./3.)
+            rvirsub      = (3.*ma/(4.*np.pi*self.cosmology.rhocrit(zdist[iz])*self.Delcz(zdist[iz])))**(1./3.)
             r200sub      = (3.*ma200/(4.*np.pi*self.rhocrit0*self.g(zdist[iz])*200.))**(1./3.)
             c_mz         = c200sub*rvirsub/r200sub
             log10c_sub   = np.sqrt(2.)*sigmalogc*x1+np.log10(c_mz)
             c_sub        = 10.0**log10c_sub
-            rs_acc[iz]   = rvirsub/c_sub
-            rhos_acc[iz] = ma/(4.*np.pi*rs_acc[iz]**3*self.fc(c_sub))
+            rs_acc       = rs_acc.at[iz].set(rvirsub/c_sub)
+            rhos_acc     = rhos_acc.at[iz].set(ma/(4.*np.pi*rs_acc[iz]**3*self.fc(c_sub)))
+            m0           = solver.subhalo_mass_stripped(ma, zdist[iz], redshift, method=method, **kwargs)
             if(profile_change==True):
                 rmax_acc    = rs_acc[iz]*2.163
                 Vmax_acc    = np.sqrt(rhos_acc[iz]*4*np.pi*self.G/4.625)*rs_acc[iz]
                 Vmax_z0     = Vmax_acc*(2.**0.4*(m0/ma)**0.3*(1+m0/ma)**-0.4)
                 rmax_z0     = rmax_acc*(2.**-0.3*(m0/ma)**0.4*(1+m0/ma)**0.3)
-                rs_z0[iz]   = rmax_z0/2.163
-                rhos_z0[iz] = (4.625/(4.*np.pi*self.G))*(Vmax_z0/rs_z0[iz])**2
+                rs_z0       = rs_z0.at[iz].set(rmax_z0/2.163)
+                rhos_z0     = rhos_z0.at[iz].set((4.625/(4.*np.pi*self.G))*(Vmax_z0/rs_z0[iz])**2)
             else:
-                rs_z0[iz]   = rs_acc[iz]
-                rhos_z0[iz] = rhos_acc[iz]
+                rs_z0       = rs_z0.at[iz].set(rs_acc[iz])
+                rhos_z0     = rhos_z0.at[iz].set(rhos_acc[iz])
             ctemp         = np.linspace(0,100,1000)
             ftemp         = interp1d(self.fc(ctemp),ctemp,fill_value='extrapolate')
-            ct_z0[iz]     = ftemp(m0/(4.*np.pi*rhos_z0[iz]*rs_z0[iz]**3))
-            survive[iz]   = np.where(ct_z0[iz]>ct_th,1,0)
-            m0_matrix[iz] = m0*np.ones((N_herm,1))
+            ct_z0         = ct_z0.at[iz].set(ftemp(m0/(4.*np.pi*rhos_z0[iz]*rs_z0[iz]**3)))
+            survive       = survive.at[iz].set(np.where(ct_z0[iz]>ct_th,1,0))
+            m0_matrix     = m0_matrix.at[iz].set(m0*np.ones((N_herm,1)))
 
         Na           = self.Na_calc(ma,zdist,M0,z0=0.,N_herm=N_hermNa,Nrand=1000,
                                     Na_model=Na_model)
