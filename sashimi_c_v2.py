@@ -1,7 +1,14 @@
+import os
+
+# Avoid JAX/XLA preallocating most of GPU memory by default.
+# Users can override this externally (e.g., set to "true").
+os.environ.setdefault("XLA_PYTHON_CLIENT_PREALLOCATE", "false")
+
 import numpy  # NOTE: Only for jax unfrended functions
 from jax import config as jax_config
 
-# Prefer numerical consistency with the NumPy (v1) implementation.
+# For backward compatibility with the v1 (NumPy) implementation.
+# Do not force CPU/GPU backend here; leave that to the user's JAX defaults.
 jax_config.update("jax_enable_x64", True)
 
 import jax.numpy as np
