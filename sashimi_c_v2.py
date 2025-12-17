@@ -1351,11 +1351,13 @@ class subhalo_observables(subhalo_properties):
         ct0       = self.ct0[condition]
         weight    = self.weight[condition]
         
-        mu_sh      = np.sum(weight)
-        prob       = weight/mu_sh
-        subhalo_id = np.arange(len(prob))
-        N_sh       = np.random.poisson(mu_sh)
-        id_MC      = np.random.choice(subhalo_id,size=N_sh,p=prob)
+        # NOTE: `np` is `jax.numpy` in this file; randomness must use NumPy or `jax.random`.
+        # This Monte-Carlo catalog generation is host-side, so use NumPy's RNG.
+        mu_sh      = float(np.sum(weight))
+        prob       = numpy.asarray(weight / mu_sh)
+        subhalo_id = numpy.arange(len(prob))
+        N_sh       = numpy.random.poisson(mu_sh)
+        id_MC      = numpy.random.choice(subhalo_id, size=N_sh, p=prob)
         ma200_MC   = ma200[id_MC]
         z_a_MC     = z_a[id_MC]
         rs_a_MC    = rs_a[id_MC]
