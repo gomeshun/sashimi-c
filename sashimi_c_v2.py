@@ -1,4 +1,9 @@
 import numpy  # NOTE: Only for jax unfrended functions
+from jax import config as jax_config
+
+# Prefer numerical consistency with the NumPy (v1) implementation.
+jax_config.update("jax_enable_x64", True)
+
 import jax.numpy as np
 from jax import jit, vmap, grad
 from scipy import integrate
@@ -313,15 +318,17 @@ class halo_model(Cosmology):
         a2 = -0.4283
         a3 = -3.13e-3
         a4 = -3.52e-5
-        Oz = self.OmegaM*(1.+z)**3/self.g(z)
+        # Oz = self.OmegaM*(1.+z)**3/self.g(z)
         def ffunc(x):
             return np.power(x,3.0)*(np.log(1.0+1.0/x)-1.0/(1.0+x))
         def xfunc(f):
             p = a2 + a3*np.log(f) + a4*np.power(np.log(f),2.0)
             return np.power(a1*np.power(f,2.0*p)+(3.0/4.0)**2,-0.5)+2.0*f
-        return self.Delc(Oz-1)/200.0*M200 \
-            *np.power(self.conc200(M200,z) \
-            *xfunc(self.Delc(Oz-1)/200.0*ffunc(1.0/self.conc200(M200,z))),-3.0)
+        Dc = self.Delcz(z)
+        c200 = self.conc200(M200,z)
+        return Dc/200.0*M200 \
+            *np.power(c200 \
+            *xfunc(Dc/200.0*ffunc(1.0/c200)),-3.0)
 
     
     def Mzi(self, M0, z):
