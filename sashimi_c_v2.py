@@ -14,6 +14,13 @@ import warnings
 warnings.filterwarnings("ignore", category=RuntimeWarning, append=True)
 
 
+########################
+# SASHIMI coding rule
+# - Follow PEP8 coding rule except for allowing captal/lower letters 
+#   for physical constants, abbreviations etc.
+#   e.g. gravitational constant G (not g), hubble paremeter h (not H)
+########################
+
 
 
 def memoize_with_pickle(cache_dir="cache"):
