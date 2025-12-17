@@ -28,6 +28,103 @@ import warnings
 from functools import partial
 warnings.filterwarnings("ignore", category=RuntimeWarning, append=True)
 
+import time
+# from astropy.modeling.models import NFW as NFW_astropy
+
+
+def cumulative_trapezoid(y, x=None, dx=1.0, axis=-1, initial=None):
+    """Cumulatively integrate y(x) using the composite trapezoidal rule (JAX).
+
+    This is a small, JAX-compatible replacement for `scipy.integrate.cumulative_trapezoid`.
+    It supports the subset of SciPy's API used in this codebase.
+
+    Parameters are the same as SciPy's function.
+    """
+
+    y = np.asarray(y)
+    if y.shape[axis] == 0:
+        raise ValueError("At least one point is required along `axis`.")
+
+    if x is None:
+        d = dx
+    else:
+        x = np.asarray(x)
+        if x.ndim == 1:
+            d = np.diff(x)
+            shape = [1] * y.ndim
+            shape[axis] = -1
+            d = d.reshape(shape)
+        elif x.ndim != y.ndim:
+            raise ValueError("If given, shape of x must be 1-D or the same as y.")
+        else:
+            d = np.diff(x, axis=axis)
+
+        if d.shape[axis] != y.shape[axis] - 1:
+            raise ValueError("If given, length of x along axis must be the same as y.")
+
+    nd = y.ndim
+    slice1 = [slice(None)] * nd
+    slice2 = [slice(None)] * nd
+    slice1[axis] = slice(1, None)
+    slice2[axis] = slice(None, -1)
+    slice1 = tuple(slice1)
+    slice2 = tuple(slice2)
+
+    res = np.cumsum(d * (y[slice1] + y[slice2]) / 2.0, axis=axis)
+
+    if initial is not None:
+        # SciPy only accepts `None` or scalar 0.
+        if isinstance(initial, (int, float)):
+            initial_val = float(initial)
+        elif hasattr(initial, "shape") and getattr(initial, "shape", None) == ():
+            initial_val = float(initial)
+        else:
+            raise ValueError("`initial` parameter should be a scalar.")
+
+        if initial_val != 0.0:
+            raise ValueError("`initial` must be `None` or `0`.")
+
+        shape = list(res.shape)
+        shape[axis] = 1
+        init_arr = np.zeros(shape, dtype=res.dtype)
+        res = np.concatenate([init_arr, res], axis=axis)
+
+    return res
+
+
+def _env_flag(name: str, default: bool = False) -> bool:
+    val = os.environ.get(name)
+    if val is None:
+        return default
+    return val.strip().lower() in {"1", "true", "yes", "y", "on"}
+
+
+def _maybe_enable_jax_compilation_cache() -> None:
+    """Enable JAX persistent compilation cache (opt-in).
+
+    Set either:
+      - `SASHIMI_JAX_CACHE_DIR=/path/to/cache`
+      - or `SASHIMI_JAX_CACHE=1` (uses `~/.cache/sashimi_c_v2/jax`)
+    """
+    cache_dir = os.environ.get("SASHIMI_JAX_CACHE_DIR")
+    if cache_dir is None and not _env_flag("SASHIMI_JAX_CACHE", default=False):
+        return
+    if cache_dir is None:
+        cache_dir = os.path.expanduser("~/.cache/sashimi_c_v2/jax")
+
+    try:
+        from jax.experimental import compilation_cache as _cc
+
+        os.makedirs(cache_dir, exist_ok=True)
+        _cc.compilation_cache.set_cache_dir(cache_dir)
+    except Exception:
+        # Best-effort: do not fail import if JAX API changes.
+        return
+
+
+# Opt-in persistent compilation cache (must run before any compilation happens).
+_maybe_enable_jax_compilation_cache()
+
 
 ########################
 # SASHIMI coding rule
@@ -432,19 +529,18 @@ class TidalStrippingSolver(halo_model):
         _, _eps_30, _eps_31, _eps_32, _eps_33 = self._eps_3(z_max, z_min, n_z)
 
         # Store ascending grids for JAX interpolation (np.interp expects ascending xp).
-        # Use NumPy arrays here because cumulative_trapezoid/odeint are SciPy (non-JAX).
-        z_asc = numpy.asarray(_z)[::-1]
+        z_asc = _z[::-1]
         self._z_grid_asc = np.asarray(z_asc)
-        self._eps_0_grid_asc = np.asarray(numpy.asarray(_eps_0)[::-1])
-        self._eps_10_grid_asc = np.asarray(numpy.asarray(_eps_10)[::-1])
-        self._eps_11_grid_asc = np.asarray(numpy.asarray(_eps_11)[::-1])
-        self._eps_20_grid_asc = np.asarray(numpy.asarray(_eps_20)[::-1])
-        self._eps_21_grid_asc = np.asarray(numpy.asarray(_eps_21)[::-1])
-        self._eps_22_grid_asc = np.asarray(numpy.asarray(_eps_22)[::-1])
-        self._eps_30_grid_asc = np.asarray(numpy.asarray(_eps_30)[::-1])
-        self._eps_31_grid_asc = np.asarray(numpy.asarray(_eps_31)[::-1])
-        self._eps_32_grid_asc = np.asarray(numpy.asarray(_eps_32)[::-1])
-        self._eps_33_grid_asc = np.asarray(numpy.asarray(_eps_33)[::-1])
+        self._eps_0_grid_asc = np.asarray(_eps_0[::-1])
+        self._eps_10_grid_asc = np.asarray(_eps_10[::-1])
+        self._eps_11_grid_asc = np.asarray(_eps_11[::-1])
+        self._eps_20_grid_asc = np.asarray(_eps_20[::-1])
+        self._eps_21_grid_asc = np.asarray(_eps_21[::-1])
+        self._eps_22_grid_asc = np.asarray(_eps_22[::-1])
+        self._eps_30_grid_asc = np.asarray(_eps_30[::-1])
+        self._eps_31_grid_asc = np.asarray(_eps_31[::-1])
+        self._eps_32_grid_asc = np.asarray(_eps_32[::-1])
+        self._eps_33_grid_asc = np.asarray(_eps_33[::-1])
         # get the interpolation functions as indefinite integrals
         self._eps_0_interp = lambda z: np.interp(z, _z[::-1], _eps_0[::-1])
         self._eps_10_interp = lambda z: np.interp(z, _z[::-1], _eps_10[::-1])
