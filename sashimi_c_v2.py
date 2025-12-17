@@ -73,8 +73,9 @@ class UnitsAndConstants:
     c = 2.9979e10 * cm / s
     G = 6.6742e-8 * cm**3 / gram / s**2
 
-units_and_constants = UnitsAndConstants  # For backwards compatibility
-
+# units_and_constants = UnitsAndConstants  # For backwards compatibility
+class units_and_constants(UnitsAndConstants):
+    pass
 
         
 class Cosmology:
@@ -195,7 +196,9 @@ class Cosmology:
 
 
 
-cosmology = Cosmology  # For backwards compatibility
+# cosmology = Cosmology  # For backwards compatibility
+class cosmology(Cosmology):
+    pass
 
 
 class halo_model(Cosmology):
