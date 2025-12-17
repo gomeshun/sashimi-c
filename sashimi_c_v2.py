@@ -895,6 +895,10 @@ class subhalo_properties(halo_model):
             n_z_interp=64
         )
 
+        x1,w1        = hermgauss(N_herm)
+        x1           = x1.reshape(len(x1),1)
+        w1           = w1.reshape(len(w1),1)
+
         for iz in range(len(zdist)):
             ma           = self.Mvir_from_M200_fit(ma200,zdist[iz])
             Oz           = self.OmegaM*(1.+zdist[iz])**3/self.g(zdist[iz])
@@ -904,9 +908,6 @@ class subhalo_properties(halo_model):
                                *self.Delc(Oz-1)))**(1./3.)
             r200sub      = (3.*ma200/(4.*np.pi*self.rhocrit0*self.g(zdist[iz])*200.))**(1./3.)
             c_mz         = c200sub*rvirsub/r200sub
-            x1,w1        = hermgauss(N_herm)
-            x1           = x1.reshape(len(x1),1)
-            w1           = w1.reshape(len(w1),1)
             log10c_sub   = np.sqrt(2.)*sigmalogc*x1+np.log10(c_mz)
             c_sub        = 10.0**log10c_sub
             rs_acc[iz]   = rvirsub/c_sub
