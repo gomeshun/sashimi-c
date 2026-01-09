@@ -941,46 +941,41 @@ class subhalo_properties(halo_model):
         return (q/q_ref)**beta
 
 
-    def mdot_r_2(self,q):
-        """ Factor to modify the mass stripping rate as a function of radius q = r/r_vir.
-        The stripping rate dm/dt is given by
-            mdot_r(q) * mdot
-        where mdot is the mass stripping rate given by the original SASHIMI-C code.
-        
-        In this case, we modify the dynamical time scale \tau_{dyn} as a function of radius q = r/r_vir:
+    def mdot_r_2(self, q):
+        """Radial correction factor for the subhalo mass-loss rate.
 
-        t_dyn --> t_dyn(q) = t_dyn * k * rho_nfw_mean_normalized(q)
+        We model the radial dependence through the local dynamical time inside the host halo.
 
-        where 
-            - t_dyn: dynamical time scale at the virial radius, used in the original SASHIMI-C code.
-            - k: a factor to modify the dynamical time scale.
-            - rho_nfw_mean_normalized(q): mean NFW density normalized by the outermost density (q=1):
-        The mean NFW density is given by
+        - Mean enclosed density for an NFW halo (normalized at q=1):
+            rho_norm(q) = [A(c*q) / A(c)] * q^{-3}
+        where A(x) = ln(1+x) - x/(1+x), c is the host concentration, q=r/r_vir.
 
-            rho_nfw_mean(q) = 3 * rho_s * (log(1+c*q) - c*q/(1+c*q)) / (c*q)^3
-                            = 3 * rho_s * a_nfw(c*q) / (c*q)^3
-        where
-            a_nfw(x) = log(1+x) - x/(1+x)
-        Here, we can use the following definitions:
-            - M(<r) = 4 * pi * rho_s * r_s^3 * (log(1+r/r_s) - r/r_s/(1+r/r_s))
-            - V(<r) = 4 * pi * r**3 / 3
-        and c = r_vir / r_s, q = r / r_vir, so that r/r_s = c * q.
-        where c is the concentration parameter.
-        The normalization is done by dividing by rho_nfw_mean(1), so
-        rho_nfw_mean_normalized(q) = rho_nfw_mean(q) / rho_nfw_mean(1)
-                                    = a_nfw(c*q) / a_nfw(c) * q**-3
+        - Dynamical time:
+            t_dyn(q) ∝ 1 / sqrt(rho_norm(q))
 
-        Finally, since the mass loss rate is proportional to the inverse of the dynamical time scale,
-        we can write the modified mass loss rate as:
+        - Since the stripping rate is assumed to scale as:
+            |d ln m / dt| ∝ 1 / t_dyn(q) ∝ sqrt(rho_norm(q)),
+        we adopt:
+            mdot_r(q) = k * sqrt(rho_norm(q))
 
-            mdot_r(q) = 1 / (k * rho_nfw_mean_normalized(q))
-
+        Notes
+        -----
+        - This choice makes mdot_r(q) increase toward the center (small q),
+        consistent with shorter dynamical times at higher enclosed densities.
+        - 'k' is kept fixed here as a global normalization factor.
         """
-        c_host = 6
+        c_host = 6.0
         k = 0.2624
-        a_nfw = lambda x: np.log1p(x) - x / (1 + x)
-        rho = a_nfw(c_host*q) / a_nfw(c_host) * q**-3  # mean NFW density normalized at q=1
-        return 1.0 / (k * rho)  # modified mass loss rate
+
+        q = np.asarray(q, dtype=float)
+        # avoid divergence at q->0; choose a floor consistent with your q grid / resolution
+        q_floor = 1e-4
+        q_safe = np.clip(q, q_floor, 1.0)
+
+        a_nfw = lambda x: np.log1p(x) - x / (1.0 + x)
+        rho_norm = a_nfw(c_host * q_safe) / a_nfw(c_host) * q_safe**(-3.0)
+
+        return k * np.sqrt(rho_norm)
     
     
     def _subhalo_properties_r_dependence_calc(self, M0, q, redshift=0.0, dz=0.1, zmax=7.0, N_ma=500, 
