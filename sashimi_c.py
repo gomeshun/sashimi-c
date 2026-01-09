@@ -942,28 +942,80 @@ class subhalo_properties(halo_model):
 
 
     def mdot_r_2(self, q):
-        """Radial correction factor for the subhalo mass-loss rate.
-
-        We model the radial dependence through the local dynamical time inside the host halo.
-
-        - Mean enclosed density for an NFW halo (normalized at q=1):
-            rho_norm(q) = [A(c*q) / A(c)] * q^{-3}
-        where A(x) = ln(1+x) - x/(1+x), c is the host concentration, q=r/r_vir.
-
-        - Dynamical time:
-            t_dyn(q) ∝ 1 / sqrt(rho_norm(q))
-
-        - Since the stripping rate is assumed to scale as:
-            |d ln m / dt| ∝ 1 / t_dyn(q) ∝ sqrt(rho_norm(q)),
-        we adopt:
-            mdot_r(q) = k * sqrt(rho_norm(q))
-
-        Notes
-        -----
-        - This choice makes mdot_r(q) increase toward the center (small q),
-        consistent with shorter dynamical times at higher enclosed densities.
-        - 'k' is kept fixed here as a global normalization factor.
         """
+        Radial correction factor for the subhalo mass-loss rate.
+
+        Context
+        -------
+        In this code base, the orbit-averaged (global) stripping model is implemented
+        through a baseline mass-loss rate.  Here we introduce an additional factor
+        mdot_r(q) to model the dependence on host-centric radius:
+
+            (dm/dt)(q) = mdot_r(q) * (dm/dt)_baseline
+
+        where q = r / r_vir is the subhalo orbital radius normalized by the host
+        virial radius at the epoch of interest.
+
+        Physical motivation
+        -------------------
+        A common heuristic is that the characteristic stripping rate scales with the
+        inverse of a local dynamical time:
+
+            |d ln m / dt| ~ 1 / t_dyn(r)
+
+        and the dynamical time is related to the enclosed mean density:
+
+            t_dyn(r) ~ sqrt( 3*pi / (16*G*rho_bar(<r)) )
+            => 1/t_dyn(r) ~ sqrt( rho_bar(<r) )
+
+        For an NFW host halo, the enclosed mean density can be written in a compact
+        form.  Let c = r_vir / r_s be the host concentration and define
+
+            A(x) = ln(1 + x) - x/(1 + x)
+
+        Then the enclosed mass is proportional to A(c*q), and the enclosed mean
+        density normalized by its value at q=1 becomes:
+
+            rho_norm(q) = rho_bar(<r) / rho_bar(<r_vir)
+                        = [ A(c*q) / A(c) ] * q^(-3)
+
+        If we adopt the dynamical-time scaling above, the radial dependence of the
+        stripping rate is expected to follow:
+
+            mdot_r(q) proportional to 1/t_dyn(q)
+                    proportional to sqrt( rho_norm(q) )
+
+        Implementation choice
+        ---------------------
+        We therefore set:
+
+            mdot_r(q) = k * sqrt( rho_norm(q) )
+
+        where k is a (dimensionless) global normalization constant.  In principle,
+        k should be chosen so that the radius-averaged correction satisfies
+        <mdot_r> = 1 under the adopted orbital/radial distribution (so that the
+        global model is recovered when integrating over radius).  For now, we keep
+        k fixed as requested.
+
+        Parameters
+        ----------
+        q : float or array-like
+            Radius in units of the host virial radius, q = r/r_vir.
+
+        Returns
+        -------
+        mdot_r : float or ndarray
+            Dimensionless multiplicative factor applied to the baseline mass-loss
+            rate at radius q.
+
+        Notes / numerical safety
+        ------------------------
+        - rho_norm(q) diverges as q -> 0 (approximately q^(-3/2) in mdot_r after the
+        square root).  We clip q to a small floor to avoid infinities.
+        - The current implementation uses a fixed host concentration c_host.  If you
+        want halo-by-halo consistency, pass c_host (or infer it from the host) and
+        use it here instead of a constant.
+        """        # fixed host concentration for now
         c_host = 6.0
         k = 0.2624
 
