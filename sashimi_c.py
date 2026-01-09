@@ -899,6 +899,60 @@ class subhalo_properties(halo_model):
         return ma200, z_acc, rs_acc, rhos_acc, m_z0, rs_z0, rhos_z0, ct_z0, weight, survive
 
 
+    def _normalize_M0_to_z0(self, M0, redshift, M0_at_redshift):
+        """Normalize the host mass input to M200 at z=0.
+
+        In this code base, most evolution functions assume the input host mass is
+        M200 at z=0. When the user provides M0 as the host mass at 'redshift'
+        instead, convert it back to the equivalent z=0 mass.
+        """
+        if not M0_at_redshift:
+            return M0
+
+        Mz = M0
+        M0_list = np.logspace(0.0, 3.0, 1000) * Mz
+        fint = interp1d(self.Mzi(M0_list, redshift), M0_list)
+        return float(fint(Mz))
+
+
+    def host_virial_radius(self, M0, z, *, z0=0.0, M0_at_redshift=False, redshift=None):
+        """Host virial radius Rvir(z) for a host specified by M0.
+
+        Parameters
+        ----------
+        M0 : float
+            Host mass M200. By default this is interpreted as M200 at z=0.
+        z : float or array-like
+            Redshift(s) at which to evaluate Rvir.
+        z0 : float
+            Reference redshift for the mass accretion history (kept at 0.0 in this code).
+        M0_at_redshift : bool
+            If True, interpret M0 as M200 at 'redshift' (must be provided) and convert
+            it to the equivalent z=0 mass.
+        redshift : float or None
+            The redshift corresponding to the provided M0 when M0_at_redshift=True.
+
+        Returns
+        -------
+        float or ndarray
+            Virial radius in the same length units as the rest of the code (Mpc).
+        """
+        if M0_at_redshift and redshift is None:
+            raise ValueError("When M0_at_redshift=True, 'redshift' must be provided.")
+
+        M0_z0 = self._normalize_M0_to_z0(M0, redshift, M0_at_redshift)
+
+        z = np.asarray(z, dtype=float)
+        M200_z = self.Mzzi(M0_z0, z, z0)
+        Mvir_z = self.Mvir_from_M200_fit(M200_z, z)
+        Oz = self.OmegaM * (1.0 + z) ** 3 / self.g(z)
+        Rvir = np.cbrt(
+            3.0 * Mvir_z
+            / (4.0 * np.pi * self.rhocrit0 * self.g(z) * self.Delc(Oz - 1.0))
+        )
+        return float(Rvir) if Rvir.ndim == 0 else Rvir
+
+
     def calc_qmin(self, redshift, zdist, A, alpha, solver):
         """ Calculate the minimum radius q_min for the given redshift and zdist.
         """
@@ -1033,7 +1087,7 @@ class subhalo_properties(halo_model):
     def _subhalo_properties_r_dependence_calc(self, M0, q, redshift=0.0, dz=0.1, zmax=7.0, N_ma=500, 
                                              sigmalogc=0.128, N_herm=5, logmamin=-6, logmamax=None,
                                              N_hermNa=200, Na_model=3, ct_th=0.77, profile_change=True,
-                                             M0_at_redshift=False, mdot_fitting_type=0, A=0.45, alpha=2.3):
+                                             M0_at_redshift=False, mdot_fitting_type=2, A=0.45, alpha=2.3):
         """
         This is the main function of SASHIMI-C, which makes a semi-analytical subhalo catalog at a
         given radius q = r/r_vir. The weight of this function 
@@ -1199,6 +1253,132 @@ class subhalo_properties(halo_model):
         return ma200, z_acc, rs_acc, rhos_acc, m_z0, rs_z0, rhos_z0, ct_z0, weight, density, survive, Pq
 
 
+    def _subhalo_properties_accretion_shell_calc(self, M0, redshift=0.0, dz=0.1, zmax=7.0, N_ma=500,
+                                                 sigmalogc=0.128, N_herm=5, logmamin=-6, logmamax=None,
+                                                 N_hermNa=200, Na_model=3, ct_th=0.77, profile_change=True,
+                                                 M0_at_redshift=False, mdot_fitting_type=2):
+        """Compute subhalo properties vs (z_acc, m_acc) with an accretion-shell spatial model.
+
+        This is a variant of the old r-dependent implementation where the spatial
+        distribution P(q|z_acc) is not used. Instead, each accretion redshift is
+        mapped to a single accretion radius r_acc = Rvir_host(z_acc).
+
+        Notes
+        -----
+                - The radius-dependent mass-loss correction mdot_r(q) uses q normalized by
+                    the host virial radius at the evaluation epoch (i.e., at 'redshift').
+                    With the sticky-shell assumption, we set r=r_acc(z_acc)=Rvir_host(z_acc)
+                    and therefore q(z_acc)=r_acc/Rvir_host(redshift), which varies with z_acc.
+        """
+
+        M0 = self._normalize_M0_to_z0(M0, redshift, M0_at_redshift)
+        self.M0 = M0
+        self.redshift = redshift
+
+        zdist = np.arange(redshift + dz, zmax + dz, dz)
+        if len(zdist) == 0:
+            raise ValueError(
+                "Empty accretion-redshift grid: check that zmax > redshift and dz is positive."
+            )
+        if logmamax is None:
+            logmamax = np.log10(0.1 * M0 / self.Msun)
+        ma200 = np.logspace(logmamin, logmamax, N_ma) * self.Msun
+
+        rs_acc = np.zeros((len(zdist), N_herm, len(ma200)))
+        rhos_acc = np.zeros((len(zdist), N_herm, len(ma200)))
+        rs_z0 = np.zeros((len(zdist), N_herm, len(ma200)))
+        rhos_z0 = np.zeros((len(zdist), N_herm, len(ma200)))
+        ct_z0 = np.zeros((len(zdist), N_herm, len(ma200)))
+        survive = np.zeros((len(zdist), N_herm, len(ma200)))
+        m0_matrix = np.zeros((len(zdist), N_herm, len(ma200)))
+
+        if mdot_fitting_type == 0:
+            mdot_r = self.mdot_r_0
+        elif mdot_fitting_type == 1:
+            mdot_r = self.mdot_r_1
+        elif mdot_fitting_type == 2:
+            mdot_r = self.mdot_r_2
+        else:
+            raise ValueError("mdot_fitting_type must be 0, 1, or 2.")
+
+        solver = TidalStrippingSolverGeneralized(
+            M0=M0,
+            z_min=redshift,
+            z_max=zmax,
+            n_z_interp=64,
+        )
+
+        # Precompute q(z_acc)=r_acc(z_acc)/Rvir_host(redshift) for the mass-loss correction.
+        rvir_now = self.host_virial_radius(M0, redshift)
+        r_acc_zdist = self.host_virial_radius(M0, zdist)
+        q_corr_zdist = r_acc_zdist / rvir_now
+
+        x1, w1 = hermgauss(N_herm)
+        x1 = x1.reshape(len(x1), 1)
+        w1 = w1.reshape(len(w1), 1)
+
+        for iz, za in tqdm.tqdm(enumerate(zdist), total=len(zdist)):
+            # Update the stripping-rate factor per accretion redshift.
+            # Avoid the property setter to prevent verbose prints.
+            solver._k = float(mdot_r(q_corr_zdist[iz]))
+            solver.reset_interpolation(
+                z_max=solver.z_max,
+                z_min=solver.z_min,
+                n_z=solver.n_z_interp,
+            )
+            ma = self.Mvir_from_M200_fit(ma200, za)
+            Oz = self.OmegaM * (1.0 + za) ** 3 / self.g(za)
+            m0 = solver.subhalo_mass_stripped(ma, za, redshift, method="pert2_shanks")
+
+            c200sub = self.conc200(ma200, za)
+            rvirsub = (3.0 * ma / (4.0 * np.pi * self.rhocrit0 * self.g(za) * self.Delc(Oz - 1))) ** (1.0 / 3.0)
+            r200sub = (3.0 * ma200 / (4.0 * np.pi * self.rhocrit0 * self.g(za) * 200.0)) ** (1.0 / 3.0)
+            c_mz = c200sub * rvirsub / r200sub
+            log10c_sub = np.sqrt(2.0) * sigmalogc * x1 + np.log10(c_mz)
+            c_sub = 10.0 ** log10c_sub
+            rs_acc[iz] = rvirsub / c_sub
+            rhos_acc[iz] = ma / (4.0 * np.pi * rs_acc[iz] ** 3 * self.fc(c_sub))
+
+            if profile_change:
+                rmax_acc = rs_acc[iz] * 2.163
+                Vmax_acc = np.sqrt(rhos_acc[iz] * 4.0 * np.pi * self.G / 4.625) * rs_acc[iz]
+                Vmax_z0 = Vmax_acc * (2.0 ** 0.4 * (m0 / ma) ** 0.3 * (1 + m0 / ma) ** -0.4)
+                rmax_z0 = rmax_acc * (2.0 ** -0.3 * (m0 / ma) ** 0.4 * (1 + m0 / ma) ** 0.3)
+                rs_z0[iz] = rmax_z0 / 2.163
+                rhos_z0[iz] = (4.625 / (4.0 * np.pi * self.G)) * (Vmax_z0 / rs_z0[iz]) ** 2
+            else:
+                rs_z0[iz] = rs_acc[iz]
+                rhos_z0[iz] = rhos_acc[iz]
+
+            ctemp = np.linspace(0, 100, 1000)
+            ftemp = interp1d(self.fc(ctemp), ctemp, fill_value="extrapolate")
+            ct_z0[iz] = ftemp(m0 / (4.0 * np.pi * rhos_z0[iz] * rs_z0[iz] ** 3))
+            survive[iz] = np.where(ct_z0[iz] > ct_th, 1, 0)
+            m0_matrix[iz] = m0 * np.ones((N_herm, 1))
+
+        ma_last = self.Mvir_from_M200_fit(ma200, zdist[-1])
+        Na = self.Na_calc(ma_last, zdist, M0, z0=0.0, N_herm=N_hermNa, Nrand=1000, Na_model=Na_model)
+        Na_total = integrate.simpson(integrate.simpson(Na, x=np.log(ma_last)), x=np.log(1 + zdist))
+        weight = Na / (1.0 + zdist.reshape(-1, 1))
+        weight = weight / np.sum(weight) * Na_total
+        weight = (weight.reshape((len(zdist), 1, len(ma_last)))) * w1 / np.sqrt(np.pi)
+
+        z_acc = (zdist.reshape(-1, 1, 1)) * np.ones((1, N_herm, N_ma))
+        z_acc = z_acc.reshape(-1)
+        ma200 = ma200 * np.ones((len(zdist), N_herm, 1))
+        ma200 = ma200.reshape(-1)
+        m_z0 = m0_matrix.reshape(-1)
+        rs_acc = rs_acc.reshape(-1)
+        rhos_acc = rhos_acc.reshape(-1)
+        rs_z0 = rs_z0.reshape(-1)
+        rhos_z0 = rhos_z0.reshape(-1)
+        ct_z0 = ct_z0.reshape(-1)
+        weight = weight.reshape(-1)
+        survive = (survive == 1).reshape(-1)
+
+        return ma200, z_acc, rs_acc, rhos_acc, m_z0, rs_z0, rhos_z0, ct_z0, weight, survive
+
+
     def calc_spatial_weight_NFW(self, q, redshift, A, alpha, zdist, solver, cvir_host):
         """ Calculate the conditional spatial distribution P(q|z_acc) asuming the NFW-like subhalo distribution.
         
@@ -1232,13 +1412,25 @@ class subhalo_properties(halo_model):
 
 
     def subhalo_properties_r_dependence_calc(self, M0, q_bin=100, redshift=0.0, dz=0.1, zmax=7.0, N_ma=500,
-                                                 sigmalogc=0.128, N_herm=5, logmamin=-6, logmamax=None,
-                                                 N_hermNa=200, Na_model=3, ct_th=0.77, profile_change=True,
-                                                 M0_at_redshift=False, mdot_fitting_type=0,A=0.45, alpha=2.3,
-                                                 use_multiprocessing=True):
+                                             sigmalogc=0.128, N_herm=5, logmamin=-6, logmamax=None,
+                                             N_hermNa=200, Na_model=3, ct_th=0.77, profile_change=True,
+                                             M0_at_redshift=False, mdot_fitting_type=2, A=0.45, alpha=2.3,
+                                             use_multiprocessing=True):
         """
-        This is the main function of SASHIMI-C, which makes a semi-analytical subhalo catalog at a
-        given radius q = r/r_vir. The weight of this function
+        Build a semi-analytical subhalo catalog with an r-acc (accretion-shell) spatial model.
+
+        In the original r-dependent implementation, subhalos were "placed" at the current
+        radius q and a conditional distribution P(q|z_acc) was used to distribute weights.
+        This implicitly assumes subhalos remain at the same radius, which is not physically
+        well-motivated.
+
+        Here we adopt a simpler, physically intuitive model:
+        subhalos accreted at z_acc are placed on a spherical shell at
+
+            r_acc(z_acc) = Rvir_host(z_acc).
+
+        For now we ignore post-accretion orbital spreading ("sticky shell"), but we keep the
+        hook that mass-loss can be corrected by the (initial) accretion radius.
 
         -----
         Input
@@ -1247,12 +1439,9 @@ class subhalo_properties(halo_model):
             Note that this is *not* the host mass at the given redshift! It can be obtained
             via Mzi(M0,redshift). If you want to give this parameter as the mass at the given
             redshift, then turn 'M0_at_redshift' parameter on (see below).
-        q_bin: List of radius bins q = r/r_vir. The probability distribution of subhalos is calculated at the center of each bin.
-            When q_bin is an integer, q_bin = np.linspace(0,1,q_bin+1).
-            When q_bin is a list, q_bin = [q1, q2, ..., qn] where q1 < q2 < ... < qn.
-            (default: 100)
-        use_multiprocessing: Use multiprocessing to parallelize the calculation over q bins.
-            If False, a sequential for loop is used instead. (default: True)
+        q_bin: Radius bin edges in q = r/Rvir_host(redshift), used only to estimate a binned
+            number density profile (optional output). When an integer, uses uniform bins on [0,1].
+        use_multiprocessing: Kept for API compatibility (not used in the accretion-shell model).
         
         For other input parameters, see the 'subhalo_properties_r_dependence_calc' function.
 
@@ -1271,45 +1460,57 @@ class subhalo_properties(halo_model):
         ct_z0:    Tidal truncation radius in units of r_s at a given redshift.
         weight:   Effective number of subhalos that are characterized by the same set of the parameters above.
         survive:  If that subhalo survive against tidal disruption or not.
-        q:        Radius q = r/r_vir.
+        q:        Accretion shell radius in units of Rvir_host(redshift), i.e. q = r_acc/Rvir_host(redshift).
+        r_acc:    Accretion radius r_acc = Rvir_host(z_acc).
         """
-        # generate q grid. Discretize P(q)dq --> P(q_j)*dq_j
-        # The mid-point of each bin as the representative value and dq as the weight.
-        if type(q_bin)==int:
-            q_bin = np.linspace(0,1,q_bin+1)
+        # Compute intrinsic (z_acc, m_acc)-space catalog once.
+        ma200, z_acc, rs_acc, rhos_acc, m_z0, rs_z0, rhos_z0, ct_z0, weight, survive = (
+            self._subhalo_properties_accretion_shell_calc(
+                M0,
+                redshift=redshift,
+                dz=dz,
+                zmax=zmax,
+                N_ma=N_ma,
+                sigmalogc=sigmalogc,
+                N_herm=N_herm,
+                logmamin=logmamin,
+                logmamax=logmamax,
+                N_hermNa=N_hermNa,
+                Na_model=Na_model,
+                ct_th=ct_th,
+                profile_change=profile_change,
+                M0_at_redshift=M0_at_redshift,
+                mdot_fitting_type=mdot_fitting_type,
+            )
+        )
+
+        # Map accretion redshift to accretion radius.
+        M0_z0 = self._normalize_M0_to_z0(M0, redshift, M0_at_redshift)
+        rvir_now = self.host_virial_radius(M0_z0, redshift)
+        r_acc = self.host_virial_radius(M0_z0, np.asarray(z_acc), redshift=redshift)
+        q = r_acc / rvir_now
+
+        # Optional: estimate a binned density profile in q using q_bin.
+        if isinstance(q_bin, int):
+            q_edges = np.linspace(0.0, 1.0, q_bin + 1)
         else:
-            q_bin = q_bin
-        q_arr = 0.5*(q_bin[1:]+q_bin[:-1])
-        dq_arr = q_bin[1:]-q_bin[:-1]
-        args_list = [(M0, q, redshift, dz, zmax, N_ma,
-                      sigmalogc, N_herm, logmamin, logmamax,
-                      N_hermNa, Na_model, ct_th, profile_change,
-                      M0_at_redshift, mdot_fitting_type, A, alpha) for q in q_arr]
-        if use_multiprocessing:
-            n_pools = min(multiprocessing.cpu_count(), len(args_list)) // 2  # Use half of the available CPU cores
-            with multiprocessing.Pool(n_pools) as pool:
-                results = pool.starmap(self._subhalo_properties_r_dependence_calc, args_list)
-        else:
-            results = [self._subhalo_properties_r_dependence_calc(*args) for args in args_list]
-        ma200, z_acc, rs_acc, rhos_acc, m_z0, rs_z0, rhos_z0, ct_z0, weight, density, survive, Pq = zip(*results)
-        # NOTE: The default weight is normalized to be np.sum(weight) = N_sh for each q, not for the whole sample.
-        #       To descretize the distribution for the q-axis, we need to normalize the weight for q, as follows:
-        #           \int P(q) * dq --> \sum P(q_j) * \delta{q}_j = \sum weight_{q,j} 
-        #       Once weight_q is normalized, combined weight weight * weight_q is also normalized
-        #       since weight is already normalized:
-        #           \sum_i \sum_j weight_i * weight_q_j = \sum_i weight_i * \sum_j weight_q_j 
-        #                                               = \sum_i weight_i
-        #                                               = N_sh
-        assert np.all([weight[0]==weight[i] for i in range(len(weight))])
-        # NOTE: Pq.shape = (N_q, N_z, 1, 1)
-        # NOTE: dq_arr.shape = (N_q,)
-        # broadcast the weight_q to (N_q, N_z, 1, 1) -> (N_q, N_z, N_herm, N_ma)
-        weight_q = dq_arr.reshape(-1,1,1,1)*Pq*np.ones((1,1,N_herm,N_ma))
-        weight_q = weight_q/np.sum(weight_q,axis=0)  # force to be normalized
-        # assert np.allclose(np.sum(weight_q,axis=0),1,atol=0.1,rtol=0), f"The probability distribution is not normalized. Please consider to use finer q_bin. \nnp.sum(weight_q)={np.sum(weight_q,axis=0)}" 
-        weight_combined = weight*(weight_q.reshape(len(q_arr),-1))
-        q = q_arr.reshape(-1,1)*np.ones_like(ma200)
-        return ma200, z_acc, rs_acc, rhos_acc, m_z0, rs_z0, rhos_z0, ct_z0, weight_combined, density, survive, q
+            q_edges = np.asarray(q_bin, dtype=float)
+
+        # histogram all (including disrupted) to match the historical meaning of density
+        w = np.asarray(weight, dtype=float)
+        qv = np.asarray(q, dtype=float)
+        w_bin, _ = np.histogram(qv, bins=q_edges, weights=w)
+        r_edges = q_edges * rvir_now
+        vol_shell = (4.0 * np.pi / 3.0) * (r_edges[1:] ** 3 - r_edges[:-1] ** 3)
+        density_bin = np.divide(w_bin, vol_shell, out=np.zeros_like(w_bin), where=vol_shell > 0)
+
+        # assign a per-entry density by its bin
+        bin_index = np.digitize(qv, q_edges) - 1
+        density = np.zeros_like(qv)
+        ok = (bin_index >= 0) & (bin_index < len(density_bin))
+        density[ok] = density_bin[bin_index[ok]]
+
+        return ma200, z_acc, rs_acc, rhos_acc, m_z0, rs_z0, rhos_z0, ct_z0, weight, density, survive, q, r_acc
 
 
 
