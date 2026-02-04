@@ -656,7 +656,162 @@ class TidalStrippingSolverGeneralized(TidalStrippingSolver):
         """
         return self.k * self.AMz(z)/self.tdynz(z)/self.Hubble(z)/(1+z)
 
-    
+
+# =========================
+# Orbit-evolved radial PDF helpers
+# =========================
+
+_RPDF_PQ_CACHE = {}  # key -> p_q array (len = q_bin)
+
+
+def _cosmic_time_seconds(z, *, n=4096, a_min=1e-4):
+    """
+    Cosmic time t(z) in seconds via t(a)=∫ da/(a H(a)).
+    Assumes flat LCDM with cosmology() providing OmegaM, OmegaL.
+    """
+    u = units_and_constants()
+    cos = cosmology()
+
+    Om = float(getattr(cos, "OmegaM"))
+    Ol = float(getattr(cos, "OmegaL", 1.0 - Om))
+    Ok = 1.0 - Om - Ol
+
+    a = 1.0 / (1.0 + float(z))
+    if a <= a_min:
+        a = a_min
+
+    aa = np.linspace(a_min, a, int(n))
+    E = np.sqrt(Om / aa**3 + Ok / aa**2 + Ol)  # H(a)=H0*E(a)
+    integrand = 1.0 / (aa * E)
+
+    return np.trapz(integrand, aa) / float(cos.H0)
+
+
+def _p_q_orbit_evolved_from_racc(
+    *,
+    M200_host_zacc,
+    c200_host_zacc,
+    z_acc,
+    z0,
+    rvir_z0,
+    q_edges,
+    n_orbit=1024,
+    n_theta=256,
+    seed=0,
+    sign_mode="in",  # "in"=infalling, "random"=phase-mixed
+    el_mode="sample_Rc_eta",  # "sample_Rc_eta" (default) or "fixed_Ecirc_at_Rvir" (legacy)
+    mass_def="200c",
+    h=0.7,
+):
+    """Orbit-evolve an accretion shell and return a PDF in q=r/Rvir(z0).
+
+        This helper builds a static NFW host at ``z_acc``, places all subhalos at the
+        host virial radius ``r0 = Rvir(z_acc)`` at t=0, evolves them for
+        ``Δt = t(z0) - t(z_acc)``, and histograms the resulting radii as
+        ``q = r / Rvir(z0)``.
+
+        The key option is how to assign orbital invariants (E, L):
+
+                - ``el_mode='sample_Rc_eta'`` (default): draw ``Rc ~ U(0.6,1.0)Rvir`` and
+                    ``η ~ Beta(2.05, C1+1)`` (same recipe as elsewhere), define
+                    ``E = E_circ(Rc)``, ``L = η L_c(Rc)``, and *then* place the particles at
+                    ``r0=Rvir(z_acc)``. Orbits that cannot pass through ``r0`` are rejected.
+
+        - ``el_mode='fixed_Ecirc_at_Rvir'`` (legacy): set ``E`` to the circular-orbit
+            energy at ``r0`` for all samples, and set ``L = η L_c(r0)``.
+
+        Returns
+        -------
+        p_q : ndarray
+            Probability per q-bin (sums to 1).
+        """
+    key = (
+        float(M200_host_zacc), float(c200_host_zacc), float(z_acc), float(z0),
+        float(rvir_z0), int(len(q_edges)), int(n_orbit), int(n_theta),
+        int(seed), str(sign_mode), str(el_mode), str(mass_def), float(h),
+    )
+    if key in _RPDF_PQ_CACHE:
+        return _RPDF_PQ_CACHE[key].copy()
+
+    # Local import to avoid circular-import hazards at module import time
+    import radial_pdf_evolution_in_units_of_dynamical_time_nfw_cached_phase_tables as rpdf
+
+    u = units_and_constants()
+    rng = np.random.default_rng(seed)
+
+    if el_mode == "sample_Rc_eta":
+        # Stochastic (E,L) from (Rc,eta) recipe, then place at r0=Rvir(z_acc)
+        E, L0, eta, Rc, r0_arr, halo = rpdf.sample_EL_from_eta_Rc_placed_at_Rvir(
+            M200_host_zacc,
+            z_acc,
+            c200_host_zacc,
+            n=int(n_orbit),
+            seed=int(seed),
+            mass_def=mass_def,
+            h=float(h),
+        )
+        r0 = float(halo["Rvir"])  # for q_acc fallback
+    elif el_mode == "fixed_Ecirc_at_Rvir":
+        # Legacy mode: fixed E=E_circ(r0), stochastic L from eta at r0
+        halo = rpdf.build_halo(M200_host_zacc, z_acc, c200_host_zacc, mass_def=mass_def)
+        r0 = float(halo["Rvir"])  # r_acc
+        rs = float(halo["rs"])
+        Vs2 = float(halo["Vs2"])
+        Mvir = float(halo["Mvir"])
+
+        # Sample circularity eta (same recipe as in rpdf.sample_EL_from_eta_Rc)
+        log10_Mstar_hinv = 12.42 - 1.56 * z_acc + 0.038 * z_acc * z_acc
+        Mstar_hinv = (10.0**log10_Mstar_hinv) * float(u.Msun)
+        M_hinv = Mvir * float(h)
+        ratio = (M_hinv / float(u.Msun)) / (Mstar_hinv / float(u.Msun))
+        C1 = 0.242 * (1.0 + 2.36 * (ratio**0.107))
+
+        eta = rng.beta(2.05, C1 + 1.0, size=int(n_orbit))
+
+        # Set E to circular-orbit energy at r0, and L = eta * Lc at r0
+        Vc = np.sqrt(float(u.G) * Mvir / r0)
+        E0 = 0.5 * Vc * Vc + float(rpdf.Phi_NFW(r0, rs, Vs2))
+        L0 = eta * r0 * Vc
+
+        E = np.full_like(L0, E0, dtype=float)
+        r0_arr = np.full_like(L0, r0, dtype=float)
+    else:
+        raise ValueError("el_mode must be 'sample_Rc_eta' or 'fixed_Ecirc_at_Rvir'")
+
+    # Δt between z_acc and z0
+    dt = _cosmic_time_seconds(z0) - _cosmic_time_seconds(z_acc)
+    dt = float(max(0.0, dt))
+
+    cache = rpdf.build_orbit_cache(E, L0, r0_arr, halo, n_theta=int(n_theta))
+
+    r_t = rpdf.evolve_r_from_cache(cache, dt, sign_mode=sign_mode, seed=seed + 1)
+    r_t = np.asarray(r_t, float)
+    r_t = r_t[np.isfinite(r_t)]
+
+    if r_t.size == 0:
+        # fallback: delta at q_acc
+        q_acc = r0 / float(rvir_z0)
+        p = np.zeros(len(q_edges) - 1, dtype=float)
+        k = np.clip(np.searchsorted(q_edges, q_acc) - 1, 0, p.size - 1)
+        p[k] = 1.0
+        _RPDF_PQ_CACHE[key] = p
+        return p.copy()
+
+    q = r_t / float(rvir_z0)
+    counts, _ = np.histogram(q, bins=q_edges)
+
+    if counts.sum() <= 0:
+        q_acc = r0 / float(rvir_z0)
+        p = np.zeros(len(q_edges) - 1, dtype=float)
+        k = np.clip(np.searchsorted(q_edges, q_acc) - 1, 0, p.size - 1)
+        p[k] = 1.0
+    else:
+        p = counts.astype(float) / float(counts.sum())
+
+    _RPDF_PQ_CACHE[key] = p
+    return p.copy()
+
+
 class subhalo_properties(halo_model):
 
     
@@ -1415,55 +1570,28 @@ class subhalo_properties(halo_model):
                                              sigmalogc=0.128, N_herm=5, logmamin=-6, logmamax=None,
                                              N_hermNa=200, Na_model=3, ct_th=0.77, profile_change=True,
                                              M0_at_redshift=False, mdot_fitting_type=2, A=0.45, alpha=2.3,
-                                             use_multiprocessing=True):
+                                             use_multiprocessing=True, n_workers=None,
+                                             # new orbit/qradial options
+                                             q_max=1.0,
+                                             orbit_samples=1024,
+                                             orbit_n_theta=256,
+                                             orbit_seed=0,
+                                             orbit_sign_mode="in",
+                                             orbit_el_mode="sample_Rc_eta"):
         """
-        Build a semi-analytical subhalo catalog with an r-acc (accretion-shell) spatial model.
+        Build a semi-analytical subhalo catalog with an accretion-shell spatial model.
 
-        In the original r-dependent implementation, subhalos were "placed" at the current
-        radius q and a conditional distribution P(q|z_acc) was used to distribute weights.
-        This implicitly assumes subhalos remain at the same radius, which is not physically
-        well-motivated.
+        This implementation extends the previous "sticky shell" model by assigning a
+        probability distribution P(q | z_acc -> z0) of where subhalos accreted at z_acc
+        would be located at the epoch 'redshift' (z0). The orbit-evolution PDF is
+        computed with helper routines that use the radial-pdf evolution module.
 
-        Here we adopt a simpler, physically intuitive model:
-        subhalos accreted at z_acc are placed on a spherical shell at
-
-            r_acc(z_acc) = Rvir_host(z_acc).
-
-        For now we ignore post-accretion orbital spreading ("sticky shell"), but we keep the
-        hook that mass-loss can be corrected by the (initial) accretion radius.
-
-        -----
-        Input
-        -----
-        M0: Mass of the host halo defined as M_{200} (200 times critial density) at *z = 0*.
-            Note that this is *not* the host mass at the given redshift! It can be obtained
-            via Mzi(M0,redshift). If you want to give this parameter as the mass at the given
-            redshift, then turn 'M0_at_redshift' parameter on (see below).
-        q_bin: Radius bin edges in q = r/Rvir_host(redshift), used only to estimate a binned
-            number density profile (optional output). When an integer, uses uniform bins on [0,1].
-        use_multiprocessing: Kept for API compatibility (not used in the accretion-shell model).
-        
-        For other input parameters, see the 'subhalo_properties_r_dependence_calc' function.
-
-        ------
-
-        Output
-        ------
-        List of subhalos that are characterized by the following parameters.
-        ma200:    Mass m_{200} at accretion.
-        z_acc:    Redshift at accretion.
-        rs_acc:   Scale radius r_s at accretion.
-        rhos_acc: Characteristic density \rho_s at accretion.
-        m_z0:     Mass up to tidal truncation radius at a given redshift.
-        rs_z0:    Scale radius r_s at a given redshift.
-        rhos_z0:  Characteristic density \rho_s at a given redshift.
-        ct_z0:    Tidal truncation radius in units of r_s at a given redshift.
-        weight:   Effective number of subhalos that are characterized by the same set of the parameters above.
-        survive:  If that subhalo survive against tidal disruption or not.
-        q:        Accretion shell radius in units of Rvir_host(redshift), i.e. q = r_acc/Rvir_host(redshift).
-        r_acc:    Accretion radius r_acc = Rvir_host(z_acc).
+        Returns the catalog expanded along a new radial axis (q/r) so that each entry
+        corresponds to (z_acc, hermite_sample, m_acc, q_bin).
         """
-        # Compute intrinsic (z_acc, m_acc)-space catalog once.
+        # --------------------------------------------
+        # (0) Compute intrinsic (z_acc, m_acc)-space catalog once using the accretion-shell helper
+        # --------------------------------------------
         ma200, z_acc, rs_acc, rhos_acc, m_z0, rs_z0, rhos_z0, ct_z0, weight, survive = (
             self._subhalo_properties_accretion_shell_calc(
                 M0,
@@ -1484,33 +1612,185 @@ class subhalo_properties(halo_model):
             )
         )
 
-        # Map accretion redshift to accretion radius.
-        M0_z0 = self._normalize_M0_to_z0(M0, redshift, M0_at_redshift)
-        rvir_now = self.host_virial_radius(M0_z0, redshift)
-        r_acc = self.host_virial_radius(M0_z0, np.asarray(z_acc), redshift=redshift)
-        q = r_acc / rvir_now
+        # --------------------------------------------
+        # (A) reshape 1D outputs back to (Nz, N_herm, N_ma)
+        # --------------------------------------------
+        n_tot = len(z_acc)
+        if N_herm * N_ma == 0:
+            raise ValueError("Invalid N_herm or N_ma: zero value encountered")
+        Nz = int(n_tot // (N_herm * N_ma))
 
-        # Optional: estimate a binned density profile in q using q_bin.
+        def _reshape3(x):
+            return np.asarray(x).reshape(Nz, N_herm, N_ma)
+
+        ma200_3   = _reshape3(ma200)
+        z_acc_3   = _reshape3(z_acc)
+        rs_acc_3  = _reshape3(rs_acc)
+        rhos_acc_3= _reshape3(rhos_acc)
+        m_z0_3    = _reshape3(m_z0)
+        rs_z0_3   = _reshape3(rs_z0)
+        rhos_z0_3 = _reshape3(rhos_z0)
+        ct_z0_3   = _reshape3(ct_z0)
+        w_3       = _reshape3(weight)
+        surv_3    = _reshape3(survive)
+
+        zdist = z_acc_3[:, 0, 0]  # (Nz,)
+
+        # --------------------------------------------
+        # (B) reference virial radius at z0
+        # --------------------------------------------
+        M0_z0 = self._normalize_M0_to_z0(M0, redshift, M0_at_redshift)
+        rvir_z0 = self.host_virial_radius(M0_z0, redshift)
+
+        # --------------------------------------------
+        # (C) build q grid
+        # --------------------------------------------
         if isinstance(q_bin, int):
-            q_edges = np.linspace(0.0, 1.0, q_bin + 1)
+            q_edges = np.linspace(0.0, float(q_max), int(q_bin) + 1)
         else:
             q_edges = np.asarray(q_bin, dtype=float)
+        q_centers = 0.5 * (q_edges[:-1] + q_edges[1:])
+        Nq = q_centers.size
+        r_edges = q_edges * rvir_z0
+        r_centers = q_centers * rvir_z0
 
-        # histogram all (including disrupted) to match the historical meaning of density
-        w = np.asarray(weight, dtype=float)
-        qv = np.asarray(q, dtype=float)
-        w_bin, _ = np.histogram(qv, bins=q_edges, weights=w)
-        r_edges = q_edges * rvir_now
-        vol_shell = (4.0 * np.pi / 3.0) * (r_edges[1:] ** 3 - r_edges[:-1] ** 3)
-        density_bin = np.divide(w_bin, vol_shell, out=np.zeros_like(w_bin), where=vol_shell > 0)
+        # --------------------------------------------
+        # (D) per z_acc PDF P(q | z_acc -> z0)
+        #      (vectorized precompute + optional multiprocessing)
+        # --------------------------------------------
+        p_zq = np.zeros((Nz, Nq), dtype=float)
 
-        # assign a per-entry density by its bin
-        bin_index = np.digitize(qv, q_edges) - 1
-        density = np.zeros_like(qv)
-        ok = (bin_index >= 0) & (bin_index < len(density_bin))
-        density[ok] = density_bin[bin_index[ok]]
+        # Precompute M200 and c200 lists (simple floats for multiproc compatibility)
+        M200_list = [float(self.Mzzi(M0, za, redshift)) for za in zdist]
+        c200_list = [float(self.conc200(M200_list[i], zdist[i])) for i in range(Nz)]
 
-        return ma200, z_acc, rs_acc, rhos_acc, m_z0, rs_z0, rhos_z0, ct_z0, weight, density, survive, q, r_acc
+        if use_multiprocessing and Nz > 1:
+            import os
+            from concurrent.futures import ProcessPoolExecutor, as_completed
+
+            n_workers_eff = int(n_workers) if n_workers is not None else (os.cpu_count() or 1)
+            n_workers_eff = max(1, min(n_workers_eff, Nz))
+
+            futures = {}
+            try:
+                with ProcessPoolExecutor(max_workers=n_workers_eff) as ex:
+                    for iz in range(Nz):
+                        za = float(zdist[iz])
+                        M200_za = M200_list[iz]
+                        c200_za = c200_list[iz]
+                        fut = ex.submit(
+                            _p_q_orbit_evolved_from_racc,
+                            M200_host_zacc=M200_za,
+                            c200_host_zacc=c200_za,
+                            z_acc=za,
+                            z0=redshift,
+                            rvir_z0=float(rvir_z0),
+                            q_edges=q_edges,
+                            n_orbit=int(orbit_samples),
+                            n_theta=int(orbit_n_theta),
+                            seed=int(orbit_seed + iz),
+                            sign_mode=orbit_sign_mode,
+                            el_mode=orbit_el_mode,
+                            mass_def="200c",
+                            h=float(self.h),
+                        )
+                        futures[fut] = iz
+
+                    # collect with progress bar
+                    for fut in tqdm.tqdm(as_completed(futures), total=Nz):
+                        iz = futures[fut]
+                        p = fut.result()
+                        p_zq[iz, :] = p
+            except Exception as exc:
+                # fallback to serial if multiprocessing fails
+                tqdm.tqdm.write(f"Multiprocessing failed or raised {exc!r}, falling back to serial loop")
+                for iz, za in tqdm.tqdm(enumerate(zdist), total=len(zdist)):
+                    M200_za = M200_list[iz]
+                    c200_za = c200_list[iz]
+                    p = _p_q_orbit_evolved_from_racc(
+                        M200_host_zacc=M200_za,
+                        c200_host_zacc=c200_za,
+                        z_acc=za,
+                        z0=redshift,
+                        rvir_z0=rvir_z0,
+                        q_edges=q_edges,
+                        n_orbit=orbit_samples,
+                        n_theta=orbit_n_theta,
+                        seed=orbit_seed + iz,
+                        sign_mode=orbit_sign_mode,
+                        el_mode=orbit_el_mode,
+                        mass_def="200c",
+                        h=self.h,
+                    )
+                    p_zq[iz, :] = p
+        else:
+            # Serial path (unchanged behavior)
+            for iz, za in tqdm.tqdm(enumerate(zdist), total=len(zdist)):
+                M200_za = M200_list[iz]
+                c200_za = c200_list[iz]
+                p = _p_q_orbit_evolved_from_racc(
+                    M200_host_zacc=M200_za,
+                    c200_host_zacc=c200_za,
+                    z_acc=za,
+                    z0=redshift,
+                    rvir_z0=rvir_z0,
+                    q_edges=q_edges,
+                    n_orbit=orbit_samples,
+                    n_theta=orbit_n_theta,
+                    seed=orbit_seed + iz,
+                    sign_mode=orbit_sign_mode,
+                    el_mode=orbit_el_mode,
+                    mass_def="200c",
+                    h=self.h,
+                )
+                p_zq[iz, :] = p
+
+        # --------------------------------------------
+        # (E) expand to 4D arrays (Nz, N_herm, N_ma, Nq)
+        # --------------------------------------------
+        def _expand4(x3):
+            return np.broadcast_to(x3[..., None], (Nz, N_herm, N_ma, Nq))
+
+        ma200_4    = _expand4(ma200_3)
+        z_acc_4    = _expand4(z_acc_3)
+        rs_acc_4   = _expand4(rs_acc_3)
+        rhos_acc_4 = _expand4(rhos_acc_3)
+        m_z0_4     = _expand4(m_z0_3)
+        rs_z0_4    = _expand4(rs_z0_3)
+        rhos_z0_4  = _expand4(rhos_z0_3)
+        ct_z0_4    = _expand4(ct_z0_3)
+        surv_4     = _expand4(surv_3)
+
+        q_4 = np.broadcast_to(q_centers[None, None, None, :], (Nz, N_herm, N_ma, Nq))
+        r_4 = np.broadcast_to(r_centers[None, None, None, :], (Nz, N_herm, N_ma, Nq))
+
+        w_4 = w_3[..., None] * p_zq[:, None, None, :]  # weight distributed in q via P(q|z_acc)
+
+        # --------------------------------------------
+        # (F) build density per q-bin as shell-density (for compatibility)
+        # --------------------------------------------
+        w_bin = w_4.sum(axis=(0, 1, 2))  # (Nq,)
+        shell_vol = (4.0 * np.pi / 3.0) * (r_edges[1:]**3 - r_edges[:-1]**3)
+        density_bin = np.where(shell_vol > 0, w_bin / shell_vol, 0.0)
+        density_4 = np.broadcast_to(density_bin[None, None, None, :], (Nz, N_herm, N_ma, Nq))
+
+        # --------------------------------------------
+        # (G) flatten and return (compatibility: previous return order kept, plus q/r axes)
+        # --------------------------------------------
+        return (
+            ma200_4.reshape(-1),
+            z_acc_4.reshape(-1),
+            rs_acc_4.reshape(-1),
+            rhos_acc_4.reshape(-1),
+            m_z0_4.reshape(-1),
+            rs_z0_4.reshape(-1),
+            rhos_z0_4.reshape(-1),
+            ct_z0_4.reshape(-1),
+            w_4.reshape(-1),
+            density_4.reshape(-1),
+            surv_4.reshape(-1),
+            q_4.reshape(-1),  # final position in units of Rvir(z0)
+        )
 
 
 
