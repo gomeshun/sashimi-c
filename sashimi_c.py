@@ -1463,7 +1463,24 @@ class subhalo_properties(halo_model):
             n_z_interp=64,
         )
 
-        # Precompute q(z_acc)=r_acc(z_acc)/Rvir_host(redshift) for the mass-loss correction.
+        # --- Sticky-shell mass-loss assumption (IMPORTANT) ---
+        # We approximate that subhalos accreted at z_acc remain, in an orbit-averaged sense,
+        # around a characteristic host-centric radius r_acc(z_acc) ~ Rvir_host(z_acc).
+        # Under this assumption, the *history* of tidal mass loss from z_acc -> z0 can be
+        # modeled by taking the global/orbit-averaged stripping rate and scaling it by a
+        # radius-dependent factor k(q) evaluated at that characteristic radius.
+        #
+        # Concretely, we use the generalized solver where
+        #   Phi(z) -> k * Phi(z)
+        # and set k = mdot_r(q_corr(z_acc)).  This k is held fixed during the integration
+        # from z_acc down to z0 for that accretion epoch.
+        #
+        # Here q_corr is defined at the evaluation epoch (z0=redshift):
+        #   q_corr(z_acc) = r_acc(z_acc) / Rvir_host(z0)
+        # which varies with z_acc.
+        # NOTE: In the orbit-evolved implementation, positions are later redistributed in q,
+        # but this function intentionally computes mass loss using the sticky-shell proxy.
+        # Precompute q_corr(z_acc)=r_acc(z_acc)/Rvir_host(redshift) for the mass-loss correction.
         rvir_now = self.host_virial_radius(M0, redshift)
         r_acc_zdist = self.host_virial_radius(M0, zdist)
         q_corr_zdist = r_acc_zdist / rvir_now
@@ -1473,7 +1490,8 @@ class subhalo_properties(halo_model):
         w1 = w1.reshape(len(w1), 1)
 
         for iz, za in tqdm.tqdm(enumerate(zdist), total=len(zdist)):
-            # Update the stripping-rate factor per accretion redshift.
+            # Update the stripping-rate factor k for this accretion epoch (sticky-shell proxy).
+            # We keep k fixed while computing m(z0) from m(z_acc).
             # Avoid the property setter to prevent verbose prints.
             solver._k = float(mdot_r(q_corr_zdist[iz]))
             solver.reset_interpolation(
@@ -1592,6 +1610,15 @@ class subhalo_properties(halo_model):
         # --------------------------------------------
         # (0) Compute intrinsic (z_acc, m_acc)-space catalog once using the accretion-shell helper
         # --------------------------------------------
+        # NOTE ON MASS LOSS MODELING:
+        # The helper below computes tidal mass loss m_z0 (and structural evolution rs_z0/rhos_z0)
+        # using the sticky-shell mass-loss assumption: for each z_acc we pick a characteristic
+        # radius r_acc(z_acc) ~ Rvir(z_acc), evaluate a radius-dependent stripping-strength ratio
+        # k=mdot_r(q_corr(z_acc)), and apply it as a multiplicative factor to the baseline/global
+        # stripping rate for the full evolution from z_acc -> z0.
+        #
+        # The orbit-evolved machinery in this function only redistributes the *weights* across
+        # final q-bins via P(q|z_acc->z0); it does NOT recompute m_z0 as a function of the final q.
         ma200, z_acc, rs_acc, rhos_acc, m_z0, rs_z0, rhos_z0, ct_z0, weight, survive = (
             self._subhalo_properties_accretion_shell_calc(
                 M0,

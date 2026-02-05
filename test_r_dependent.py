@@ -258,7 +258,7 @@ class TestRDependent(unittest.TestCase):
         assert (q >= 0).all() and (q <= 1.0 + 1e-12).all()
 
         # Make and save a diagnostic plot
-        bins = np.linspace(0, 1, 32 + 1)
+        bins = np.linspace(0, 1, 32 + 1).tolist()
         fig, ax = plt.subplots(figsize=(6, 4))
         ax.hist(q[mask], bins=bins, weights=w[mask], histtype='stepfilled', alpha=0.8)
         ax.set_xlabel('q')
@@ -334,7 +334,7 @@ class TestRDependent(unittest.TestCase):
         outdir.mkdir(parents=True, exist_ok=True)
 
         fig, ax = plt.subplots(figsize=(6, 4))
-        bins = np.linspace(0, 1, 64 + 1)
+        bins = np.linspace(0, 1, 64 + 1).tolist()
         ax.hist(q[mask], bins=bins, weights=w[mask], histtype='stepfilled', alpha=0.8)
         ax.set_xlabel('q')
         ax.set_ylabel('weighted count')
@@ -402,6 +402,231 @@ class TestRDependent(unittest.TestCase):
         plt.close(fig)
 
         assert fname1.exists() and fname2.exists() and fname3.exists()
+
+    def test_r_dependent_production_mass_bins_overlay(self):
+        """Overlay n(r) for decade subhalo-mass bins on one plot.
+
+        This answers the question "how does the spatial distribution depend on subhalo mass?" by
+        selecting surviving subhalos in physical mass ranges (Msun) and plotting their 3D number
+        density profiles n(r) on the same axes.
+
+        Notes
+        -----
+        - This is intentionally expensive; enable it by setting RUN_LONG_TESTS=1.
+        - Mass bins: 1e5–1e6, 1e6–1e7, ..., 1e9–1e10 Msun.
+        """
+        import os
+        if os.environ.get('RUN_LONG_TESTS', '0') != '1':
+            self.skipTest('Long production test skipped (set RUN_LONG_TESTS=1 to enable)')
+
+        self.update_file_handler_with_timestamp()
+
+        results = self.sh.subhalo_properties_r_dependence_calc(
+            1e12,
+            q_bin=64,
+            redshift=0.0,
+            dz=0.01,
+            zmax=7.0,
+            N_ma=500,
+            N_herm=5,
+            logmamin=-6,
+            N_hermNa=200,
+            mdot_fitting_type=2,
+            q_max=1.0,
+            orbit_samples=2048,
+            orbit_n_theta=256,
+            orbit_seed=123,
+            orbit_sign_mode='in'
+        )
+
+        (
+            ma200, z_acc, rs_acc, rhos_acc, m_z0, rs_z0, rhos_z0,
+            ct_z0, weight_combined, density, survive, q
+        ) = results[:12]
+
+        q = np.asarray(q).reshape(-1)
+        w = np.asarray(weight_combined).reshape(-1)
+        m0 = np.asarray(m_z0).reshape(-1)
+        survive_mask = np.asarray(survive).reshape(-1)
+
+        assert q.size == w.size == m0.size == survive_mask.size
+        assert np.isfinite(q).all()
+        assert (q >= 0).all() and (q <= 1.0 + 1e-12).all()
+        assert np.isfinite(m0).all() and (m0 >= 0).all()
+
+        # radial bins in physical units
+        q_edges_nd = np.linspace(0, 1, 64 + 1)
+        rvir_z0 = self.sh.host_virial_radius(self.sh._normalize_M0_to_z0(1e12, 0.0, False), 0.0)
+        r_edges = q_edges_nd * rvir_z0
+        r_centers = 0.5 * (r_edges[:-1] + r_edges[1:])
+        shell_vol = (4.0 * np.pi / 3.0) * (r_edges[1:] ** 3 - r_edges[:-1] ** 3)
+
+        # decade mass bins (Msun)
+        mass_edges = 10.0 ** np.arange(5, 11)  # 1e5 ... 1e10
+        mass_bins = list(zip(mass_edges[:-1], mass_edges[1:]))
+
+        fig, ax = plt.subplots(figsize=(7, 5))
+        plotted_any = False
+        for mmin, mmax in mass_bins:
+            mask = survive_mask & (m0 >= mmin) & (m0 < mmax)
+            w_sum = float(w[mask].sum())
+            self.logger.info(f"mass bin [{mmin:.1e}, {mmax:.1e}) Msun: N_eff={w_sum:.3e}")
+            if w_sum <= 0:
+                continue
+
+            w_bin = np.histogram(q[mask], bins=q_edges_nd, weights=w[mask])[0]
+            n_of_r = np.where(shell_vol > 0, w_bin / shell_vol, 0.0)
+            pos = n_of_r > 0
+            if not np.any(pos):
+                continue
+
+            # normalize for shape comparison (geometric mean)
+            n_norm = n_of_r / np.exp(np.log(n_of_r[pos]).mean())
+            ax.loglog(r_centers[pos], n_norm[pos], 'o-', ms=3, lw=1, label=f"{mmin:.0e}–{mmax:.0e} Msun")
+            plotted_any = True
+
+        assert plotted_any, 'No mass bins had non-zero surviving weight; consider increasing resolution or adjusting bins.'
+
+        # Overlay reference shapes on the same (dimensionless) x=q grid, but plot against r for convenience.
+        q_centers = 0.5 * (q_edges_nd[:-1] + q_edges_nd[1:])
+        NFW = lambda x: x**-1 * (1.0 / 7.0 + x)**-2
+        val_nfw = NFW(q_centers)
+        val_nfw = val_nfw / np.exp(np.log(val_nfw[val_nfw > 0]).mean())
+        ax.loglog(r_centers, val_nfw, '--', lw=1, color='k', alpha=0.6, label='NFW (shape)')
+
+        val_einasto = einasto(q_centers)
+        val_einasto = val_einasto / np.exp(np.log(val_einasto[val_einasto > 0]).mean())
+        ax.loglog(r_centers, val_einasto, '-.', lw=1, color='0.3', alpha=0.6, label='Einasto (shape)')
+
+        ax.set_xlabel('r [Mpc]')
+        ax.set_ylabel('normalized n(r)')
+        ax.set_title('Orbit-evolved 3D number density n(r) by subhalo mass bin')
+        ax.legend(fontsize=8)
+
+        outdir = Path(self.output_dir)
+        outdir.mkdir(parents=True, exist_ok=True)
+        fname = outdir / f'n_of_r_massbins_production_{self.now}.png'
+        fig.savefig(fname, dpi=200)
+        self.logger.info(f"Figure saved to {fname}")
+        plt.close(fig)
+
+        assert fname.exists()
+
+    def test_r_dependent_production_mass_vs_r_heatmap(self):
+        """Plot a 2D histogram (heatmap) of position r vs mass m for surviving subhalos.
+
+        x-axis: r [Mpc] (log)
+        y-axis: m0 [Msun] (log)
+
+        This is a complementary diagnostic to the 1D n(r) overlays: even if the
+        *normalized* profiles look similar by eye, this shows the joint distribution.
+
+        Notes
+        -----
+        - Intentionally expensive; enable with RUN_LONG_TESTS=1.
+        """
+        import os
+        if os.environ.get('RUN_LONG_TESTS', '0') != '1':
+            self.skipTest('Long production test skipped (set RUN_LONG_TESTS=1 to enable)')
+
+        self.update_file_handler_with_timestamp()
+
+        results = self.sh.subhalo_properties_r_dependence_calc(
+            1e12,
+            q_bin=64,
+            redshift=0.0,
+            dz=0.01,
+            zmax=7.0,
+            N_ma=500,
+            N_herm=5,
+            logmamin=-6,
+            N_hermNa=200,
+            mdot_fitting_type=2,
+            q_max=1.0,
+            orbit_samples=2048,
+            orbit_n_theta=256,
+            orbit_seed=123,
+            orbit_sign_mode='in'
+        )
+
+        (
+            ma200, z_acc, rs_acc, rhos_acc, m_z0, rs_z0, rhos_z0,
+            ct_z0, weight_combined, density, survive, q
+        ) = results[:12]
+
+        q = np.asarray(q).reshape(-1)
+        w = np.asarray(weight_combined).reshape(-1)
+        m0 = np.asarray(m_z0).reshape(-1)
+        survive_mask = np.asarray(survive).reshape(-1)
+
+        assert q.size == w.size == m0.size == survive_mask.size
+        assert np.isfinite(q).all()
+        assert (q >= 0).all() and (q <= 1.0 + 1e-12).all()
+
+        # Convert q -> r [Mpc] at z0
+        rvir_z0 = self.sh.host_virial_radius(self.sh._normalize_M0_to_z0(1e12, 0.0, False), 0.0)
+        r = q * float(rvir_z0)
+
+        # Keep only valid / physical points
+        mask = (
+            survive_mask
+            & np.isfinite(r) & (r > 0)
+            & np.isfinite(m0) & (m0 > 0)
+            & np.isfinite(w) & (w >= 0)
+        )
+        assert float(w[mask].sum()) > 0, 'No surviving weight after masking; cannot build heatmap.'
+
+        # Log-spaced bins
+        # r-range: use the resolved q-grid range (avoid zero)
+        r_min = float(np.min(r[mask]))
+        r_max = float(np.max(r[mask]))
+        r_bins = np.logspace(np.log10(r_min), np.log10(r_max), 64)
+
+        # mass-range: focus on the decade range used in the overlay test
+        m_bins = np.logspace(5, 10, 64)  # 1e5 ... 1e10 Msun
+
+        H, xedges, yedges = np.histogram2d(
+            r[mask],
+            m0[mask],
+            bins=(r_bins.tolist(), m_bins.tolist()),
+            weights=w[mask]
+        )
+
+        assert np.isfinite(H).all()
+        assert H.sum() > 0, (
+            '2D histogram is empty in the requested mass range 1e5–1e10 Msun; '
+            'check m0 units or adjust m_bins.'
+        )
+
+        import matplotlib.colors as mcolors
+
+        fig, ax = plt.subplots(figsize=(7, 5))
+        # pcolormesh expects edges; H is (Nx-1, Ny-1)
+        X, Y = np.meshgrid(xedges, yedges, indexing='ij')
+        pcm = ax.pcolormesh(
+            X,
+            Y,
+            H,
+            shading='auto',
+            norm=mcolors.LogNorm(vmin=max(1e-12, float(H[H > 0].min())), vmax=float(H.max())),
+            cmap='viridis'
+        )
+        fig.colorbar(pcm, ax=ax, label='weighted count')
+
+        ax.set_xscale('log')
+        ax.set_yscale('log')
+        ax.set_xlabel('r [Mpc]')
+        ax.set_ylabel('m0 [Msun]')
+        ax.set_title('Surviving subhalos: mass vs radius (orbit-evolved, weighted)')
+
+        outdir = Path(self.output_dir)
+        outdir.mkdir(parents=True, exist_ok=True)
+        fname = outdir / f'mass_vs_r_heatmap_production_{self.now}.png'
+        fig.savefig(fname, dpi=200)
+        self.logger.info(f"Figure saved to {fname}")
+        plt.close(fig)
+
+        assert fname.exists()
     def test_r_dependent_A085_alpha180172(self):
         args = self.default_params
         self.update_file_handler_with_timestamp()
