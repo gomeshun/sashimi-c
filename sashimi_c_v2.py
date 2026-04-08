@@ -115,7 +115,10 @@ def _maybe_enable_jax_compilation_cache() -> None:
         from jax.experimental import compilation_cache as _cc
 
         os.makedirs(cache_dir, exist_ok=True)
-        _cc.compilation_cache.set_cache_dir(cache_dir)
+        cache_api = getattr(_cc, "compilation_cache", _cc)
+        set_cache_dir = getattr(cache_api, "set_cache_dir", None)
+        if callable(set_cache_dir):
+            set_cache_dir(cache_dir)
     except Exception:
         # Best-effort: do not fail import if JAX API changes.
         return
@@ -262,6 +265,26 @@ def _jit_warmup_import_time() -> None:
 _jit_warmup_import_time()
 
 
+def _nfw_enclosed_mass_factor(x):
+    """Dimensionless NFW mass factor f(c) = log(1 + c) - c / (1 + c)."""
+    return np.log1p(x) - x / (1.0 + x)
+
+
+def _interp_with_linear_extrapolation(x, xp, fp):
+    """1D linear interpolation with endpoint extrapolation."""
+    x = np.asarray(x)
+    xp = np.asarray(xp)
+    fp = np.asarray(fp)
+
+    y = np.interp(x, xp, fp)
+    left_slope = (fp[1] - fp[0]) / (xp[1] - xp[0])
+    right_slope = (fp[-1] - fp[-2]) / (xp[-1] - xp[-2])
+
+    y = np.where(x < xp[0], fp[0] + left_slope * (x - xp[0]), y)
+    y = np.where(x > xp[-1], fp[-1] + right_slope * (x - xp[-1]), y)
+    return y
+
+
 
 class UnitsAndConstants:
     """Physical units and constants as class attributes (read-only)."""
@@ -281,8 +304,7 @@ class UnitsAndConstants:
     G = 6.6742e-8 * cm**3 / gram / s**2
 
 # units_and_constants = UnitsAndConstants  # For backwards compatibility
-class units_and_constants(UnitsAndConstants):
-    pass
+units_and_constants = UnitsAndConstants
 
         
 class Cosmology:
@@ -470,31 +492,17 @@ class Cosmology:
 
 
 # cosmology = Cosmology  # For backwards compatibility
-class cosmology(Cosmology):
-    pass
+cosmology = Cosmology
 
 
-class halo_model(Cosmology):
+class Correa2015:
+    """Halo relations based on Correa et al. (2015)."""
 
-    
-    def __init__(self):
-        Cosmology.__init__(self)  # For backwards compatibility
-        self.cosmology = Cosmology()
-        self.rhocrit0 = self.cosmology.rhocrit0
-        self.Msun      = self.cosmology.Msun
+    def __init__(self, cosmology=None):
+        self.cosmology = cosmology if cosmology is not None else Cosmology()
 
-
-    def g(self,z):
-        return self.cosmology.g(z)
-    
-    def Hubble(self, z):
-        return self.cosmology.Hubble(z)
-    
-    def rhocrit(self, z):
-        return self.cosmology.rhocrit(z)
-
-    def fc(self, x):
-        return np.log(1+x)-x*pow(1+x,-1)
+    def __getattr__(self, name):
+        return getattr(self.cosmology, name)
 
     
     def conc200(self,M200,z): 
@@ -506,7 +514,7 @@ class halo_model(Cosmology):
                                *(1+gamma_cMz_1*np.log10(M200/self.Msun)**2))
         alpha_cMz_2 = 1.3081-0.1078*(1.+z)+0.00398*(1.+z)**2
         beta_cMz_2  = 0.0223-0.0944*(1.+z)**-0.3907
-        c_Mz_2      = pow(10,alpha_cMz_2+beta_cMz_2*np.log10(M200/self.Msun))
+        c_Mz_2      = np.power(10.,alpha_cMz_2+beta_cMz_2*np.log10(M200/self.Msun))
         return np.where(z<=4.,c_Mz_1,c_Mz_2)
 
     
@@ -515,12 +523,15 @@ class halo_model(Cosmology):
         c200  = self.conc200(M200,z)
         r200  = (3.0*M200/(4*np.pi*200*self.rhocrit0*gz))**(1./3.)
         rs    = r200/c200
-        fc200 = self.fc(c200)
+        fc200 = _nfw_enclosed_mass_factor(c200)
         rhos  = M200/(4*np.pi*rs**3*fc200)
         # Dc    = self.Delc(self.OmegaM*(1.+z)**3/self.g(z)-1.)
         Dc    = self.Delcz(z)
-        rvir  = optimize.fsolve(lambda r: 3.*(rs/r)**3*self.fc(r/rs)*rhos-Dc*self.rhocrit0*gz,r200)
-        Mvir  = 4*np.pi*rs**3*rhos*self.fc(rvir/rs)
+        rvir  = optimize.fsolve(
+            lambda r: 3. * (rs / r) ** 3 * _nfw_enclosed_mass_factor(r / rs) * rhos - Dc * self.rhocrit0 * gz,
+            r200,
+        )
+        Mvir  = 4*np.pi*rs**3*rhos*_nfw_enclosed_mass_factor(rvir/rs)
         return Mvir
 
     
@@ -571,8 +582,11 @@ class halo_model(Cosmology):
         Mzzivir = self.Mvir_from_M200_fit(Mzzidef,z)
         return (beta+alpha/(1.+z-zi))*Mzzivir
 
+
+halo_model = Correa2015
+
     
-class NFW(halo_model):
+class NFW:
 
     """ NFW density profile inspired by astropy.modeling.models.NFW 
     ut accepting vectorized inputs. """
@@ -581,7 +595,8 @@ class NFW(halo_model):
                  mass,
                  concentration,
                  redshift,
-                 massfactor = "virial"):
+                 massfactor = "virial",
+                 halo_model=None):
         """ Initialize NFW profile.
 
         Parameters
@@ -597,15 +612,130 @@ class NFW(halo_model):
             - "virial": Virial mass.
             - "200c": Mass within radius where density is 200 times critical density.
         """
-        self.cosmology = Cosmology()
+        self.halo_model = halo_model if halo_model is not None else Correa2015()
+        self.cosmology = self.halo_model.cosmology
         if massfactor not in ["virial", "200c"]:
             raise ValueError("massfactor must be 'virial' or '200c'")
         if massfactor == "200c":
-            mvir = self.halo_model.Mvir_from_M200_fit(mass, redshift)
+            self.m200 = mass
+            self.mvir = self.halo_model.Mvir_from_M200_fit(mass, redshift)
+        elif massfactor == "virial":
+            self.mvir = mass
+        self.mass = mass
+        self.concentration = concentration
+        self.redshift = redshift
+        self.massfactor = massfactor
+        self._rvir = None
+        self._r200 = None
+        self._rs = None
+        self._rhos = None
+        self._vmax = None
+        self._rvmax = None
 
-            
+    def __getattr__(self, name):
+        return getattr(self.halo_model, name)
 
-class TidalStrippingSolver(halo_model):
+    @property
+    def rvir(self):
+        """ Virial radius of the halo. 
+        
+        If it has not been calculated yet, compute it from the virial mass and cache the result.
+        
+        """
+        if self._rvir is None:
+            self._rvir = (
+                3.0
+                * self.mvir
+                / (4 * np.pi * self.halo_model.rhocrit(self.redshift) * self.halo_model.Delcz(self.redshift))
+            ) ** (1. / 3.)
+        return self._rvir
+
+    @property
+    def r200(self):
+        """Radius enclosing 200 times the critical density."""
+        if self.massfactor != "200c":
+            raise AttributeError("r200 is only available for massfactor='200c'")
+        if self._r200 is None:
+            self._r200 = (
+                3.0 * self.m200 / (4 * np.pi * self.halo_model.rhocrit(self.redshift) * 200.0)
+            ) ** (1. / 3.)
+        return self._r200
+
+    def _profile_mass(self):
+        return self.m200 if self.massfactor == "200c" else self.mvir
+
+    def _profile_radius(self):
+        return self.r200 if self.massfactor == "200c" else self.rvir
+
+    @property
+    def rs(self):
+        """ Scale radius of the halo. 
+        
+        If it has not been calculated yet, compute it from the virial radius and concentration and cache the result.
+        
+        """
+        if self._rs is None:
+            self._rs = self._profile_radius() / self.concentration
+        return self._rs
+
+    @property
+    def rhos(self):
+        """ Scale density of the halo. 
+        
+        If it has not been calculated yet, compute it from the virial mass and scale radius and cache the result.
+        
+        """
+        if self._rhos is None:
+            self._rhos = self._profile_mass() / (4 * np.pi * self.rs ** 3 * _nfw_enclosed_mass_factor(self.concentration))
+        return self._rhos    
+
+    @property
+    def vmax(self):
+        """ Maximum circular velocity of the halo. 
+        
+        If it has not been calculated yet, compute it from the virial mass and scale radius and cache the result.
+        """
+        if self._vmax is None:
+            self._vmax, self._rvmax = self.rhos_rs_to_vmax_rvmax(self.rhos, self.rs)
+        return self._vmax
+    
+    @property
+    def rvmax(self):
+        """ Radius of maximum circular velocity of the halo. 
+        
+        If it has not been calculated yet, compute it from the scale radius and cache the result.
+        
+        """
+        if self._rvmax is None:
+            self._vmax, self._rvmax = self.rhos_rs_to_vmax_rvmax(self.rhos, self.rs)
+        return self._rvmax
+
+    @staticmethod
+    def rhos_rs_to_vmax_rvmax(rhos, rs):
+        """Compute maximum circular velocity and its radius from scale parameters."""
+        vmax = np.sqrt(rhos * 4.0 * np.pi * UnitsAndConstants.G / 4.625) * rs
+        rvmax = 2.16258 * rs
+        return vmax, rvmax
+    
+    
+    @staticmethod
+    def vmax_rmax_to_rhos_rs(vmax, rvmax):
+        """ Compute scale density and scale radius from vmax and rvmax. """
+        rs = rvmax / 2.16258
+        rhos = (vmax / rs) ** 2 * 4.625 / (4.0 * np.pi * UnitsAndConstants.G)
+        return rhos, rs
+
+    
+    def mass_enclosed(self, r):
+        """ Mass enclosed within radius r for NFW profile. """
+        x = r / self.rs
+        return 4 * np.pi * self.rhos * self.rs**3 * _nfw_enclosed_mass_factor(x)
+
+    
+
+
+
+class TidalStrippingSolver:
     """ Solve the tidal stripping equation for a given subhalo. """
     
     def __init__(self, M0, z_min=0.0, z_max=7.0, n_z_interp=64):
@@ -619,14 +749,15 @@ class TidalStrippingSolver(halo_model):
         (Optional) z_max:          Maximum redshift to start the calculation of evolution from. (default: 7.)
         (Optional) n_z_interp:     Number of redshifts to calculate epsilon functions. (default: 64)
         """
-        halo_model.__init__(self)  # For backwards compatibility
-        self.halo_model = halo_model()
+        self.halo_model = Correa2015()
         self.cosmology = self.halo_model.cosmology
-        self.Msun = self.halo_model.Msun
         self.z_min       = z_min
         self.z_max       = z_max
         self.n_z_interp  = n_z_interp
         self.M0          = M0
+
+    def __getattr__(self, name):
+        return getattr(self.halo_model, name)
 
 
     @property
@@ -1117,11 +1248,15 @@ class TidalStrippingSolver(halo_model):
 
 
     
-class subhalo_properties(halo_model):
+class subhalo_properties:
 
     
     def __init__(self):
-        halo_model.__init__(self)
+        self.halo_model = Correa2015()
+        self.cosmology = self.halo_model.cosmology
+
+    def __getattr__(self, name):
+        return getattr(self.halo_model, name)
 
     
     def Ffunc(self, dela, s1, s2):
@@ -1349,10 +1484,18 @@ class subhalo_properties(halo_model):
         c_sub, w1 = self.log10_lognormal_scatter_gh(c_mz_2d, sigmalogc, N_herm)
         c_sub = np.transpose(c_sub, (1, 0, 2))  # (Nz, N_herm, Nm)
         w1 = w1.reshape(1, N_herm, 1)  # for broadcasting (Nz, N_herm, Nm)
-        rs_acc = rvirsub_2d.reshape(Nz, 1, Nm) / c_sub
-        rhos_acc = ma_2d.reshape(Nz, 1, Nm) / (4.0 * np.pi * rs_acc ** 3 * self.fc(c_sub))
+        accretion_profile = NFW(
+            ma_2d.reshape(Nz, 1, Nm),
+            c_sub,
+            z2d.reshape(Nz, 1, 1),
+            massfactor="virial",
+            halo_model=self.halo_model,
+        )
+        rs_acc = accretion_profile.rs
+        rhos_acc = accretion_profile.rhos
 
         # Stripping solver: use JIT-compiled batched kernels for perturbative methods.
+        m0_2d = None
         if len(kwargs) == 0 and method in {"pert0", "pert1", "pert2", "pert2_shanks", "pert3"}:
             match method:
                 case "pert0":
@@ -1365,6 +1508,8 @@ class subhalo_properties(halo_model):
                     m0_2d = solver.subhalo_mass_stripped_pert2_shanks_batch_jit(ma_2d, zdist, redshift)
                 case "pert3":
                     m0_2d = solver.subhalo_mass_stripped_pert3_batch_jit(ma_2d, zdist, redshift)
+                case _:
+                    raise ValueError(f"Invalid method: {method}")
         else:
             m0_list = []
             for iz in range(Nz):
@@ -1374,20 +1519,20 @@ class subhalo_properties(halo_model):
             m0_2d = np.stack(m0_list, axis=0)  # (Nz, Nm)
 
         if profile_change == True:
-            rmax_acc = rs_acc * 2.163
-            Vmax_acc = np.sqrt(rhos_acc * 4.0 * np.pi * self.G / 4.625) * rs_acc
+            rmax_acc = accretion_profile.rvmax
+            Vmax_acc = accretion_profile.vmax
             ratio = m0_2d.reshape(Nz, 1, Nm) / ma_2d.reshape(Nz, 1, Nm)
             Vmax_z0 = Vmax_acc * (2.0 ** 0.4 * ratio ** 0.3 * (1.0 + ratio) ** -0.4)
             rmax_z0 = rmax_acc * (2.0 ** -0.3 * ratio ** 0.4 * (1.0 + ratio) ** 0.3)
-            rs_z0 = rmax_z0 / 2.163
-            rhos_z0 = (4.625 / (4.0 * np.pi * self.G)) * (Vmax_z0 / rs_z0) ** 2
+            rhos_z0, rs_z0 = NFW.vmax_rmax_to_rhos_rs(Vmax_z0, rmax_z0)
         else:
             rs_z0 = rs_acc
             rhos_z0 = rhos_acc
 
         ctemp = np.linspace(0, 100, 1000)
-        ftemp = interp1d(self.fc(ctemp), ctemp, fill_value='extrapolate')
-        ct_z0 = np.asarray(ftemp(m0_2d.reshape(Nz, 1, Nm) / (4.0 * np.pi * rhos_z0 * rs_z0 ** 3)))
+        fc_ctemp = _nfw_enclosed_mass_factor(ctemp)
+        ct_argument = m0_2d.reshape(Nz, 1, Nm) / (4.0 * np.pi * rhos_z0 * rs_z0 ** 3)
+        ct_z0 = _interp_with_linear_extrapolation(ct_argument, fc_ctemp, ctemp)
         survive = np.where(ct_z0 > ct_th, 1, 0)
         m0_matrix = np.broadcast_to(m0_2d.reshape(Nz, 1, Nm), (Nz, N_herm, Nm))
 
@@ -1418,7 +1563,7 @@ class subhalo_properties(halo_model):
 
 
 
-class subhalo_observables(subhalo_properties):
+class subhalo_observables:
     
     
     def __init__(self, M0_per_Msun, redshift=0., dz=0.01, zmax=7.0, N_ma=500, sigmalogc=0.128,
@@ -1494,11 +1639,13 @@ class subhalo_observables(subhalo_properties):
 
         """
 
-        subhalo_properties.__init__(self)
+        self.properties_model = subhalo_properties()
+        self.halo_model = self.properties_model.halo_model
+        self.cosmology = self.halo_model.cosmology
         ma200, z_a, rs_a, rhos_a, m0, rs0, rhos0, ct0, weight, survive \
-            = self.subhalo_properties_calc(M0_per_Msun*self.Msun,redshift,dz,zmax,N_ma,sigmalogc,N_herm,
-                                           logmamin,logmamax,N_hermNa,Na_model,ct_th,profile_change,
-                                           M0_at_redshift,method,**kwargs)
+            = self.properties_model.subhalo_properties_calc(M0_per_Msun*self.Msun,redshift,dz,zmax,N_ma,sigmalogc,N_herm,
+                                                            logmamin,logmamax,N_hermNa,Na_model,ct_th,profile_change,
+                                                            M0_at_redshift,method,**kwargs)
         self.ma200  = ma200[survive]
         self.z_a    = z_a[survive]
         self.rs_a   = rs_a[survive]
@@ -1508,10 +1655,14 @@ class subhalo_observables(subhalo_properties):
         self.rhos0  = rhos0[survive]
         self.ct0    = ct0[survive]
         self.weight = weight[survive]
-        self.rmax   = 2.163*self.rs0
-        self.Vmax   = np.sqrt(4.*np.pi*self.G*self.rhos0/4.625)*self.rs0
-        self.rpeak  = 2.163*self.rs_a
-        self.Vpeak  = np.sqrt(4.*np.pi*self.G*self.rhos_a/4.625)*self.rs_a
+        self.Vmax, self.rmax = NFW.rhos_rs_to_vmax_rvmax(self.rhos0, self.rs0)
+        self.Vpeak, self.rpeak = NFW.rhos_rs_to_vmax_rvmax(self.rhos_a, self.rs_a)
+
+    def __getattr__(self, name):
+        try:
+            return getattr(self.properties_model, name)
+        except AttributeError:
+            return getattr(self.halo_model, name)
 
 
     def mass_function(self, evolved=True):
@@ -1631,7 +1782,7 @@ class subhalo_observables(subhalo_properties):
 
     def mass_fraction(self, evolved=True):
         """
-        Subhalo mass fraction: \sum_i m_i / M_host
+        Subhalo mass fraction: \\sum_i m_i / M_host
         
         -----
         Input
@@ -1691,10 +1842,10 @@ class subhalo_observables(subhalo_properties):
             fssh = 0.
             Bssh = 0.
         else:                        
-            list_Bssh = np.loadtxt('data/boost/Bsh_%s.txt'%(n-1))
-            list_fssh = np.loadtxt('data/boost/fsh.txt')
-            list_za  = np.loadtxt('data/boost/za.txt')
-            list_ma  = np.loadtxt('data/boost/ma.txt')
+            list_Bssh = numpy.loadtxt('data/boost/Bsh_%s.txt'%(n-1))
+            list_fssh = numpy.loadtxt('data/boost/fsh.txt')
+            list_za  = numpy.loadtxt('data/boost/za.txt')
+            list_ma  = numpy.loadtxt('data/boost/ma.txt')
 
             list_log_ma_flat   = np.log10(list_ma.flatten())
             list_za_flat       = (list_za.reshape(-1,1)*np.ones_like(list_ma[0])).flatten()
@@ -1719,8 +1870,8 @@ class subhalo_observables(subhalo_properties):
             Bssh = Bssh*(self.rhos_a**2*self.rs_a**3*(1.-1./(1.+cavir)**3))
             fssh = fssh*self.rs0**3*(np.arcsinh(self.ct0)-self.ct0/np.sqrt(1.+self.ct0**2))
             fssh = fssh/(self.rs_a**3*(np.arcsinh(cavir)-cavir/np.sqrt(1.+cavir**2)))
-            fssh = fssh/(self.rhos0*self.rs0**3*self.fc(self.ct0))
-            fssh = fssh*(self.rhos_a*self.rs_a**3*self.fc(cavir))
+            fssh = fssh/(self.rhos0*self.rs0**3*_nfw_enclosed_mass_factor(self.ct0))
+            fssh = fssh*(self.rhos_a*self.rs_a**3*_nfw_enclosed_mass_factor(cavir))
 
         if evolved:
             Lsh  = np.sum((1.-fssh**2+Bssh)*self.rhos0**2*self.rs0**3*(1.-1./(1.+self.ct0)**3)*self.weight)
@@ -1730,10 +1881,10 @@ class subhalo_observables(subhalo_properties):
             Lsh  = np.sum(self.rhos_a**2*self.rs_a**3*(1.-1./(1.+c200)**3)*self.weight)
             
         Mhost     = self.Mzi(self.M0,self.redshift)
-        r200_host = (3.*Mhost/(4.*np.pi*self.rhocrit(self.redshift)*200.))**(1./3.)
         c200_host = self.conc200(Mhost,self.redshift)
-        rs_host   = r200_host/c200_host
-        rhos_host = Mhost/(4.*np.pi*rs_host**3*self.fc(c200_host))
+        host_profile = NFW(Mhost, c200_host, self.redshift, massfactor="200c", halo_model=self.halo_model)
+        rs_host   = host_profile.rs
+        rhos_host = host_profile.rhos
         Lhost0    = rhos_host**2*rs_host**3*(1.-1./(1.+c200_host)**3)
 
         Bsh = Lsh/Lhost0
