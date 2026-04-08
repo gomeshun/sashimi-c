@@ -13,7 +13,7 @@ dependencies = [
 [dependency-groups]
 dev = [
     "black",
-    "jax"
+    "jax[cuda]",
     "ipykernel",
     "matplotlib",
 ]
