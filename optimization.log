@@ -1,0 +1,129 @@
+2025-07-02 18:59:15 [INFO] ============================================================
+2025-07-02 18:59:15 [INFO] HYPERPARAMETER OPTIMIZATION LOG
+2025-07-02 18:59:15 [INFO] ============================================================
+2025-07-02 18:59:15 [INFO] Parameters: q_bin=32, m0_min=0.1, m0_max=1.0, mdot_fitting_type=2
+2025-07-02 18:59:15 [INFO] Starting optimization with initial guess: A=1, alpha=1
+2025-07-02 18:59:15 [INFO] Logging to file: optimization.log
+2025-07-02 18:59:57 [INFO] ============================================================
+2025-07-02 18:59:57 [INFO] HYPERPARAMETER OPTIMIZATION LOG
+2025-07-02 18:59:57 [INFO] ============================================================
+2025-07-02 18:59:57 [INFO] Parameters: q_bin=32, m0_min=0.1, m0_max=1.0, mdot_fitting_type=2
+2025-07-02 18:59:57 [INFO] Starting optimization with initial guess: A=1, alpha=1
+2025-07-02 18:59:57 [INFO] Logging to file: optimization.log
+2025-07-02 19:00:28 [INFO] Function call 1: A=1.0000, alpha=1.0000, loss=69.552779
+2025-07-02 19:00:59 [INFO] Function call 2: A=1.0500, alpha=1.0000, loss=nan
+2025-07-02 19:01:31 [INFO] Function call 3: A=1.0000, alpha=1.0500, loss=68.568310
+2025-07-02 19:02:03 [INFO] Function call 4: A=0.9500, alpha=1.0500, loss=68.344791
+2025-07-02 19:02:44 [INFO] Function call 5: A=0.9000, alpha=1.0750, loss=68.014790
+2025-07-02 19:03:16 [INFO] Function call 6: A=0.9000, alpha=1.1250, loss=67.149446
+2025-07-02 19:03:46 [INFO] Function call 7: A=0.8500, alpha=1.1875, loss=66.464951
+2025-07-02 19:04:17 [INFO] Function call 8: A=0.7500, alpha=1.2125, loss=67.521657
+2025-07-02 19:04:57 [INFO] Function call 9: A=0.7000, alpha=1.3250, loss=66.624008
+2025-07-02 19:05:29 [INFO] Function call 10: A=0.8000, alpha=1.3000, loss=65.010932
+2025-07-02 19:06:01 [INFO] Function call 11: A=0.8250, alpha=1.3438, loss=63.983634
+2025-07-02 19:06:32 [INFO] Function call 12: A=0.9750, alpha=1.2063, loss=65.692960
+2025-07-02 19:07:03 [INFO] Function call 13: A=0.9500, alpha=1.3625, loss=63.202668
+2025-07-02 19:07:35 [INFO] Function call 14: A=1.0000, alpha=1.4500, loss=62.243622
+2025-07-02 19:08:07 [INFO] Function call 15: A=0.8500, alpha=1.5875, loss=60.130191
+2025-07-02 19:08:39 [INFO] Function call 16: A=0.7875, alpha=1.7781, loss=58.084966
+2025-07-02 19:09:11 [INFO] Function call 17: A=0.9625, alpha=1.8844, loss=56.593122
+2025-07-02 19:09:43 [INFO] Function call 18: A=1.0312, alpha=2.1547, loss=nan
+2025-07-02 19:10:15 [INFO] Function call 19: A=0.7500, alpha=2.2125, loss=53.182839
+2025-07-02 19:10:45 [INFO] Function call 20: A=0.6250, alpha=2.5938, loss=51.766362
+2025-07-02 19:11:17 [INFO] Function call 21: A=0.8000, alpha=2.7000, loss=48.006063
+2025-07-02 19:11:49 [INFO] Function call 22: A=0.8062, alpha=3.1609, loss=44.168024
+2025-07-02 19:12:21 [INFO] Function call 23: A=0.4687, alpha=3.8703, loss=46.250050
+2025-07-02 19:12:53 [INFO] Function call 24: A=0.6500, alpha=4.4375, loss=36.309405
+2025-07-02 19:13:23 [INFO] Function call 25: A=0.6625, alpha=5.3594, loss=30.768779
+2025-07-02 19:13:56 [INFO] Function call 26: A=1.0000, alpha=4.6500, loss=nan
+2025-07-02 19:14:28 [INFO] Function call 27: A=0.6016, alpha=4.0652, loss=39.968175
+2025-07-02 19:15:00 [INFO] Function call 28: A=0.4578, alpha=6.2637, loss=32.207381
+2025-07-02 19:15:31 [INFO] Function call 29: A=0.5187, alpha=7.5578, loss=23.837521
+2025-07-02 19:16:03 [INFO] Function call 30: A=0.4773, alpha=9.3041, loss=19.043851
+2025-07-02 19:16:35 [INFO] Function call 31: A=0.6820, alpha=8.3998, loss=17.802237
+2025-07-02 19:17:07 [INFO] Function call 32: A=0.7941, alpha=9.4679, loss=15.742453
+2025-07-02 19:17:39 [INFO] Function call 33: A=0.6090, alpha=13.4126, loss=6.002309
+2025-07-02 19:18:10 [INFO] Function call 34: A=0.5822, alpha=17.4392, loss=1.465392
+2025-07-02 19:18:42 [INFO] Function call 35: A=0.8990, alpha=17.6030, loss=inf
+2025-07-02 19:19:14 [INFO] Function call 36: A=0.5828, alpha=11.3788, loss=10.418817
+2025-07-02 19:19:46 [INFO] Function call 37: A=0.3708, alpha=19.3502, loss=5.591170
+2025-07-02 19:20:19 [INFO] Function call 38: A=0.3703, alpha=25.4105, loss=inf
+2025-07-02 19:20:50 [INFO] Function call 39: A=0.5297, alpha=14.8868, loss=4.932658
+2025-07-02 19:21:23 [INFO] Function call 40: A=0.7410, alpha=12.9758, loss=7.049281
+2025-07-02 19:21:55 [INFO] Function call 41: A=0.4634, alpha=17.7566, loss=3.356697
+2025-07-02 19:22:27 [INFO] Function call 42: A=0.5160, alpha=20.3090, loss=inf
+2025-07-02 19:22:58 [INFO] Function call 43: A=0.5262, alpha=16.2423, loss=3.285515
+2025-07-02 19:23:29 [INFO] Function call 44: A=0.6451, alpha=15.9250, loss=2.424675
+2025-07-02 19:24:01 [INFO] Function call 45: A=0.7011, alpha=17.1218, loss=1.759067
+2025-07-02 19:24:33 [INFO] Function call 46: A=0.6382, alpha=18.6361, loss=inf
+2025-07-02 19:25:05 [INFO] Function call 47: A=0.6434, alpha=16.6027, loss=1.827871
+2025-07-02 19:25:37 [INFO] Function call 48: A=0.6399, alpha=17.9583, loss=1.224012
+2025-07-02 19:26:09 [INFO] Function call 49: A=0.6382, alpha=18.6361, loss=inf
+2025-07-02 19:26:42 [INFO] Function call 50: A=0.5211, alpha=18.2757, loss=1.708360
+2025-07-02 19:27:13 [INFO] Function call 51: A=0.5661, alpha=17.9872, loss=1.291628
+2025-07-02 19:27:44 [INFO] Function call 52: A=0.6238, alpha=18.5063, loss=2.007279
+2025-07-02 19:28:16 [INFO] Function call 53: A=0.5926, alpha=17.7060, loss=1.240147
+2025-07-02 19:28:47 [INFO] Function call 54: A=0.6665, alpha=17.6771, loss=1.344797
+2025-07-02 19:29:18 [INFO] Function call 55: A=0.5912, alpha=17.9097, loss=1.163743
+2025-07-02 19:29:50 [INFO] Function call 56: A=0.6385, alpha=18.1620, loss=1.335805
+2025-07-02 19:30:22 [INFO] Function call 57: A=0.6041, alpha=17.8200, loss=1.164963
+2025-07-02 19:30:54 [INFO] Function call 58: A=0.5553, alpha=17.7714, loss=1.518984
+2025-07-02 19:31:26 [INFO] Function call 59: A=0.6188, alpha=17.9116, loss=1.125824
+2025-07-02 19:31:59 [INFO] Function call 60: A=0.6059, alpha=18.0013, loss=1.116751
+2025-07-02 19:32:30 [INFO] Function call 61: A=0.6068, alpha=18.0919, loss=1.117852
+2025-07-02 19:33:02 [INFO] Function call 62: A=0.6335, alpha=18.0032, loss=1.168077
+2025-07-02 19:33:33 [INFO] Function call 63: A=0.6018, alpha=17.9331, loss=1.132898
+2025-07-02 19:34:05 [INFO] Function call 64: A=0.6229, alpha=17.9798, loss=1.126353
+2025-07-02 19:34:36 [INFO] Function call 65: A=0.6176, alpha=17.9681, loss=1.113099
+2025-07-02 19:35:08 [INFO] Function call 66: A=0.6047, alpha=18.0578, loss=1.113817
+2025-07-02 19:35:40 [INFO] Function call 67: A=0.6165, alpha=18.0246, loss=1.106272
+2025-07-02 19:36:12 [INFO] Function call 68: A=0.6217, alpha=18.0363, loss=1.126613
+2025-07-02 19:36:43 [INFO] Function call 69: A=0.6294, alpha=17.9349, loss=1.144423
+2025-07-02 19:37:15 [INFO] Function call 70: A=0.6109, alpha=18.0271, loss=1.129275
+2025-07-02 19:37:47 [INFO] Function call 71: A=0.6170, alpha=17.9964, loss=1.121581
+2025-07-02 19:38:18 [INFO] Function call 72: A=0.6106, alpha=18.0412, loss=1.134218
+2025-07-02 19:38:50 [INFO] Function call 73: A=0.6229, alpha=17.9798, loss=1.126353
+2025-07-02 19:39:23 [INFO] Function call 74: A=0.6198, alpha=17.9951, loss=1.114930
+2025-07-02 19:39:55 [INFO] Function call 75: A=0.6192, alpha=18.0234, loss=1.118855
+2025-07-02 19:40:27 [INFO] Function call 76: A=0.6187, alpha=18.0167, loss=1.119427
+2025-07-02 19:40:59 [INFO] Function call 77: A=0.6181, alpha=18.0099, loss=1.107416
+2025-07-02 19:41:39 [INFO] Function call 78: A=0.6167, alpha=18.0105, loss=1.113584
+2025-07-02 19:42:13 [INFO] Function call 79: A=0.6178, alpha=18.0240, loss=1.118162
+2025-07-02 19:42:43 [INFO] Function call 80: A=0.6170, alpha=18.0139, loss=1.114045
+2025-07-02 19:43:14 [INFO] Function call 81: A=0.6173, alpha=18.0173, loss=1.105833
+2025-07-02 19:43:44 [INFO] Function call 82: A=0.6166, alpha=18.0176, loss=1.113584
+2025-07-02 19:44:16 [INFO] Function call 83: A=0.6172, alpha=18.0243, loss=1.121790
+2025-07-02 19:44:48 [INFO] Function call 84: A=0.6167, alpha=18.0193, loss=1.111081
+2025-07-02 19:45:20 [INFO] Function call 85: A=0.6170, alpha=18.0226, loss=1.114045
+2025-07-02 19:45:52 [INFO] Function call 86: A=0.6168, alpha=18.0201, loss=1.111081
+2025-07-02 19:46:22 [INFO] Function call 87: A=0.6169, alpha=18.0209, loss=1.114045
+2025-07-02 19:46:54 [INFO] Function call 88: A=0.6170, alpha=18.0183, loss=1.114045
+2025-07-02 19:47:27 [INFO] Function call 89: A=0.6172, alpha=18.0200, loss=1.114045
+2025-07-02 19:47:58 [INFO] Function call 90: A=0.6171, alpha=18.0187, loss=1.114045
+2025-07-02 19:48:29 [INFO] Function call 91: A=0.6171, alpha=18.0191, loss=1.114045
+2025-07-02 19:49:02 [INFO] Function call 92: A=0.6172, alpha=18.0178, loss=1.114045
+2025-07-02 19:49:35 [INFO] Function call 93: A=0.6174, alpha=18.0159, loss=1.105833
+2025-07-02 19:50:06 [INFO] Function call 94: A=0.6175, alpha=18.0154, loss=1.108042
+2025-07-02 19:50:48 [INFO] Function call 95: A=0.6174, alpha=18.0160, loss=1.105833
+2025-07-02 19:51:18 [INFO] Function call 96: A=0.6172, alpha=18.0172, loss=1.105833
+2025-07-02 19:51:58 [INFO] Function call 97: A=0.6172, alpha=18.0178, loss=1.114045
+2025-07-02 19:52:28 [INFO] Function call 98: A=0.6172, alpha=18.0185, loss=1.114045
+2025-07-02 19:53:10 [INFO] Function call 99: A=0.6173, alpha=18.0166, loss=1.105833
+2025-07-02 19:53:39 [INFO] Function call 100: A=0.6173, alpha=18.0172, loss=1.105833
+2025-07-02 19:54:20 [INFO] Function call 101: A=0.6173, alpha=18.0165, loss=1.105833
+2025-07-02 19:54:51 [INFO] Function call 102: A=0.6173, alpha=18.0165, loss=1.105833
+2025-07-02 19:55:32 [INFO] Function call 103: A=0.6173, alpha=18.0170, loss=1.105833
+2025-07-02 19:56:04 [INFO] Function call 104: A=0.6173, alpha=18.0169, loss=1.105833
+2025-07-02 19:56:34 [INFO] Function call 105: A=0.6173, alpha=18.0172, loss=1.105833
+2025-07-02 19:57:05 [INFO] Function call 106: A=0.6173, alpha=18.0168, loss=1.105833
+2025-07-02 19:57:37 [INFO] Function call 107: A=0.6173, alpha=18.0171, loss=1.105833
+2025-07-02 19:58:08 [INFO] Function call 108: A=0.6173, alpha=18.0170, loss=1.105833
+2025-07-02 19:58:39 [INFO] Function call 109: A=0.6173, alpha=18.0172, loss=1.105833
+2025-07-02 19:59:11 [INFO] Function call 110: A=0.6173, alpha=18.0170, loss=1.105833
+2025-07-02 19:59:43 [INFO] Function call 111: A=0.6173, alpha=18.0171, loss=1.105833
+2025-07-02 20:00:14 [INFO] Function call 112: A=0.6173, alpha=18.0171, loss=1.105833
+2025-07-02 20:00:46 [INFO] Function call 113: A=0.6172, alpha=18.0172, loss=1.105833
+2025-07-02 20:01:17 [INFO] Function call 114: A=0.6172, alpha=18.0172, loss=1.105833
+2025-07-02 20:01:17 [INFO] Optimization successful! A=0.6172, alpha=18.0172, final_loss=1.105833
+2025-07-02 20:01:17 [INFO] Total function calls: 114
+2025-07-02 20:01:17 [INFO] ============================================================
