@@ -12,6 +12,8 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "black",
+    "jax"
     "ipykernel",
     "matplotlib",
 ]
