@@ -12,8 +12,12 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "pytest",
     "black",
     "jax[cuda]",
     "ipykernel",
     "matplotlib",
 ]
+
+[tool.pytest.ini_options]
+testpaths = ["test"]
