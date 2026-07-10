@@ -1,0 +1,25 @@
+name: itamae-migration
+
+on:
+  push:
+    branches: [itamae-migration]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.11"
+      - run: uv venv
+      - name: Install migration dependencies
+        run: >-
+          uv pip install
+          numpy scipy pytest
+          "itamae @ git+https://github.com/gomeshun/itamae.git@0030c5b3fac6fb532986e1eb2da3c1cc10063e57"
+      - name: Run ITAMAE migration regression tests
+        run: uv run pytest -q tests/test_itamae_migration.py
