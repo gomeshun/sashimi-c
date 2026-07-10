@@ -12,17 +12,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Check out tested ITAMAE revision
-        uses: actions/checkout@v4
-        with:
-          repository: gomeshun/itamae
-          ref: 0030c5b3fac6fb532986e1eb2da3c1cc10063e57
-          path: .itamae
       - uses: astral-sh/setup-uv@v6
         with:
           python-version: "3.11"
       - run: uv venv
       - name: Install migration dependencies
-        run: uv pip install numpy scipy pytest ./.itamae
+        run: uv pip install numpy scipy pytest
+      - name: Assemble pinned ITAMAE CI package
+        run: |
+          mkdir -p .ci/runtime/itamae/cosmology
+          touch .ci/runtime/itamae/__init__.py
+          cp .ci/itamae_native_snapshot.py .ci/runtime/itamae/cosmology/native.py
+          printf 'from .native import NativeFlatLCDM\n\n__all__ = ["NativeFlatLCDM"]\n' > .ci/runtime/itamae/cosmology/__init__.py
       - name: Run ITAMAE migration regression tests
+        env:
+          PYTHONPATH: ${{ github.workspace }}/.ci/runtime:${{ github.workspace }}
         run: uv run pytest -q tests/test_itamae_migration.py
