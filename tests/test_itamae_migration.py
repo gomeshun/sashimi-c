@@ -3,11 +3,11 @@
 import numpy as np
 
 from itamae.numerics import gauss_hermite_lognormal
-from itamae_migration import (
-    ItamaeHaloModel,
+from itamae_catalog_migration import (
     ItamaeSubhaloProperties,
     ItamaeTidalStrippingSolver,
 )
+from itamae_migration import ItamaeHaloModel
 from sashimi_c import TidalStrippingSolver, halo_model, subhalo_properties
 
 
