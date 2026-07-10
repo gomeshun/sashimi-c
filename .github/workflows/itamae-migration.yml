@@ -31,4 +31,10 @@ jobs:
       - name: Run ITAMAE migration regression tests
         env:
           PYTHONPATH: ${{ github.workspace }}/.ci/runtime:${{ github.workspace }}
-        run: uv run pytest -q tests/test_itamae_migration.py
+        run: uv run pytest -q --junitxml=test-results.xml tests/test_itamae_migration.py
+      - name: Upload migration test diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: migration-test-results
+          path: test-results.xml
