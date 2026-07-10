@@ -1,6 +1,6 @@
 """Pinned ITAMAE unit backends for cross-repository migration CI.
 
-Source commit: 0030c5b3fac6fb532986e1eb2da3c1cc10063e57
+Source commit: 3d1eaa01082c24d951da32a12c01f9904a792565
 
 This temporary fixture mirrors the tested ITAMAE unit interfaces while ITAMAE
 is private and unpublished. Astropy is imported lazily so repositories testing
@@ -47,6 +47,7 @@ class AstropyUnits:
         import astropy.units as u
 
         return {
+            "dimensionless": u.dimensionless_unscaled,
             "mass": u.Msun,
             "length": u.Mpc,
             "velocity": u.km / u.s,
