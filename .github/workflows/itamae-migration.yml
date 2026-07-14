@@ -12,27 +12,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Check out pinned public ITAMAE
+        uses: actions/checkout@v4
+        with:
+          repository: gomeshun/itamae
+          ref: 863cb0643c61ca4ea7458d7a221f48e5c5bfe515
+          path: .itamae
       - uses: astral-sh/setup-uv@v6
         with:
           python-version: "3.11"
       - run: uv venv
       - name: Install migration dependencies
-        run: uv pip install numpy scipy pytest
-      - name: Assemble pinned ITAMAE CI package
-        run: |
-          mkdir -p .ci/runtime/itamae/{cosmology,evolution,halo,numerics,types,variance}
-          touch .ci/runtime/itamae/__init__.py
-          cp .ci/itamae_native_snapshot.py .ci/runtime/itamae/_snapshot.py
-          cp .ci/itamae_variance_snapshot.py .ci/runtime/itamae/_variance_snapshot.py
-          printf 'from itamae._snapshot import NativeFlatLCDM\n\n__all__ = ["NativeFlatLCDM"]\n' > .ci/runtime/itamae/cosmology/__init__.py
-          printf 'from itamae._snapshot import shanks_transform\n\n__all__ = ["shanks_transform"]\n' > .ci/runtime/itamae/evolution/__init__.py
-          printf 'from itamae._snapshot import invert_nfw_mass_function, nfw_mass_function\n\n__all__ = ["invert_nfw_mass_function", "nfw_mass_function"]\n' > .ci/runtime/itamae/halo/__init__.py
-          printf 'from itamae._snapshot import gauss_hermite_lognormal\n\n__all__ = ["gauss_hermite_lognormal"]\n' > .ci/runtime/itamae/numerics/__init__.py
-          printf 'from itamae._snapshot import WeightedSubhaloCatalog\n\n__all__ = ["WeightedSubhaloCatalog"]\n' > .ci/runtime/itamae/types/__init__.py
-          printf 'from itamae._variance_snapshot import CallableVarianceModel\n\n__all__ = ["CallableVarianceModel"]\n' > .ci/runtime/itamae/variance/__init__.py
+        run: uv pip install ./.itamae pytest
       - name: Run ITAMAE migration regression tests
-        env:
-          PYTHONPATH: ${{ github.workspace }}/.ci/runtime:${{ github.workspace }}
         run: uv run pytest -q --junitxml=test-results.xml tests/test_itamae_migration.py tests/test_itamae_variance.py
       - name: Upload migration test diagnostics
         if: always()

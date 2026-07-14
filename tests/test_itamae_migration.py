@@ -126,8 +126,8 @@ def test_itamae_catalog_preserves_small_legacy_catalog() -> None:
 
     legacy_weight = legacy_result[8]
     migrated_weight = (
-        np.asarray(catalog.weights["population"])
-        * np.asarray(catalog.weights["concentration"])
+        np.asarray(catalog.weights["weight_base"])
+        * np.asarray(catalog.weights["weight_concentration"])
     )
     np.testing.assert_allclose(migrated_weight, legacy_weight, rtol=5.0e-11, atol=0.0)
     np.testing.assert_allclose(
@@ -136,3 +136,10 @@ def test_itamae_catalog_preserves_small_legacy_catalog() -> None:
         rtol=5.0e-11,
         atol=0.0,
     )
+    assert set(catalog.weights) == {
+        "weight_base",
+        "weight_concentration",
+        "weight_survival",
+    }
+    assert catalog.metadata["schema_version"] == "1.0"
+    assert catalog.metadata["model_identifier"] == "sashimi-c:cdm:itamae-migration:v1"

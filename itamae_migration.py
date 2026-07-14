@@ -19,7 +19,7 @@ from itamae.cosmology import NativeFlatLCDM
 from itamae.evolution import shanks_transform
 from itamae.halo import invert_nfw_mass_function
 from itamae.numerics import gauss_hermite_lognormal
-from itamae.types import WeightedSubhaloCatalog
+from itamae.types import CATALOG_SCHEMA_VERSION, WeightedSubhaloCatalog
 from sashimi_c import TidalStrippingSolver, halo_model, subhalo_properties
 
 _Base = TypeVar("_Base", bound=type)
@@ -352,7 +352,13 @@ class ItamaeMigrationMixin:
         z_acc = np.broadcast_to(zdist[:, None, None], shape)
         ma200 = np.broadcast_to(ma200_grid[None, None, :], shape)
         metadata = {
-            "model": "SASHIMI-C",
+            "schema_version": CATALOG_SCHEMA_VERSION,
+            "model_identifier": "sashimi-c:cdm:itamae-migration:v1",
+            "backend_identifier": (
+                "array=numpy;cosmology="
+                f"{self.itamae_cosmology.identifier};units=legacy-sashimi-c"
+            ),
+            "source_identifier": "sashimi-c:itamae-migration",
             "migration_backend": getattr(
                 self.itamae_cosmology, "identifier", type(self.itamae_cosmology).__name__
             ),
@@ -373,9 +379,9 @@ class ItamaeMigrationMixin:
                 "survive": survive.reshape(-1),
             },
             weights={
-                "population": population_weight.reshape(-1),
-                "concentration": concentration_weight.reshape(-1),
-                "survival": survive.astype(float).reshape(-1),
+                "weight_base": population_weight.reshape(-1),
+                "weight_concentration": concentration_weight.reshape(-1),
+                "weight_survival": survive.astype(float).reshape(-1),
             },
             metadata=metadata,
         )
@@ -384,8 +390,8 @@ class ItamaeMigrationMixin:
         """Return the historical tuple from the ITAMAE catalog calculation."""
         catalog = self.subhalo_catalog_calc(*args, **kwargs)
         legacy_weight = (
-            np.asarray(catalog.weights["population"])
-            * np.asarray(catalog.weights["concentration"])
+            np.asarray(catalog.weights["weight_base"])
+            * np.asarray(catalog.weights["weight_concentration"])
         )
         columns = catalog.columns
         return (
