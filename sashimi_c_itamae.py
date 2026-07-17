@@ -10,6 +10,8 @@ from itamae_migration import (
     ItamaeSubhaloObservables,
     ItamaeSubhaloProperties,
     ItamaeTidalStrippingSolver,
+    StrippingDiagnostics,
+    diagnose_stripping_approximation,
 )
 
 halo_model = ItamaeHaloModel
@@ -19,6 +21,8 @@ subhalo_observables = ItamaeSubhaloObservables
 
 __all__ = [
     "TidalStrippingSolver",
+    "StrippingDiagnostics",
+    "diagnose_stripping_approximation",
     "halo_model",
     "subhalo_observables",
     "subhalo_properties",

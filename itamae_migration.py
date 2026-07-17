@@ -9,18 +9,25 @@ explicit and testable before the legacy implementations are removed.
 
 from __future__ import annotations
 
-from typing import Any, TypeVar
+from dataclasses import dataclass
+from types import MappingProxyType
+from typing import Any, Mapping, TypeVar
 
 import numpy as np
 from scipy import integrate, special
 from scipy.interpolate import interp1d
 
+from itamae import __version__ as ITAMAE_VERSION
 from itamae.cosmology import NativeFlatLCDM
 from itamae.evolution import shanks_transform
 from itamae.halo import invert_nfw_mass_function
 from itamae.numerics import gauss_hermite_lognormal
 from itamae.protocols import CosmologyBackend
-from itamae.types import CATALOG_SCHEMA_VERSION, WeightedSubhaloCatalog
+from itamae.types import (
+    CATALOG_SCHEMA_VERSION,
+    CatalogMetadata,
+    WeightedSubhaloCatalog,
+)
 from sashimi_c import (
     TidalStrippingSolver,
     halo_model,
@@ -31,6 +38,95 @@ from sashimi_c import (
 _Base = TypeVar("_Base", bound=type)
 _LEGACY_OMEGA_M = 0.315
 _LEGACY_H = 0.674
+_PHYSICS_MODES = ("consistent", "legacy")
+_STRIPPING_METHODS = (
+    "odeint",
+    "pert0",
+    "pert1",
+    "pert2",
+    "pert2_shanks",
+    "pert3",
+)
+_DEFAULT_STRIPPING_METHOD = "pert2_shanks"
+_DEFAULT_CT_THRESHOLD = 0.0
+_SHANKS_SMALL_CORRECTION_THRESHOLD = 0.02
+
+
+@dataclass(frozen=True, slots=True)
+class StrippingDiagnostics:
+    """Record the SASHIMI-C Shanks approximation against direct ODE integration.
+
+    The diagnostic is intentionally separate from catalog generation. Running
+    a direct ODE solve for every catalog node would change the established
+    performance characteristics of the default ``pert2_shanks`` calculation.
+
+    Attributes
+    ----------
+    mass_at_accretion
+        Input subhalo masses in the legacy SASHIMI-C mass unit.
+    mass_pert2_shanks
+        Bound masses from the established second-order Shanks approximation.
+    mass_odeint
+        Bound masses from direct legacy ODE integration.
+    relative_difference
+        Absolute fractional difference relative to the ODE result.
+    host_mass
+        Host mass at redshift zero.
+    accretion_redshift, target_redshift
+        Evolution interval used by both solvers.
+    physics_mode
+        ITAMAE migration physics convention.
+    backend_identifier
+        Stable cosmology backend identifier.
+    """
+
+    mass_at_accretion: np.ndarray
+    mass_pert2_shanks: np.ndarray
+    mass_odeint: np.ndarray
+    relative_difference: np.ndarray
+    host_mass: float
+    accretion_redshift: float
+    target_redshift: float
+    physics_mode: str
+    backend_identifier: str
+
+    def __post_init__(self) -> None:
+        """Freeze aligned diagnostic arrays."""
+        arrays = {}
+        for name in (
+            "mass_at_accretion",
+            "mass_pert2_shanks",
+            "mass_odeint",
+            "relative_difference",
+        ):
+            value = np.asarray(getattr(self, name), dtype=float).copy()
+            value.setflags(write=False)
+            arrays[name] = value
+        shapes = {value.shape for value in arrays.values()}
+        if len(shapes) != 1:
+            raise ValueError(f"Diagnostic arrays must share one shape; got {shapes}.")
+        for name, value in arrays.items():
+            object.__setattr__(self, name, value)
+
+    @property
+    def max_relative_difference(self) -> float:
+        """Return the largest Shanks-versus-ODE fractional difference."""
+        return float(np.max(self.relative_difference, initial=0.0))
+
+    def summary(self) -> Mapping[str, Any]:
+        """Return immutable JSON-compatible diagnostic provenance."""
+        return MappingProxyType(
+            {
+                "comparison": "pert2_shanks-vs-odeint",
+                "host_mass": self.host_mass,
+                "accretion_redshift": self.accretion_redshift,
+                "target_redshift": self.target_redshift,
+                "physics_mode": self.physics_mode,
+                "backend_identifier": self.backend_identifier,
+                "sample_size": int(self.mass_at_accretion.size),
+                "max_relative_difference": self.max_relative_difference,
+            }
+        )
 
 
 class ItamaeMigrationMixin:
@@ -43,6 +139,11 @@ class ItamaeMigrationMixin:
     cosmology_backend : itamae.protocols.CosmologyBackend, optional
         ITAMAE-compatible cosmology backend. When omitted, a native flat-LCDM
         backend is configured from the legacy ``OmegaM`` and ``h`` values.
+    physics_mode : {"consistent", "legacy"}, optional
+        ``"consistent"`` (default) uses one gravitational-constant convention
+        for the ITAMAE critical density and SASHIMI-C structure calculations.
+        ``"legacy"`` retains the historical rounded SASHIMI-C constant and
+        critical-density normalization for numerical reproduction.
     **kwargs
         Keyword arguments forwarded to the legacy class.
 
@@ -64,8 +165,16 @@ class ItamaeMigrationMixin:
     """
 
     def __init__(
-        self, *args: Any, cosmology_backend: Any | None = None, **kwargs: Any
+        self,
+        *args: Any,
+        cosmology_backend: Any | None = None,
+        physics_mode: str = "consistent",
+        **kwargs: Any,
     ) -> None:
+        if physics_mode not in _PHYSICS_MODES:
+            raise ValueError(
+                f"physics_mode must be one of {_PHYSICS_MODES}; received {physics_mode!r}."
+            )
         backend = cosmology_backend or NativeFlatLCDM(
             omega_m0=_LEGACY_OMEGA_M,
             h=_LEGACY_H,
@@ -76,16 +185,28 @@ class ItamaeMigrationMixin:
         # before returning. Install the backend first so overridden cosmology
         # methods are valid throughout that initialization.
         self.itamae_cosmology = backend
+        self.physics_mode = physics_mode
         self._rho_crit_scale = 1.0
         super().__init__(*args, **kwargs)
+        self._synchronize_physics_constants()
 
+    def _synchronize_physics_constants(self) -> None:
+        """Align SASHIMI-C constants with the selected migration convention."""
+        backend = self.itamae_cosmology
         self.H0 = float(np.asarray(backend.H(0.0))) * self.km / self.s / self.Mpc
         backend_rho0 = (
             float(np.asarray(backend.rho_crit(0.0))) * self.Msun / self.Mpc**3
         )
-        legacy_rho0 = 3.0 * self.H0**2 / (8.0 * np.pi * self.G)
-        self._rho_crit_scale = legacy_rho0 / backend_rho0
-        self.rhocrit0 = legacy_rho0
+        if self.physics_mode == "consistent":
+            # Derive G from the selected backend so halo radii, densities, and
+            # circular velocities use the same constant convention.
+            self.G = 3.0 * self.H0**2 / (8.0 * np.pi * backend_rho0)
+            self._rho_crit_scale = 1.0
+            self.rhocrit0 = backend_rho0
+        else:
+            legacy_rho0 = 3.0 * self.H0**2 / (8.0 * np.pi * self.G)
+            self._rho_crit_scale = legacy_rho0 / backend_rho0
+            self.rhocrit0 = legacy_rho0
 
     @staticmethod
     def _validate_migration_cosmology(backend: Any) -> None:
@@ -272,6 +393,11 @@ class ItamaeMigrationMixin:
             the historical tuple ``weight``; survival remains an independent
             factor for diagnostics and reweighting.
         """
+        # ``subhalo_observables`` performs its legacy base initialization via
+        # an explicit class call. Re-synchronize here so its first catalog is
+        # already generated with the selected convention, not only subsequent
+        # calls after the constructor returns.
+        self._synchronize_physics_constants()
         self._validate_catalog_inputs(
             M0=M0,
             redshift=redshift,
@@ -283,9 +409,12 @@ class ItamaeMigrationMixin:
             logmamin=logmamin,
             logmamax=logmamax,
             N_hermNa=N_hermNa,
+            Na_model=Na_model,
             ct_th=ct_th,
+            method=method,
         )
 
+        requested_host_mass = float(M0)
         if M0_at_redshift:
             Mz = M0
             M0_list = np.logspace(0.0, 5.0, 1500) * Mz
@@ -322,6 +451,7 @@ class ItamaeMigrationMixin:
             z_max=zmax,
             n_z_interp=64,
             cosmology_backend=self.itamae_cosmology,
+            physics_mode=self.physics_mode,
         )
 
         for iz, z_acc_value in enumerate(zdist):
@@ -374,7 +504,18 @@ class ItamaeMigrationMixin:
                 rhos_z0[iz] = rhos_acc[iz]
 
             enclosed_fraction = m0 / (4.0 * np.pi * rhos_z0[iz] * rs_z0[iz] ** 3)
-            ct_z0[iz] = invert_nfw_mass_function(enclosed_fraction)
+            if self.physics_mode == "consistent":
+                ct_z0[iz] = invert_nfw_mass_function(enclosed_fraction)
+            else:
+                # Reproduce the historical finite-grid interpolation exactly.
+                # The consistent mode uses ITAMAE's bracketed inverse instead.
+                legacy_c_t = np.linspace(0.0, 100.0, 1000)
+                inverse = interp1d(
+                    self.fc(legacy_c_t),
+                    legacy_c_t,
+                    fill_value="extrapolate",
+                )
+                ct_z0[iz] = inverse(enclosed_fraction)
             survive[iz] = ct_z0[iz] > ct_th
             m0_matrix[iz] = m0 * np.ones((N_herm, 1))
 
@@ -396,24 +537,70 @@ class ItamaeMigrationMixin:
 
         z_acc = np.broadcast_to(zdist[:, None, None], shape)
         ma200 = np.broadcast_to(ma200_grid[None, None, :], shape)
-        metadata = {
-            "schema_version": CATALOG_SCHEMA_VERSION,
-            "model_identifier": "sashimi-c:cdm:itamae-migration:v1",
-            "backend_identifier": (
-                "array=numpy;cosmology="
-                f"{self.itamae_cosmology.identifier};units=legacy-sashimi-c"
-            ),
-            "source_identifier": "sashimi-c:itamae-migration",
-            "migration_backend": getattr(
-                self.itamae_cosmology,
-                "identifier",
-                type(self.itamae_cosmology).__name__,
-            ),
-            "target_redshift": float(redshift),
-            "legacy_weight_excludes_survival": True,
-            "nfw_inversion": "itamae.brentq",
-        }
-        return WeightedSubhaloCatalog(
+        legacy_weight = population_weight * concentration_weight
+        total_legacy_weight = float(np.sum(legacy_weight))
+        surviving_weight_fraction = (
+            float(np.sum(legacy_weight * survive) / total_legacy_weight)
+            if total_legacy_weight > 0.0
+            else 0.0
+        )
+        backend_identifier = (
+            "array=numpy;cosmology="
+            f"{self.itamae_cosmology.identifier};units=legacy-sashimi-c-floats"
+        )
+        metadata = CatalogMetadata(
+            model_identifier=f"sashimi-c:cdm:{self.physics_mode}:v1.2",
+            backend_identifier=backend_identifier,
+            source_identifier=f"sashimi-c:itamae-adapter:{self.physics_mode}:v1",
+            schema_version=CATALOG_SCHEMA_VERSION,
+            extra={
+                "itamae_version": ITAMAE_VERSION,
+                "physics_mode": self.physics_mode,
+                "cosmology_backend": self.itamae_cosmology.identifier,
+                "critical_density_convention": (
+                    "itamae-backend"
+                    if self.physics_mode == "consistent"
+                    else "legacy-sashimi-c-rounded-G"
+                ),
+                "host_mass_input": requested_host_mass,
+                "host_mass_z0": float(M0),
+                "host_mass_input_at_target_redshift": bool(M0_at_redshift),
+                "target_redshift": float(redshift),
+                "zmax": float(zmax),
+                "dz": float(dz),
+                "n_mass": int(N_ma),
+                "n_concentration": int(N_herm),
+                "n_host_history": int(N_hermNa),
+                "log10_mass_min": float(logmamin),
+                "log10_mass_max": float(logmamax),
+                "sigma_log10_concentration": float(sigmalogc),
+                "accretion_model": int(Na_model),
+                "profile_change": bool(profile_change),
+                "stripping_method": method,
+                "default_stripping_method": _DEFAULT_STRIPPING_METHOD,
+                "shanks_small_correction_threshold": (
+                    _SHANKS_SMALL_CORRECTION_THRESHOLD
+                ),
+                "ct_threshold": float(ct_th),
+                "default_ct_threshold": _DEFAULT_CT_THRESHOLD,
+                "survival_rule": "c_t > ct_threshold",
+                "surviving_node_count": int(np.count_nonzero(survive)),
+                "node_count": int(survive.size),
+                "surviving_weight_fraction": surviving_weight_fraction,
+                "legacy_weight_excludes_survival": True,
+                "weight_semantics": {
+                    "weight_base": "population measure",
+                    "weight_concentration": "lognormal concentration quadrature",
+                    "weight_survival": "binary c_t threshold",
+                },
+                "nfw_inversion": (
+                    "itamae.brentq"
+                    if self.physics_mode == "consistent"
+                    else "legacy-linear-grid-0-100-1000"
+                ),
+            },
+        )
+        catalog = WeightedSubhaloCatalog(
             columns={
                 "m200_acc": ma200.reshape(-1),
                 "z_acc": z_acc.reshape(-1),
@@ -432,6 +619,8 @@ class ItamaeMigrationMixin:
             },
             metadata=metadata,
         )
+        self.catalog = catalog
+        return catalog
 
     def _validate_catalog_inputs(
         self,
@@ -446,7 +635,9 @@ class ItamaeMigrationMixin:
         logmamin: Any,
         logmamax: Any,
         N_hermNa: Any,
+        Na_model: Any,
         ct_th: Any,
+        method: Any,
     ) -> None:
         """Reject inputs outside the physical and numerical catalog domain."""
         scalar_values = {
@@ -477,16 +668,23 @@ class ItamaeMigrationMixin:
             raise ValueError("sigmalogc must be nonnegative.")
         if float(ct_th) < 0.0:
             raise ValueError("ct_th must be nonnegative.")
+        if method not in _STRIPPING_METHODS:
+            raise ValueError(
+                f"method must be one of {_STRIPPING_METHODS}; received {method!r}."
+            )
 
         for name, value in {
             "N_ma": N_ma,
             "N_herm": N_herm,
             "N_hermNa": N_hermNa,
+            "Na_model": Na_model,
         }.items():
             if isinstance(value, bool) or not isinstance(value, (int, np.integer)):
                 raise TypeError(f"{name} must be an integer.")
             if int(value) < 1:
                 raise ValueError(f"{name} must be positive.")
+        if int(Na_model) not in (1, 2, 3):
+            raise ValueError("Na_model must be 1, 2, or 3.")
 
         if logmamax is not None and float(logmamin) >= float(logmamax):
             raise ValueError("logmamin must be smaller than logmamax.")
@@ -494,6 +692,7 @@ class ItamaeMigrationMixin:
     def subhalo_properties_calc(self, *args: Any, **kwargs: Any):
         """Return the historical tuple from the ITAMAE catalog calculation."""
         catalog = self.subhalo_catalog_calc(*args, **kwargs)
+        self.catalog = catalog
         legacy_weight = np.asarray(catalog.weights["weight_base"]) * np.asarray(
             catalog.weights["weight_concentration"]
         )
@@ -526,11 +725,120 @@ ItamaeTidalStrippingSolver = migrate_class(TidalStrippingSolver)
 ItamaeSubhaloProperties = migrate_class(subhalo_properties)
 ItamaeSubhaloObservables = migrate_class(subhalo_observables)
 
+
+def diagnose_stripping_approximation(
+    host_mass: float,
+    mass_at_accretion: Any,
+    *,
+    accretion_redshift: float = 1.0,
+    target_redshift: float = 0.0,
+    n_z_interp: int = 64,
+    cosmology_backend: Any | None = None,
+    physics_mode: str = "consistent",
+    odeint_options: Mapping[str, Any] | None = None,
+) -> StrippingDiagnostics:
+    """Compare the default Shanks approximation with direct ODE integration.
+
+    Parameters
+    ----------
+    host_mass
+        Host mass at redshift zero in the legacy SASHIMI-C mass unit.
+    mass_at_accretion
+        Positive scalar or array of subhalo accretion masses.
+    accretion_redshift, target_redshift
+        Start and end redshifts. Accretion redshift must be larger.
+    n_z_interp
+        Interpolation resolution for the perturbative solver.
+    cosmology_backend
+        Optional canonical SASHIMI-C-compatible ITAMAE cosmology backend.
+    physics_mode
+        ITAMAE migration physical convention.
+    odeint_options
+        Optional keyword arguments forwarded only to SciPy ``odeint``.
+
+    Returns
+    -------
+    StrippingDiagnostics
+        Aligned solver outputs and their fractional difference.
+
+    Notes
+    -----
+    This function does not select or modify the catalog stripping method. It is
+    an explicit validation tool; catalog generation remains
+    ``method="pert2_shanks"`` by default.
+    """
+    masses = np.atleast_1d(np.asarray(mass_at_accretion, dtype=float))
+    if masses.ndim > 1 or masses.size == 0:
+        raise ValueError("mass_at_accretion must be a non-empty scalar or 1D array.")
+    if not np.all(np.isfinite(masses)) or np.any(masses <= 0.0):
+        raise ValueError("mass_at_accretion must contain finite positive values.")
+    host_mass_array = np.asarray(host_mass)
+    if host_mass_array.ndim != 0:
+        raise ValueError("host_mass must be a finite positive scalar.")
+    host_mass_value = float(host_mass_array)
+    if not np.isfinite(host_mass_value) or host_mass_value <= 0.0:
+        raise ValueError("host_mass must be finite and positive.")
+    accretion_redshift_array = np.asarray(accretion_redshift)
+    target_redshift_array = np.asarray(target_redshift)
+    if accretion_redshift_array.ndim != 0 or target_redshift_array.ndim != 0:
+        raise ValueError("redshifts must be finite scalars.")
+    accretion_redshift_value = float(accretion_redshift_array)
+    target_redshift_value = float(target_redshift_array)
+    if not np.isfinite(accretion_redshift_value) or not np.isfinite(
+        target_redshift_value
+    ):
+        raise ValueError("redshifts must be finite.")
+    if accretion_redshift_value <= target_redshift_value:
+        raise ValueError("accretion_redshift must be greater than target_redshift.")
+    if isinstance(n_z_interp, bool) or not isinstance(n_z_interp, (int, np.integer)):
+        raise TypeError("n_z_interp must be an integer.")
+    if n_z_interp < 2:
+        raise ValueError("n_z_interp must be at least two.")
+
+    solver = ItamaeTidalStrippingSolver(
+        host_mass_value,
+        z_min=target_redshift_value,
+        z_max=accretion_redshift_value,
+        n_z_interp=n_z_interp,
+        cosmology_backend=cosmology_backend,
+        physics_mode=physics_mode,
+    )
+    shanks_mass = solver.subhalo_mass_stripped(
+        masses,
+        accretion_redshift_value,
+        target_redshift_value,
+        method=_DEFAULT_STRIPPING_METHOD,
+    )
+    ode_mass = solver.subhalo_mass_stripped(
+        masses,
+        accretion_redshift_value,
+        target_redshift_value,
+        method="odeint",
+        **({} if odeint_options is None else dict(odeint_options)),
+    )
+    with np.errstate(divide="ignore", invalid="ignore"):
+        relative_difference = np.abs(shanks_mass - ode_mass) / np.abs(ode_mass)
+
+    return StrippingDiagnostics(
+        mass_at_accretion=masses,
+        mass_pert2_shanks=shanks_mass,
+        mass_odeint=ode_mass,
+        relative_difference=relative_difference,
+        host_mass=host_mass_value,
+        accretion_redshift=accretion_redshift_value,
+        target_redshift=target_redshift_value,
+        physics_mode=physics_mode,
+        backend_identifier=solver.itamae_cosmology.identifier,
+    )
+
+
 __all__ = [
     "ItamaeHaloModel",
     "ItamaeMigrationMixin",
     "ItamaeSubhaloObservables",
     "ItamaeSubhaloProperties",
     "ItamaeTidalStrippingSolver",
+    "StrippingDiagnostics",
+    "diagnose_stripping_approximation",
     "migrate_class",
 ]

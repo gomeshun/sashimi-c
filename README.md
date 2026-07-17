@@ -60,7 +60,7 @@ the migrated mechanisms explicitly, change only the imported module:
 ```python
 from sashimi_c_itamae import subhalo_properties
 
-model = subhalo_properties()
+model = subhalo_properties(physics_mode="consistent")  # opt-in default
 legacy_tuple = model.subhalo_properties_calc(1.0e12 * model.Msun)
 catalog = model.subhalo_catalog_calc(1.0e12 * model.Msun)
 ```
@@ -69,11 +69,44 @@ The first call preserves the historical SASHIMI-C return contract. The second
 returns an ITAMAE `WeightedSubhaloCatalog` with separate population,
 concentration, and survival weights.
 
-This path currently preserves the canonical SASHIMI-C cosmology
+The opt-in path has two explicit physical-numerical conventions:
+
+- `physics_mode="consistent"` is the default. ITAMAE critical density and the
+  SASHIMI-C gravitational constant use one common constant convention.
+- `physics_mode="legacy"` preserves the historical rounded SASHIMI-C constant
+  and critical-density normalization for strict result reproduction.
+
+Catalog metadata records the mode in a distinct `model_identifier`, along with
+the backend, solver, grid, weight, survival-threshold, and version provenance.
+The established `sashimi_c` module remains legacy-only and unchanged.
+
+Both opt-in modes retain the canonical SASHIMI-C cosmology
 (`OmegaM=0.315`, `h=0.674`) by design. A different cosmology backend is rejected
 until all host-history and halo-definition formulae have been migrated, because
 mixing a new expansion/growth backend with legacy cosmological coefficients
 would not define one self-consistent physical model.
+
+The default stripping method remains `pert2_shanks`, and the default disruption
+threshold remains `ct_th=0.0`. They are recorded in catalog metadata. The
+approximation can be diagnosed explicitly without changing catalog defaults:
+
+```python
+import numpy as np
+from sashimi_c_itamae import diagnose_stripping_approximation
+
+diagnostic = diagnose_stripping_approximation(
+    host_mass=1.0e12,
+    mass_at_accretion=np.logspace(6, 10, 9),
+    accretion_redshift=1.0,
+)
+print(diagnostic.summary())
+```
+
+For a development installation with the opt-in backend:
+
+```bash
+python -m pip install ".[itamae]"
+```
 
 ## Versions
 
