@@ -6,18 +6,18 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-import itamae_catalog_migration
-import itamae_migration
 import sashimi_c
 import sashimi_c_itamae
+import sashimi_c_itamae_catalog
+import sashimi_c_itamae_migration
 from itamae.cosmology import NativeFlatLCDM
 from itamae.halo import nfw_mass_function
 from itamae.numerics import gauss_hermite_lognormal
-from itamae_catalog_migration import (
+from sashimi_c_itamae_catalog import (
     ItamaeSubhaloProperties,
     ItamaeTidalStrippingSolver,
 )
-from itamae_migration import (
+from sashimi_c_itamae_migration import (
     ItamaeHaloModel,
     ItamaeSubhaloObservables,
     diagnose_stripping_approximation,
@@ -609,10 +609,10 @@ def test_migration_imports_do_not_monkeypatch_legacy_globals() -> None:
     assert sashimi_c.subhalo_properties is subhalo_properties
     assert sashimi_c.subhalo_observables is subhalo_observables
     assert (
-        itamae_catalog_migration.ItamaeTidalStrippingSolver
-        is itamae_migration.ItamaeTidalStrippingSolver
+        sashimi_c_itamae_catalog.ItamaeTidalStrippingSolver
+        is sashimi_c_itamae_migration.ItamaeTidalStrippingSolver
     )
     assert (
-        itamae_catalog_migration.ItamaeSubhaloProperties
-        is itamae_migration.ItamaeSubhaloProperties
+        sashimi_c_itamae_catalog.ItamaeSubhaloProperties
+        is sashimi_c_itamae_migration.ItamaeSubhaloProperties
     )

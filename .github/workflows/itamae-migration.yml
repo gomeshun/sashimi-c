@@ -20,14 +20,22 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: gomeshun/itamae
-          ref: d5237e74f24e98dcf2453e67862e75f3ae42e83d
+          ref: 476b2025913bc38c3d3e25a23424e7e2274873a8
           path: .itamae
       - uses: astral-sh/setup-uv@v6
         with:
           python-version: ${{ matrix.python-version }}
       - run: uv venv --python ${{ matrix.python-version }}
       - name: Install migration dependencies
-        run: uv pip install ./.itamae ".[test]"
+        run: uv pip install ./.itamae ".[test]" ruff
+      - name: Lint migration code
+        run: >-
+          uv run --no-sync ruff check
+          sashimi_c_itamae.py
+          sashimi_c_itamae_catalog.py
+          sashimi_c_itamae_migration.py
+          sashimi_c_itamae_variance.py
+          tests
       - name: Run ITAMAE migration regression tests
         run: uv run --no-sync python -m pytest -q --junitxml=test-results.xml
       - name: Upload migration test diagnostics
@@ -45,7 +53,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: gomeshun/itamae
-          ref: d5237e74f24e98dcf2453e67862e75f3ae42e83d
+          ref: 476b2025913bc38c3d3e25a23424e7e2274873a8
           path: .itamae
       - uses: astral-sh/setup-uv@v6
         with:
@@ -56,8 +64,64 @@ jobs:
         run: |
           uv venv --python 3.11 .venv-smoke
           uv pip install --python .venv-smoke/bin/python ./.itamae
-          uv pip install --python .venv-smoke/bin/python --no-deps dist/*.whl
+          uv pip install --python .venv-smoke/bin/python dist/*.whl
       - name: Smoke-test legacy and opt-in imports
         run: |
-          .venv-smoke/bin/python -c "import sashimi_c; assert sashimi_c.subhalo_properties"
-          .venv-smoke/bin/python -c "import sashimi_c_itamae; assert sashimi_c_itamae.subhalo_properties"
+          cd "${RUNNER_TEMP}"
+          "${GITHUB_WORKSPACE}/.venv-smoke/bin/python" -c \
+            "import sashimi_c; assert sashimi_c.subhalo_properties"
+          "${GITHUB_WORKSPACE}/.venv-smoke/bin/python" -c \
+            "import sashimi_c_itamae; assert sashimi_c_itamae.subhalo_properties"
+          "${GITHUB_WORKSPACE}/.venv-smoke/bin/python" -c \
+            "import boost_iteration, boost_iteration_prompt_cusps; assert boost_iteration.main; assert boost_iteration_prompt_cusps.main"
+
+  family-coinstall:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check out SASHIMI-SI migration branch
+        uses: actions/checkout@v4
+        with:
+          repository: gomeshun/sashimi-si
+          ref: itamae-migration
+          path: .sashimi-si
+      - name: Check out pinned public ITAMAE
+        uses: actions/checkout@v4
+        with:
+          repository: gomeshun/itamae
+          ref: 476b2025913bc38c3d3e25a23424e7e2274873a8
+          path: .itamae
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.11"
+      - name: Build both distributions
+        run: |
+          uv build --out-dir dist-c
+          cd .sashimi-si
+          uv build --out-dir ../dist-si
+      - name: Install both wheels in one clean environment
+        run: |
+          uv venv --python 3.11 .venv-coinstall
+          uv pip install --python .venv-coinstall/bin/python ./.itamae numexpr tqdm
+          uv pip install --python .venv-coinstall/bin/python --no-deps dist-c/*.whl dist-si/*.whl
+      - name: Import both legacy and ITAMAE facades outside the checkout
+        run: |
+          cd "${RUNNER_TEMP}"
+          "${GITHUB_WORKSPACE}/.venv-coinstall/bin/python" - <<'PY'
+          import importlib.util
+          import sashimi_c
+          import sashimi_c_itamae
+          import sashimi_si
+          import sashimi_si_itamae
+
+          assert sashimi_c.subhalo_properties
+          assert sashimi_c_itamae.subhalo_properties
+          assert sashimi_si.subhalo_properties
+          assert sashimi_si_itamae.subhalo_properties
+          for generic_name in (
+              "itamae_catalog_migration",
+              "itamae_migration",
+              "itamae_variance",
+          ):
+              assert importlib.util.find_spec(generic_name) is None
+          PY

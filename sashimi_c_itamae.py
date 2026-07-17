@@ -5,7 +5,7 @@ mirror the established SASHIMI-C class names and method signatures while using
 ITAMAE for migrated numerical mechanisms and structured catalog output.
 """
 
-from itamae_migration import (
+from sashimi_c_itamae_migration import (
     ItamaeHaloModel,
     ItamaeSubhaloObservables,
     ItamaeSubhaloProperties,

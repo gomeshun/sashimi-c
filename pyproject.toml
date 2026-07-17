@@ -18,11 +18,12 @@ authors = [
 dependencies = [
   "numpy>=1.23",
   "scipy>=1.9",
+  "tqdm>=4.66",
 ]
 
 [project.optional-dependencies]
 itamae = [
-  "itamae @ git+https://github.com/gomeshun/itamae.git@d5237e74f24e98dcf2453e67862e75f3ae42e83d",
+  "itamae @ git+https://github.com/gomeshun/itamae.git@476b2025913bc38c3d3e25a23424e7e2274873a8",
 ]
 test = [
   "pytest>=8",
@@ -35,12 +36,12 @@ Repository = "https://github.com/gomeshun/sashimi-c"
 py-modules = [
   "boost_iteration",
   "boost_iteration_prompt_cusps",
-  "itamae_catalog_migration",
-  "itamae_migration",
-  "itamae_variance",
   "prompt_cusps",
   "sashimi_c",
   "sashimi_c_itamae",
+  "sashimi_c_itamae_catalog",
+  "sashimi_c_itamae_migration",
+  "sashimi_c_itamae_variance",
 ]
 
 [tool.pytest.ini_options]
