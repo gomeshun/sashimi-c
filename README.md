@@ -50,6 +50,31 @@ Bsh, Bcusp_dressed, Bcusp_naked, luminosity_ratio, Ncusp_dressed, Ncusp_naked \
 
 With `prompt_cusps=True`, sigma(M) is computed from the CAMB linear matter power spectrum (with a free-streaming cutoff set by `k_fs_Mpc` / `filter` / `alpha`) instead of the Ludlow fit. The higher-order (`n>0`) boost tables are pre-computed with `boost_iteration_prompt_cusps.py`. See Ando et al. (arXiv:2601.19863).
 
+## Opt-in ITAMAE migration
+
+SASHIMI-C is being migrated incrementally to the shared
+[ITAMAE](https://github.com/gomeshun/itamae) numerical toolkit. The established
+`sashimi_c` import path and its tuple-returning API remain unchanged. To test
+the migrated mechanisms explicitly, change only the imported module:
+
+```python
+from sashimi_c_itamae import subhalo_properties
+
+model = subhalo_properties()
+legacy_tuple = model.subhalo_properties_calc(1.0e12 * model.Msun)
+catalog = model.subhalo_catalog_calc(1.0e12 * model.Msun)
+```
+
+The first call preserves the historical SASHIMI-C return contract. The second
+returns an ITAMAE `WeightedSubhaloCatalog` with separate population,
+concentration, and survival weights.
+
+This path currently preserves the canonical SASHIMI-C cosmology
+(`OmegaM=0.315`, `h=0.674`) by design. A different cosmology backend is rejected
+until all host-history and halo-definition formulae have been migrated, because
+mixing a new expansion/growth backend with legacy cosmological coefficients
+would not define one self-consistent physical model.
+
 ## Versions
 
 | Version | Description |

@@ -19,10 +19,18 @@ from itamae.cosmology import NativeFlatLCDM
 from itamae.evolution import shanks_transform
 from itamae.halo import invert_nfw_mass_function
 from itamae.numerics import gauss_hermite_lognormal
+from itamae.protocols import CosmologyBackend
 from itamae.types import CATALOG_SCHEMA_VERSION, WeightedSubhaloCatalog
-from sashimi_c import TidalStrippingSolver, halo_model, subhalo_properties
+from sashimi_c import (
+    TidalStrippingSolver,
+    halo_model,
+    subhalo_observables,
+    subhalo_properties,
+)
 
 _Base = TypeVar("_Base", bound=type)
+_LEGACY_OMEGA_M = 0.315
+_LEGACY_H = 0.674
 
 
 class ItamaeMigrationMixin:
@@ -32,7 +40,7 @@ class ItamaeMigrationMixin:
     ----------
     *args
         Positional arguments forwarded to the legacy class.
-    cosmology_backend : object, optional
+    cosmology_backend : itamae.protocols.CosmologyBackend, optional
         ITAMAE-compatible cosmology backend. When omitted, a native flat-LCDM
         backend is configured from the legacy ``OmegaM`` and ``h`` values.
     **kwargs
@@ -48,18 +56,28 @@ class ItamaeMigrationMixin:
     The adapter preserves the legacy critical-density normalization at redshift
     zero while delegating its redshift dependence to ITAMAE. This prevents a
     constants-only change from contaminating migration regression tests.
+
+    During this result-preserving migration phase, the selected backend must
+    match the legacy SASHIMI-C values of ``OmegaM`` and ``h``. Allowing a
+    different background before all host-history and halo-definition formulae
+    use that backend would silently mix two cosmologies.
     """
 
-    def __init__(self, *args: Any, cosmology_backend: Any | None = None, **kwargs: Any) -> None:
-        super().__init__(*args, **kwargs)
-        backend = cosmology_backend or NativeFlatLCDM(omega_m0=self.OmegaM, h=self.h)
-        self.itamae_cosmology = backend
+    def __init__(
+        self, *args: Any, cosmology_backend: Any | None = None, **kwargs: Any
+    ) -> None:
+        backend = cosmology_backend or NativeFlatLCDM(
+            omega_m0=_LEGACY_OMEGA_M,
+            h=_LEGACY_H,
+        )
+        self._validate_migration_cosmology(backend)
 
-        if hasattr(backend, "omega_m0"):
-            self.OmegaM = float(backend.omega_m0)
-            self.OmegaL = 1.0 - self.OmegaM
-        if hasattr(backend, "h"):
-            self.h = float(backend.h)
+        # Some legacy constructors build interpolation tables or a full catalog
+        # before returning. Install the backend first so overridden cosmology
+        # methods are valid throughout that initialization.
+        self.itamae_cosmology = backend
+        self._rho_crit_scale = 1.0
+        super().__init__(*args, **kwargs)
 
         self.H0 = float(np.asarray(backend.H(0.0))) * self.km / self.s / self.Mpc
         backend_rho0 = (
@@ -68,6 +86,27 @@ class ItamaeMigrationMixin:
         legacy_rho0 = 3.0 * self.H0**2 / (8.0 * np.pi * self.G)
         self._rho_crit_scale = legacy_rho0 / backend_rho0
         self.rhocrit0 = legacy_rho0
+
+    @staticmethod
+    def _validate_migration_cosmology(backend: Any) -> None:
+        """Require a complete backend matching the legacy physical model."""
+        if not isinstance(backend, CosmologyBackend):
+            raise TypeError(
+                "cosmology_backend must implement the ITAMAE cosmology protocol."
+            )
+
+        omega_m0 = float(np.asarray(backend.omega_m(0.0)))
+        h = float(np.asarray(backend.H(0.0))) / 100.0
+        if not np.isclose(omega_m0, _LEGACY_OMEGA_M, rtol=0.0, atol=1.0e-12):
+            raise ValueError(
+                "The result-preserving SASHIMI-C migration currently requires "
+                f"OmegaM={_LEGACY_OMEGA_M}; received {omega_m0}."
+            )
+        if not np.isclose(h, _LEGACY_H, rtol=0.0, atol=1.0e-12):
+            raise ValueError(
+                "The result-preserving SASHIMI-C migration currently requires "
+                f"h={_LEGACY_H}; received {h}."
+            )
 
     def Hubble(self, z: Any) -> np.ndarray:
         """Return the Hubble rate in the legacy inverse-second unit."""
@@ -112,9 +151,7 @@ class ItamaeMigrationMixin:
         zacc_2d = np.asarray(zacc).reshape(-1, 1)
         M200_0 = self.Mzzi(Mhost, zacc_2d, z0)
         sigmalogM200 = 0.12 - 0.15 * np.log10(M200_0 / Mhost)
-        M200, host_weight = gauss_hermite_lognormal(
-            M200_0, sigmalogM200, order=N_herm
-        )
+        M200, host_weight = gauss_hermite_lognormal(M200_0, sigmalogM200, order=N_herm)
 
         mmax = np.minimum(M200, Mhost / 2.0)
         Mmax = np.minimum(M200_0 + mmax, Mhost)
@@ -235,6 +272,19 @@ class ItamaeMigrationMixin:
             the historical tuple ``weight``; survival remains an independent
             factor for diagnostics and reweighting.
         """
+        self._validate_catalog_inputs(
+            M0=M0,
+            redshift=redshift,
+            dz=dz,
+            zmax=zmax,
+            N_ma=N_ma,
+            sigmalogc=sigmalogc,
+            N_herm=N_herm,
+            logmamin=logmamin,
+            logmamax=logmamax,
+            N_hermNa=N_hermNa,
+            ct_th=ct_th,
+        )
 
         if M0_at_redshift:
             Mz = M0
@@ -252,6 +302,8 @@ class ItamaeMigrationMixin:
         zdist = np.arange(redshift + dz, zmax + dz, dz)
         if logmamax is None:
             logmamax = np.log10(0.1 * M0 / self.Msun)
+        if float(logmamin) >= float(logmamax):
+            raise ValueError("logmamin must be smaller than logmamax.")
         ma200_grid = np.logspace(logmamin, logmamax, N_ma) * self.Msun
 
         shape = (len(zdist), N_herm, len(ma200_grid))
@@ -300,15 +352,12 @@ class ItamaeMigrationMixin:
                 c_mz, sigmalogc, order=N_herm
             )
             rs_acc[iz] = rvirsub / c_sub
-            rhos_acc[iz] = ma / (
-                4.0 * np.pi * rs_acc[iz] ** 3 * self.fc(c_sub)
-            )
+            rhos_acc[iz] = ma / (4.0 * np.pi * rs_acc[iz] ** 3 * self.fc(c_sub))
 
             if profile_change:
                 rmax_acc = rs_acc[iz] * 2.163
                 Vmax_acc = (
-                    np.sqrt(rhos_acc[iz] * 4.0 * np.pi * self.G / 4.625)
-                    * rs_acc[iz]
+                    np.sqrt(rhos_acc[iz] * 4.0 * np.pi * self.G / 4.625) * rs_acc[iz]
                 )
                 Vmax_z0 = Vmax_acc * (
                     2.0**0.4 * (m0 / ma) ** 0.3 * (1.0 + m0 / ma) ** -0.4
@@ -317,16 +366,14 @@ class ItamaeMigrationMixin:
                     2.0**-0.3 * (m0 / ma) ** 0.4 * (1.0 + m0 / ma) ** 0.3
                 )
                 rs_z0[iz] = rmax_z0 / 2.163
-                rhos_z0[iz] = (
-                    4.625 / (4.0 * np.pi * self.G)
-                ) * (Vmax_z0 / rs_z0[iz]) ** 2
+                rhos_z0[iz] = (4.625 / (4.0 * np.pi * self.G)) * (
+                    Vmax_z0 / rs_z0[iz]
+                ) ** 2
             else:
                 rs_z0[iz] = rs_acc[iz]
                 rhos_z0[iz] = rhos_acc[iz]
 
-            enclosed_fraction = m0 / (
-                4.0 * np.pi * rhos_z0[iz] * rs_z0[iz] ** 3
-            )
+            enclosed_fraction = m0 / (4.0 * np.pi * rhos_z0[iz] * rs_z0[iz] ** 3)
             ct_z0[iz] = invert_nfw_mass_function(enclosed_fraction)
             survive[iz] = ct_z0[iz] > ct_th
             m0_matrix[iz] = m0 * np.ones((N_herm, 1))
@@ -345,9 +392,7 @@ class ItamaeMigrationMixin:
         )
         population_2d = Na / (1.0 + zdist.reshape(-1, 1))
         population_2d = population_2d / np.sum(population_2d) * Na_total
-        population_weight = np.broadcast_to(
-            population_2d[:, None, :], shape
-        ).copy()
+        population_weight = np.broadcast_to(population_2d[:, None, :], shape).copy()
 
         z_acc = np.broadcast_to(zdist[:, None, None], shape)
         ma200 = np.broadcast_to(ma200_grid[None, None, :], shape)
@@ -360,7 +405,9 @@ class ItamaeMigrationMixin:
             ),
             "source_identifier": "sashimi-c:itamae-migration",
             "migration_backend": getattr(
-                self.itamae_cosmology, "identifier", type(self.itamae_cosmology).__name__
+                self.itamae_cosmology,
+                "identifier",
+                type(self.itamae_cosmology).__name__,
             ),
             "target_redshift": float(redshift),
             "legacy_weight_excludes_survival": True,
@@ -386,12 +433,69 @@ class ItamaeMigrationMixin:
             metadata=metadata,
         )
 
+    def _validate_catalog_inputs(
+        self,
+        *,
+        M0: Any,
+        redshift: Any,
+        dz: Any,
+        zmax: Any,
+        N_ma: Any,
+        sigmalogc: Any,
+        N_herm: Any,
+        logmamin: Any,
+        logmamax: Any,
+        N_hermNa: Any,
+        ct_th: Any,
+    ) -> None:
+        """Reject inputs outside the physical and numerical catalog domain."""
+        scalar_values = {
+            "M0": M0,
+            "redshift": redshift,
+            "dz": dz,
+            "zmax": zmax,
+            "sigmalogc": sigmalogc,
+            "logmamin": logmamin,
+            "ct_th": ct_th,
+        }
+        if logmamax is not None:
+            scalar_values["logmamax"] = logmamax
+        for name, value in scalar_values.items():
+            array = np.asarray(value)
+            if array.ndim != 0 or not np.isfinite(float(array)):
+                raise ValueError(f"{name} must be a finite scalar.")
+
+        if float(M0) <= 0.0:
+            raise ValueError("M0 must be positive.")
+        if float(redshift) < 0.0:
+            raise ValueError("redshift must be nonnegative.")
+        if float(dz) <= 0.0:
+            raise ValueError("dz must be positive.")
+        if float(zmax) <= float(redshift):
+            raise ValueError("zmax must be greater than redshift.")
+        if float(sigmalogc) < 0.0:
+            raise ValueError("sigmalogc must be nonnegative.")
+        if float(ct_th) < 0.0:
+            raise ValueError("ct_th must be nonnegative.")
+
+        for name, value in {
+            "N_ma": N_ma,
+            "N_herm": N_herm,
+            "N_hermNa": N_hermNa,
+        }.items():
+            if isinstance(value, bool) or not isinstance(value, (int, np.integer)):
+                raise TypeError(f"{name} must be an integer.")
+            if int(value) < 1:
+                raise ValueError(f"{name} must be positive.")
+
+        if logmamax is not None and float(logmamin) >= float(logmamax):
+            raise ValueError("logmamin must be smaller than logmamax.")
+
     def subhalo_properties_calc(self, *args: Any, **kwargs: Any):
         """Return the historical tuple from the ITAMAE catalog calculation."""
         catalog = self.subhalo_catalog_calc(*args, **kwargs)
-        legacy_weight = (
-            np.asarray(catalog.weights["weight_base"])
-            * np.asarray(catalog.weights["weight_concentration"])
+        legacy_weight = np.asarray(catalog.weights["weight_base"]) * np.asarray(
+            catalog.weights["weight_concentration"]
         )
         columns = catalog.columns
         return (
@@ -420,10 +524,12 @@ def migrate_class(base_class: _Base) -> _Base:
 ItamaeHaloModel = migrate_class(halo_model)
 ItamaeTidalStrippingSolver = migrate_class(TidalStrippingSolver)
 ItamaeSubhaloProperties = migrate_class(subhalo_properties)
+ItamaeSubhaloObservables = migrate_class(subhalo_observables)
 
 __all__ = [
     "ItamaeHaloModel",
     "ItamaeMigrationMixin",
+    "ItamaeSubhaloObservables",
     "ItamaeSubhaloProperties",
     "ItamaeTidalStrippingSolver",
     "migrate_class",
