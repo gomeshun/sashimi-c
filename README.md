@@ -102,6 +102,21 @@ diagnostic = diagnose_stripping_approximation(
 print(diagnostic.summary())
 ```
 
+See [`itamae_migration_demo.ipynb`](itamae_migration_demo.ipynb) for a
+lightweight, executable comparison of the established API, the migrated legacy
+mode, and the default consistent mode. It checks the full catalog, subhalo mass
+function, and cumulative satellite counts, and visualizes the small
+mode-dependent profile changes.
+
+Install the notebook-only dependencies and execute every cell from a clean
+kernel with:
+
+```bash
+uv run --python 3.11 --extra demo jupyter-nbconvert \
+  --to notebook --execute --inplace \
+  itamae_migration_demo.ipynb
+```
+
 For a development installation with the opt-in backend:
 
 ```bash

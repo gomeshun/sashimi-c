@@ -331,6 +331,51 @@ def test_opt_in_module_preserves_legacy_module_and_observable_results() -> None:
     )
 
 
+@pytest.mark.parametrize("selection", ["Mpeak", "Vpeak"])
+def test_legacy_mode_matches_public_accumulated_satellite_number(selection) -> None:
+    """Legacy migration must reproduce every cumulative-satellite output array."""
+
+    parameters = {
+        "M0_per_Msun": 1.0e12,
+        "redshift": 0.0,
+        "dz": 0.25,
+        "zmax": 2.0,
+        "N_ma": 32,
+        "sigmalogc": 0.128,
+        "N_herm": 5,
+        "logmamin": 5.0,
+        "logmamax": 10.0,
+        "N_hermNa": 16,
+        "Na_model": 3,
+        "ct_th": 0.0,
+        "profile_change": True,
+        "method": "pert2_shanks",
+    }
+    legacy = subhalo_observables(**parameters)
+    migrated = ItamaeSubhaloObservables(physics_mode="legacy", **parameters)
+
+    if selection == "Mpeak":
+        threshold = 1.0e8 * legacy.Msun
+        legacy_result = legacy.Nsat_Mpeak(threshold)
+        migrated_result = migrated.Nsat_Mpeak(threshold)
+    else:
+        threshold = 18.0 * legacy.km / legacy.s
+        legacy_result = legacy.Nsat_Vpeak(threshold)
+        migrated_result = migrated.Nsat_Vpeak(threshold)
+
+    for migrated_value, legacy_value in zip(
+        migrated_result,
+        legacy_result,
+        strict=True,
+    ):
+        np.testing.assert_allclose(
+            migrated_value,
+            legacy_value,
+            rtol=5.0e-13,
+            atol=0.0,
+        )
+
+
 def test_migration_rejects_mixed_cosmology() -> None:
     """A partial migration must not combine incompatible cosmologies."""
 

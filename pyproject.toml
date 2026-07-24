@@ -22,8 +22,14 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+demo = [
+  "ipykernel>=6",
+  "itamae @ git+https://github.com/gomeshun/itamae.git@476b2025913bc38c3d3e25a23424e7e2274873a8 ; python_version >= '3.11'",
+  "matplotlib>=3.8",
+  "nbconvert>=7",
+]
 itamae = [
-  "itamae @ git+https://github.com/gomeshun/itamae.git@476b2025913bc38c3d3e25a23424e7e2274873a8",
+  "itamae @ git+https://github.com/gomeshun/itamae.git@476b2025913bc38c3d3e25a23424e7e2274873a8 ; python_version >= '3.11'",
 ]
 test = [
   "pytest>=8",
@@ -43,6 +49,9 @@ py-modules = [
   "sashimi_c_itamae_migration",
   "sashimi_c_itamae_variance",
 ]
+
+[tool.setuptools.data-files]
+"share/sashimi-c" = ["itamae_migration_demo.ipynb"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
