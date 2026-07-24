@@ -654,8 +654,8 @@ class subhalo_properties(halo_model):
 
     
     def Na_calc(self, ma, zacc, Mhost, z0=0., N_herm=200, Nrand=1000, Na_model=3):
-        """ Returns Na, Eq. (3) of Yang et al. (2011) 
-        
+        """ Returns Na, Eq. (3) of Yang et al. (2011)
+
         Parameters
         ----------
         ma : array_like

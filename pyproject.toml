@@ -1,0 +1,58 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sashimi-c"
+version = "1.2.0"
+description = "Semi-Analytical SubHalo Inference ModelIng for cold dark matter"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+authors = [
+  {name = "Shin'ichiro Ando"},
+  {name = "Nagisa Hiroshima"},
+  {name = "Shunichi Horigome"},
+  {name = "Ariane Dekker"},
+]
+dependencies = [
+  "numpy>=1.23",
+  "scipy>=1.9",
+  "tqdm>=4.66",
+]
+
+[project.optional-dependencies]
+demo = [
+  "ipykernel>=6",
+  "itamae @ git+https://github.com/gomeshun/itamae.git@476b2025913bc38c3d3e25a23424e7e2274873a8 ; python_version >= '3.11'",
+  "matplotlib>=3.8",
+  "nbconvert>=7",
+]
+itamae = [
+  "itamae @ git+https://github.com/gomeshun/itamae.git@476b2025913bc38c3d3e25a23424e7e2274873a8 ; python_version >= '3.11'",
+]
+test = [
+  "pytest>=8",
+]
+
+[project.urls]
+Repository = "https://github.com/gomeshun/sashimi-c"
+
+[tool.setuptools]
+py-modules = [
+  "boost_iteration",
+  "boost_iteration_prompt_cusps",
+  "prompt_cusps",
+  "sashimi_c",
+  "sashimi_c_itamae",
+  "sashimi_c_itamae_catalog",
+  "sashimi_c_itamae_migration",
+  "sashimi_c_itamae_variance",
+]
+
+[tool.setuptools.data-files]
+"share/sashimi-c" = ["itamae_migration_demo.ipynb"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers --strict-config"

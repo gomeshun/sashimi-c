@@ -50,6 +50,79 @@ Bsh, Bcusp_dressed, Bcusp_naked, luminosity_ratio, Ncusp_dressed, Ncusp_naked \
 
 With `prompt_cusps=True`, sigma(M) is computed from the CAMB linear matter power spectrum (with a free-streaming cutoff set by `k_fs_Mpc` / `filter` / `alpha`) instead of the Ludlow fit. The higher-order (`n>0`) boost tables are pre-computed with `boost_iteration_prompt_cusps.py`. See Ando et al. (arXiv:2601.19863).
 
+## Opt-in ITAMAE migration
+
+SASHIMI-C is being migrated incrementally to the shared
+[ITAMAE](https://github.com/gomeshun/itamae) numerical toolkit. The established
+`sashimi_c` import path and its tuple-returning API remain unchanged. To test
+the migrated mechanisms explicitly, change only the imported module:
+
+```python
+from sashimi_c_itamae import subhalo_properties
+
+model = subhalo_properties(physics_mode="consistent")  # opt-in default
+legacy_tuple = model.subhalo_properties_calc(1.0e12 * model.Msun)
+catalog = model.subhalo_catalog_calc(1.0e12 * model.Msun)
+```
+
+The first call preserves the historical SASHIMI-C return contract. The second
+returns an ITAMAE `WeightedSubhaloCatalog` with separate population,
+concentration, and survival weights.
+
+The opt-in path has two explicit physical-numerical conventions:
+
+- `physics_mode="consistent"` is the default. ITAMAE critical density and the
+  SASHIMI-C gravitational constant use one common constant convention.
+- `physics_mode="legacy"` preserves the historical rounded SASHIMI-C constant
+  and critical-density normalization for strict result reproduction.
+
+Catalog metadata records the mode in a distinct `model_identifier`, along with
+the backend, solver, grid, weight, survival-threshold, and version provenance.
+The established `sashimi_c` module remains legacy-only and unchanged.
+
+Both opt-in modes retain the canonical SASHIMI-C cosmology
+(`OmegaM=0.315`, `h=0.674`) by design. A different cosmology backend is rejected
+until all host-history and halo-definition formulae have been migrated, because
+mixing a new expansion/growth backend with legacy cosmological coefficients
+would not define one self-consistent physical model.
+
+The default stripping method remains `pert2_shanks`, and the default disruption
+threshold remains `ct_th=0.0`. They are recorded in catalog metadata. The
+approximation can be diagnosed explicitly without changing catalog defaults:
+
+```python
+import numpy as np
+from sashimi_c_itamae import diagnose_stripping_approximation
+
+diagnostic = diagnose_stripping_approximation(
+    host_mass=1.0e12,
+    mass_at_accretion=np.logspace(6, 10, 9),
+    accretion_redshift=1.0,
+)
+print(diagnostic.summary())
+```
+
+See [`itamae_migration_demo.ipynb`](itamae_migration_demo.ipynb) for a
+lightweight, executable comparison of the established API, the migrated legacy
+mode, and the default consistent mode. It checks the full catalog, subhalo mass
+function, and cumulative satellite counts, and visualizes the small
+mode-dependent profile changes.
+
+Install the notebook-only dependencies and execute every cell from a clean
+kernel with:
+
+```bash
+uv run --python 3.11 --extra demo jupyter-nbconvert \
+  --to notebook --execute --inplace \
+  itamae_migration_demo.ipynb
+```
+
+For a development installation with the opt-in backend:
+
+```bash
+python -m pip install ".[itamae]"
+```
+
 ## Versions
 
 | Version | Description |
