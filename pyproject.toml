@@ -24,12 +24,12 @@ dependencies = [
 [project.optional-dependencies]
 demo = [
   "ipykernel>=6",
-  "itamae @ git+https://github.com/gomeshun/itamae.git@a557a0d975b284c9fc3fe9697746e4847783653b ; python_version >= '3.11'",
+  "itamae @ git+https://github.com/gomeshun/itamae.git@9a4fca2175e999c5dd72989d66c8ac3b6e8db978 ; python_version >= '3.11'",
   "matplotlib>=3.8",
   "nbconvert>=7",
 ]
 itamae = [
-  "itamae @ git+https://github.com/gomeshun/itamae.git@a557a0d975b284c9fc3fe9697746e4847783653b ; python_version >= '3.11'",
+  "itamae @ git+https://github.com/gomeshun/itamae.git@9a4fca2175e999c5dd72989d66c8ac3b6e8db978 ; python_version >= '3.11'",
 ]
 test = [
   "pytest>=8",

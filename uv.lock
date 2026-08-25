@@ -593,7 +593,7 @@ wheels = [
 [[package]]
 name = "itamae"
 version = "0.1.0a4"
-source = { git = "https://github.com/gomeshun/itamae.git?rev=a557a0d975b284c9fc3fe9697746e4847783653b#a557a0d975b284c9fc3fe9697746e4847783653b" }
+source = { git = "https://github.com/gomeshun/itamae.git?rev=9a4fca2175e999c5dd72989d66c8ac3b6e8db978#9a4fca2175e999c5dd72989d66c8ac3b6e8db978" }
 dependencies = [
     { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.11.*'" },
     { name = "numpy", version = "2.5.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
@@ -1973,8 +1973,8 @@ test = [
 [package.metadata]
 requires-dist = [
     { name = "ipykernel", marker = "extra == 'demo'", specifier = ">=6" },
-    { name = "itamae", marker = "python_full_version >= '3.11' and extra == 'demo'", git = "https://github.com/gomeshun/itamae.git?rev=a557a0d975b284c9fc3fe9697746e4847783653b" },
-    { name = "itamae", marker = "python_full_version >= '3.11' and extra == 'itamae'", git = "https://github.com/gomeshun/itamae.git?rev=a557a0d975b284c9fc3fe9697746e4847783653b" },
+    { name = "itamae", marker = "python_full_version >= '3.11' and extra == 'demo'", git = "https://github.com/gomeshun/itamae.git?rev=9a4fca2175e999c5dd72989d66c8ac3b6e8db978" },
+    { name = "itamae", marker = "python_full_version >= '3.11' and extra == 'itamae'", git = "https://github.com/gomeshun/itamae.git?rev=9a4fca2175e999c5dd72989d66c8ac3b6e8db978" },
     { name = "matplotlib", marker = "extra == 'demo'", specifier = ">=3.8" },
     { name = "nbconvert", marker = "extra == 'demo'", specifier = ">=7" },
     { name = "numpy", specifier = ">=1.23" },

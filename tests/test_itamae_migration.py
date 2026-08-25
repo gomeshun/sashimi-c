@@ -8,6 +8,7 @@ import pytest
 from itamae.cosmology import NativeFlatLCDM
 from itamae.halo import nfw_mass_function
 from itamae.numerics import gauss_hermite_lognormal
+from itamae.provenance import MIGRATION_METADATA_KEYS
 
 import sashimi_c
 import sashimi_c_itamae
@@ -32,6 +33,20 @@ from sashimi_c_itamae_migration import (
 GOLDEN = json.loads(
     (Path(__file__).parent / "golden" / "sashimi_c_cdm_v1_2.json").read_text()
 )
+
+
+def test_golden_fixture_provenance_is_complete() -> None:
+    """The full C golden identifies its source and comparison policy."""
+    provenance = GOLDEN["provenance"]
+    assert provenance["fixture_schema"] == "sashimi-family:golden-provenance:v1"
+    assert provenance["fixture_category"] == "full_small_catalog_golden"
+    assert provenance["variant"] == "sashimi-c"
+    assert len(provenance["generated_repository_revision"]) == 40
+    assert len(provenance["itamae_source_revision"]) == 40
+    assert set(provenance["physics_modes"]) == {"legacy", "consistent"}
+    assert provenance["parameters_key"] == "parameters"
+    assert provenance["comparison"]["rtol"] == 5e-10
+    assert provenance["comparison"]["atol"] == 0.0
 
 
 def test_itamae_cosmology_matches_legacy_background() -> None:
@@ -562,7 +577,7 @@ def test_full_catalog_and_observables_match_mode_specific_golden(physics_mode) -
             )
 
 
-def test_catalog_metadata_records_mode_solver_weights_and_threshold() -> None:
+def test_catalog_metadata_records_mode_solver_weights_and_threshold(tmp_path: Path) -> None:
     """Reproducibility metadata must expose every migration choice."""
     parameters = {
         "M0": 1.0e10,
@@ -581,6 +596,17 @@ def test_catalog_metadata_records_mode_solver_weights_and_threshold() -> None:
     metadata = catalog.metadata
 
     assert model.catalog is catalog
+    assert set(MIGRATION_METADATA_KEYS) <= set(metadata)
+    assert metadata["sashimi_variant"] == "sashimi-c"
+    assert len(metadata["itamae_source_revision"]) == 40
+    assert len(metadata["sashimi_source_revision"]) == 40
+    assert metadata["sashimi_version"] == "1.2.0"
+    assert metadata["catalog_schema_version"] == "1.0"
+    assert metadata["canonical_unit_schema"] == "1.0"
+    assert metadata["variance_identifier"] == "sashimi-c:analytic-cdm-fit:v1"
+    assert metadata["power_identifier"] == "sashimi-c:cdm-linear-power:v1"
+    assert metadata["solver_identifier"] == "sashimi-c:tidal-stripping:pert2_shanks:v1"
+    assert metadata["cosmology_parameters"] == {"omega_m0": 0.315, "h": 0.674}
     assert metadata["physics_mode"] == "consistent"
     assert metadata["model_identifier"] == "sashimi-c:cdm:consistent:v1.2"
     assert metadata["stripping_method"] == "pert2_shanks"
@@ -606,6 +632,24 @@ def test_catalog_metadata_records_mode_solver_weights_and_threshold() -> None:
     )
     assert metadata["surviving_node_count"] == int(np.count_nonzero(survive))
     assert 0.0 <= metadata["surviving_weight_fraction"] <= 1.0
+    np.testing.assert_allclose(
+        catalog.weight_final,
+        catalog.weights["weight_base"]
+        * catalog.weights["weight_concentration"]
+        * catalog.weights["weight_survival"],
+        rtol=0.0,
+        atol=0.0,
+    )
+    assert all(np.all(value >= 0.0) for value in catalog.weights.values())
+
+    archive = tmp_path / "catalog.npz"
+    catalog.to_npz(archive)
+    restored = type(catalog).from_npz(archive)
+    for name in catalog.columns:
+        np.testing.assert_array_equal(restored.columns[name], catalog.columns[name])
+    for name in catalog.weights:
+        np.testing.assert_array_equal(restored.weights[name], catalog.weights[name])
+    assert dict(restored.metadata) == dict(catalog.metadata)
 
 
 def test_shanks_vs_ode_diagnostic_does_not_change_defaults() -> None:

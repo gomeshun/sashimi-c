@@ -15,7 +15,6 @@ from types import MappingProxyType
 from typing import Any, TypeVar
 
 import numpy as np
-from itamae import __version__ as ITAMAE_VERSION
 from itamae.cosmology import NativeFlatLCDM
 from itamae.evolution import shanks_transform
 from itamae.execution import PopulationPipeline
@@ -23,9 +22,8 @@ from itamae.halo import invert_nfw_mass_function
 from itamae.measure import build_accretion_batch
 from itamae.numerics import gauss_hermite_lognormal
 from itamae.protocols import CosmologyBackend
+from itamae.provenance import build_migration_metadata
 from itamae.types import (
-    CATALOG_SCHEMA_VERSION,
-    CatalogMetadata,
     WeightedSubhaloCatalog,
 )
 from scipy import integrate, special
@@ -608,15 +606,31 @@ class ItamaeMigrationMixin:
             "array=numpy;cosmology="
             f"{self.itamae_cosmology.identifier};units=legacy-sashimi-c-floats"
         )
-        metadata = CatalogMetadata(
+        metadata = build_migration_metadata(
+            variant="sashimi-c",
+            distribution_name="sashimi-c",
+            module_file=__file__,
             model_identifier=f"sashimi-c:cdm:{self.physics_mode}:v1.2",
             backend_identifier=backend_identifier,
             source_identifier=f"sashimi-c:itamae-adapter:{self.physics_mode}:v1",
-            schema_version=CATALOG_SCHEMA_VERSION,
+            physics_mode=self.physics_mode,
+            variance_identifier="sashimi-c:analytic-cdm-fit:v1",
+            power_identifier="sashimi-c:cdm-linear-power:v1",
+            solver_identifier=f"sashimi-c:tidal-stripping:{method}:v1",
             extra={
-                "itamae_version": ITAMAE_VERSION,
-                "physics_mode": self.physics_mode,
                 "cosmology_backend": self.itamae_cosmology.identifier,
+                "cosmology_parameters": {
+                    "omega_m0": float(
+                        np.asarray(self.itamae_cosmology.omega_m(0.0))
+                    ),
+                    "h": float(np.asarray(self.itamae_cosmology.H(0.0))) / 100.0,
+                },
+                "canonical_units": {
+                    "mass": "Msun",
+                    "length": "Mpc",
+                    "velocity": "km / s",
+                    "density": "Msun / Mpc3",
+                },
                 "critical_density_convention": (
                     "itamae-backend"
                     if self.physics_mode == "consistent"

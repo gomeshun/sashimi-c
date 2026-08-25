@@ -20,8 +20,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: gomeshun/itamae
-          ref: a557a0d975b284c9fc3fe9697746e4847783653b
+          ref: 9a4fca2175e999c5dd72989d66c8ac3b6e8db978
           path: .itamae
+      - name: Export migration provenance revisions
+        run: |
+          echo "ITAMAE_SOURCE_REVISION=$(git -C .itamae rev-parse HEAD)" >> "$GITHUB_ENV"
+          echo "SASHIMI_C_SOURCE_REVISION=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
       - uses: astral-sh/setup-uv@v6
         with:
           python-version: ${{ matrix.python-version }}
@@ -53,7 +57,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: gomeshun/itamae
-          ref: a557a0d975b284c9fc3fe9697746e4847783653b
+          ref: 9a4fca2175e999c5dd72989d66c8ac3b6e8db978
           path: .itamae
       - uses: astral-sh/setup-uv@v6
         with:
@@ -89,7 +93,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: gomeshun/itamae
-          ref: a557a0d975b284c9fc3fe9697746e4847783653b
+          ref: 9a4fca2175e999c5dd72989d66c8ac3b6e8db978
           path: .itamae
       - uses: astral-sh/setup-uv@v6
         with:
