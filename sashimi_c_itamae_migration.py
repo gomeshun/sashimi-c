@@ -28,14 +28,15 @@ from itamae.types import (
     CatalogMetadata,
     WeightedSubhaloCatalog,
 )
+from scipy import integrate, special
+from scipy.interpolate import interp1d
+
 from sashimi_c import (
     TidalStrippingSolver,
     halo_model,
     subhalo_observables,
     subhalo_properties,
 )
-from scipy import integrate, special
-from scipy.interpolate import interp1d
 
 _Base = TypeVar("_Base", bound=type)
 _LEGACY_OMEGA_M = 0.315

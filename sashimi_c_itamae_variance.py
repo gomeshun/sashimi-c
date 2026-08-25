@@ -10,6 +10,7 @@ from __future__ import annotations
 from typing import Any
 
 from itamae.variance import CallableVarianceModel
+
 from sashimi_c_itamae_migration import ItamaeHaloModel
 
 

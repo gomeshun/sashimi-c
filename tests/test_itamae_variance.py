@@ -1,6 +1,7 @@
 """Regression tests for the SASHIMI-C variance protocol adapter."""
 
 import numpy as np
+
 from sashimi_c import halo_model
 from sashimi_c_itamae_variance import make_variance_model
 
