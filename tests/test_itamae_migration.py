@@ -5,7 +5,6 @@ from pathlib import Path
 
 import numpy as np
 import pytest
-
 import sashimi_c
 import sashimi_c_itamae
 import sashimi_c_itamae_catalog
@@ -13,6 +12,12 @@ import sashimi_c_itamae_migration
 from itamae.cosmology import NativeFlatLCDM
 from itamae.halo import nfw_mass_function
 from itamae.numerics import gauss_hermite_lognormal
+from sashimi_c import (
+    TidalStrippingSolver,
+    halo_model,
+    subhalo_observables,
+    subhalo_properties,
+)
 from sashimi_c_itamae_catalog import (
     ItamaeSubhaloProperties,
     ItamaeTidalStrippingSolver,
@@ -21,12 +26,6 @@ from sashimi_c_itamae_migration import (
     ItamaeHaloModel,
     ItamaeSubhaloObservables,
     diagnose_stripping_approximation,
-)
-from sashimi_c import (
-    TidalStrippingSolver,
-    halo_model,
-    subhalo_observables,
-    subhalo_properties,
 )
 
 GOLDEN = json.loads(

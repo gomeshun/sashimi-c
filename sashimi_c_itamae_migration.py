@@ -9,14 +9,12 @@ explicit and testable before the legacy implementations are removed.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from types import MappingProxyType
-from typing import Any, Mapping, TypeVar
+from typing import Any, TypeVar
 
 import numpy as np
-from scipy import integrate, special
-from scipy.interpolate import interp1d
-
 from itamae import __version__ as ITAMAE_VERSION
 from itamae.cosmology import NativeFlatLCDM
 from itamae.evolution import shanks_transform
@@ -36,6 +34,8 @@ from sashimi_c import (
     subhalo_observables,
     subhalo_properties,
 )
+from scipy import integrate, special
+from scipy.interpolate import interp1d
 
 _Base = TypeVar("_Base", bound=type)
 _LEGACY_OMEGA_M = 0.315

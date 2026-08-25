@@ -20,7 +20,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: gomeshun/itamae
-          ref: 476b2025913bc38c3d3e25a23424e7e2274873a8
+          ref: a557a0d975b284c9fc3fe9697746e4847783653b
           path: .itamae
       - uses: astral-sh/setup-uv@v6
         with:
@@ -53,7 +53,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: gomeshun/itamae
-          ref: 476b2025913bc38c3d3e25a23424e7e2274873a8
+          ref: a557a0d975b284c9fc3fe9697746e4847783653b
           path: .itamae
       - uses: astral-sh/setup-uv@v6
         with:
@@ -79,17 +79,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Check out SASHIMI-SI migration branch
+      - name: Check out pinned SASHIMI-SI migration revision
         uses: actions/checkout@v4
         with:
           repository: gomeshun/sashimi-si
-          ref: itamae-migration
+          ref: c09192cde71902a976ca2a5e1d57901438264e28
           path: .sashimi-si
       - name: Check out pinned public ITAMAE
         uses: actions/checkout@v4
         with:
           repository: gomeshun/itamae
-          ref: 476b2025913bc38c3d3e25a23424e7e2274873a8
+          ref: a557a0d975b284c9fc3fe9697746e4847783653b
           path: .itamae
       - uses: astral-sh/setup-uv@v6
         with:

@@ -20,8 +20,8 @@ subhalo_properties = ItamaeSubhaloProperties
 subhalo_observables = ItamaeSubhaloObservables
 
 __all__ = [
-    "TidalStrippingSolver",
     "StrippingDiagnostics",
+    "TidalStrippingSolver",
     "diagnose_stripping_approximation",
     "halo_model",
     "subhalo_observables",
