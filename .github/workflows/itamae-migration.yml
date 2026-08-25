@@ -83,7 +83,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: gomeshun/sashimi-si
-          ref: c09192cde71902a976ca2a5e1d57901438264e28
+          ref: 179d52dcb149db268031ab0aed516ceb224cd033
           path: .sashimi-si
       - name: Check out pinned public ITAMAE
         uses: actions/checkout@v4
