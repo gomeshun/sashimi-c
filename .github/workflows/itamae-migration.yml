@@ -20,7 +20,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: gomeshun/itamae
-          ref: 9a4fca2175e999c5dd72989d66c8ac3b6e8db978
+          ref: e8922c144fd94680f0481c3534a4f241e9e3b481
           path: .itamae
       - name: Export migration provenance revisions
         run: |
@@ -57,7 +57,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: gomeshun/itamae
-          ref: 9a4fca2175e999c5dd72989d66c8ac3b6e8db978
+          ref: e8922c144fd94680f0481c3534a4f241e9e3b481
           path: .itamae
       - uses: astral-sh/setup-uv@v6
         with:
@@ -93,7 +93,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: gomeshun/itamae
-          ref: 9a4fca2175e999c5dd72989d66c8ac3b6e8db978
+          ref: e8922c144fd94680f0481c3534a4f241e9e3b481
           path: .itamae
       - uses: astral-sh/setup-uv@v6
         with:
