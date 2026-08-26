@@ -624,6 +624,8 @@ class ItamaeMigrationMixin:
                         np.asarray(self.itamae_cosmology.omega_m(0.0))
                     ),
                     "h": float(np.asarray(self.itamae_cosmology.H(0.0))) / 100.0,
+                    "omega_lambda0": 1.0
+                    - float(np.asarray(self.itamae_cosmology.omega_m(0.0))),
                 },
                 "canonical_units": {
                     "mass": "Msun",

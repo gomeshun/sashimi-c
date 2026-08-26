@@ -11,6 +11,25 @@
       "legacy": "strict legacy tuple and observable reproduction",
       "consistent": "reviewed corrected ITAMAE convention"
     },
+    "constructor_parameters": {
+      "physics_mode": ["consistent", "legacy"],
+      "cosmology_backend": {
+        "identifier": "native-flatlcdm:Om=0.315:h=0.674",
+        "parameters": {
+          "omega_m0": 0.315,
+          "h": 0.674,
+          "omega_lambda0": 0.685
+        }
+      }
+    },
+    "cosmology": {
+      "backend_identifier": "native-flatlcdm:Om=0.315:h=0.674",
+      "parameters": {
+        "omega_m0": 0.315,
+        "h": 0.674,
+        "omega_lambda0": 0.685
+      }
+    },
     "parameters_key": "parameters",
     "units": "ITAMAE canonical floating-point mass, length, and density units",
     "comparison": {

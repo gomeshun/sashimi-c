@@ -20,7 +20,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: gomeshun/itamae
-          ref: e8922c144fd94680f0481c3534a4f241e9e3b481
+          ref: 66ee7e35d0932ff6cdc7221761e909082d9170b5
           path: .itamae
       - name: Export migration provenance revisions
         run: |
@@ -57,18 +57,36 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: gomeshun/itamae
-          ref: e8922c144fd94680f0481c3534a4f241e9e3b481
+          ref: 66ee7e35d0932ff6cdc7221761e909082d9170b5
           path: .itamae
       - uses: astral-sh/setup-uv@v6
         with:
           python-version: "3.11"
       - name: Build wheel and source distribution
-        run: uv build
+        run: SASHIMI_C_SOURCE_REVISION="$(git rev-parse HEAD)" uv build
       - name: Install wheel in a clean environment
         run: |
           uv venv --python 3.11 .venv-smoke
           uv pip install --python .venv-smoke/bin/python ./.itamae
           uv pip install --python .venv-smoke/bin/python dist/*.whl
+      - name: Verify durable embedded source revisions
+        run: |
+          itamae_ref="$(git -C .itamae rev-parse HEAD)"
+          sashimi_ref="$(git rev-parse HEAD)"
+          mkdir -p "${RUNNER_TEMP}/sashimi-c-provenance-repository"
+          cd "${RUNNER_TEMP}/sashimi-c-provenance-repository"
+          ITAMAE_SOURCE_REVISION=0000000000000000000000000000000000000000 \
+            SASHIMI_C_SOURCE_REVISION=1111111111111111111111111111111111111111 \
+            EXPECTED_ITAMAE_REVISION="$itamae_ref" \
+            EXPECTED_SASHIMI_REVISION="$sashimi_ref" \
+            "${GITHUB_WORKSPACE}/.venv-smoke/bin/python" - <<'PY'
+          import os
+
+          from itamae.provenance import source_revision
+
+          assert source_revision("itamae") == os.environ["EXPECTED_ITAMAE_REVISION"]
+          assert source_revision("sashimi-c") == os.environ["EXPECTED_SASHIMI_REVISION"]
+          PY
       - name: Smoke-test legacy and opt-in imports
         run: |
           cd "${RUNNER_TEMP}"
@@ -93,7 +111,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: gomeshun/itamae
-          ref: e8922c144fd94680f0481c3534a4f241e9e3b481
+          ref: 66ee7e35d0932ff6cdc7221761e909082d9170b5
           path: .itamae
       - uses: astral-sh/setup-uv@v6
         with:

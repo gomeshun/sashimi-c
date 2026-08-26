@@ -47,6 +47,28 @@ def test_golden_fixture_provenance_is_complete() -> None:
     assert provenance["parameters_key"] == "parameters"
     assert provenance["comparison"]["rtol"] == 5e-10
     assert provenance["comparison"]["atol"] == 0.0
+    assert provenance["constructor_parameters"]["physics_mode"] == [
+        "consistent",
+        "legacy",
+    ]
+    assert provenance["constructor_parameters"]["cosmology_backend"] == {
+        "identifier": provenance["cosmology"]["backend_identifier"],
+        "parameters": provenance["cosmology"]["parameters"],
+    }
+    backend_parameters = provenance["cosmology"]["parameters"]
+    backend = NativeFlatLCDM(
+        omega_m0=backend_parameters["omega_m0"],
+        h=backend_parameters["h"],
+    )
+    for physics_mode in provenance["constructor_parameters"]["physics_mode"]:
+        model = ItamaeSubhaloProperties(
+            physics_mode=physics_mode,
+            cosmology_backend=backend,
+        )
+        assert model.physics_mode == physics_mode
+        assert model.itamae_cosmology.identifier == provenance["cosmology"][
+            "backend_identifier"
+        ]
 
 
 def test_itamae_cosmology_matches_legacy_background() -> None:
@@ -603,10 +625,20 @@ def test_catalog_metadata_records_mode_solver_weights_and_threshold(tmp_path: Pa
     assert metadata["sashimi_version"] == "1.2.0"
     assert metadata["catalog_schema_version"] == "1.0"
     assert metadata["canonical_unit_schema"] == "1.0"
+    assert metadata["cosmology_backend"] == GOLDEN["provenance"]["cosmology"][
+        "backend_identifier"
+    ]
+    assert metadata["cosmology_parameters"] == GOLDEN["provenance"]["cosmology"][
+        "parameters"
+    ]
     assert metadata["variance_identifier"] == "sashimi-c:analytic-cdm-fit:v1"
     assert metadata["power_identifier"] == "sashimi-c:cdm-linear-power:v1"
     assert metadata["solver_identifier"] == "sashimi-c:tidal-stripping:pert2_shanks:v1"
-    assert metadata["cosmology_parameters"] == {"omega_m0": 0.315, "h": 0.674}
+    assert metadata["cosmology_parameters"] == {
+        "omega_m0": 0.315,
+        "h": 0.674,
+        "omega_lambda0": 0.685,
+    }
     assert metadata["physics_mode"] == "consistent"
     assert metadata["model_identifier"] == "sashimi-c:cdm:consistent:v1.2"
     assert metadata["stripping_method"] == "pert2_shanks"
