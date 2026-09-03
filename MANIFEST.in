@@ -1,0 +1,2 @@
+include tests/golden/*.json
+include setup.py
