@@ -791,7 +791,7 @@ class subhalo_properties(halo_model):
         (Optional) M0_at_redshift: If True, M0 is regarded as the mass at a given redshift, instead of z=0.
         (Optional) method:         Method to calculate the subhalo mass stripping. (default: "picard_table")
                                    - "picard_table" : use the precomputed third-order Picard-iteration table.
-            - "odeint" : use odeint to solve the differential equation.
+                                   - "odeint" : use odeint to solve the differential equation.
                                    - "pert0" : use perturbative method with zeroth-order correction.
                                    - "pert1" : use perturbative method with first-order correction.
                                    - "pert2" : use perturbative method with second-order correction.
@@ -944,7 +944,7 @@ class subhalo_observables(subhalo_properties):
         (Optional) M0_at_redshift: If True, M0 is regarded as the mass at a given redshift, instead of z=0.
         (Optional) method:         Method to calculate the subhalo mass stripping. (default: "picard_table")
                                    - "picard_table" : use the precomputed third-order Picard-iteration table.
-            - "odeint" : use odeint to solve the differential equation.
+                                   - "odeint" : use odeint to solve the differential equation.
                                    - "pert0" : use perturbative method with zeroth-order correction.
                                    - "pert1" : use perturbative method with first-order correction.
                                    - "pert2" : use perturbative method with second-order correction.
