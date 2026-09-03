@@ -10,6 +10,7 @@ from scipy.interpolate import interp1d
 from scipy.interpolate import griddata
 from scipy.special import erf
 from numpy.polynomial.hermite import hermgauss
+from picard_tidal_stripping import PicardTidalStrippingTable
 import os
 import warnings
 warnings.filterwarnings("ignore", category=RuntimeWarning, append=1)
@@ -274,6 +275,7 @@ class TidalStrippingSolver(halo_model):
         self.z_min       = z_min
         self.z_max       = z_max
         self.n_z_interp  = n_z_interp
+        self._picard_tables = {}
         self.M0          = M0
 
 
@@ -285,6 +287,8 @@ class TidalStrippingSolver(halo_model):
     @M0.setter
     def M0(self, value):
         self._M0 = value
+        if hasattr(self, "_picard_tables"):
+            self._picard_tables.clear()
         self.reset_interpolation(
             z_max=self.z_max, 
             z_min=self.z_min,
@@ -355,6 +359,21 @@ class TidalStrippingSolver(halo_model):
     def tdynz(self,z):
         Oz_z = self.OmegaM*(1.+z)**3/self.g(z)
         return 1.628/self.h*(self.Delc(Oz_z-1.)/178.0)**-0.5/(self.Hubble(z)/self.H0)*1.e9*self.yr
+
+
+    def _get_picard_table(self, z_final):
+        """Return a cached Picard table for the requested final redshift."""
+        key = float(z_final)
+        table = self._picard_tables.get(key)
+        if table is None:
+            table = PicardTidalStrippingTable(self, z_final=key)
+            self._picard_tables[key] = table
+        return table
+
+
+    def subhalo_mass_stripped_picard_table(self, ma, za, z):
+        """Calculate tidal mass loss with the precomputed x3 Picard table."""
+        return self._get_picard_table(z).mass(ma, za)
 
 
     def msolve(self,m, z):
@@ -579,7 +598,7 @@ class TidalStrippingSolver(halo_model):
         return ma * np.exp(eps)
     
     
-    def subhalo_mass_stripped(self,ma,za,z,method="pert2_shanks",**kwargs):
+    def subhalo_mass_stripped(self,ma,za,z,method="picard_table",**kwargs):
         """ A wrapper function to calculate subhalo mass stripping.
         
         Parameters
@@ -592,6 +611,7 @@ class TidalStrippingSolver(halo_model):
             final redshift.
         method : str, optional
             method to calculate the subhalo mass stripping.
+            - "picard_table" : use the precomputed third-order Picard-iteration table.
             - "odeint" : use odeint to solve the differential equation.
             - "pert0" : use perturbative method with zeroth-order correction.
             - "pert1" : use perturbative method with first-order correction.
@@ -609,6 +629,8 @@ class TidalStrippingSolver(halo_model):
             subhalo mass array.
         """
         match method:
+            case "picard_table":
+                return self.subhalo_mass_stripped_picard_table(ma,za,z)
             case "odeint":
                 return self.subhalo_mass_stripped_odeint(ma,za,z,**kwargs)
             case "pert0":
@@ -733,7 +755,7 @@ class subhalo_properties(halo_model):
     
     def subhalo_properties_calc(self, M0, redshift=0.0, dz=0.01, zmax=7.0, N_ma=500, sigmalogc=0.128,
                                 N_herm=5, logmamin=-6, logmamax=None, N_hermNa=200, Na_model=3, 
-                                ct_th=0.0, profile_change=True, M0_at_redshift=False, method="pert2_shanks", **kwargs):
+                                ct_th=0.0, profile_change=True, M0_at_redshift=False, method="picard_table", **kwargs):
         """
         This is the main function of SASHIMI-C, which makes a semi-analytical subhalo catalog.
         
@@ -767,8 +789,9 @@ class subhalo_properties(halo_model):
         (Optional) profile_change: Whether we implement the evolution of subhalo density profile through tidal
                                    mass loss. (default: True)
         (Optional) M0_at_redshift: If True, M0 is regarded as the mass at a given redshift, instead of z=0.
-        (Optional) method:         Method to calculate the subhalo mass stripping. (default: "pert2_shanks")
-                                   - "odeint" : use odeint to solve the differential equation.
+        (Optional) method:         Method to calculate the subhalo mass stripping. (default: "picard_table")
+                                   - "picard_table" : use the precomputed third-order Picard-iteration table.
+            - "odeint" : use odeint to solve the differential equation.
                                    - "pert0" : use perturbative method with zeroth-order correction.
                                    - "pert1" : use perturbative method with first-order correction.
                                    - "pert2" : use perturbative method with second-order correction.
@@ -884,7 +907,7 @@ class subhalo_observables(subhalo_properties):
     def __init__(self, M0_per_Msun, redshift=0., dz=0.01, zmax=7.0, N_ma=500, sigmalogc=0.128,
                  N_herm=5, logmamin=-6, logmamax=None, N_hermNa=200, Na_model=3, ct_th=0.0,
                  profile_change=True, M0_at_redshift=False, prompt_cusps=False, k_fs_Mpc=1.06e6,
-                 filter='Sharp-k', alpha=1.8, method="pert2_shanks", **kwargs):
+                 filter='Sharp-k', alpha=1.8, method="picard_table", **kwargs):
         """
         This class computes various subhalo observables in a host halo. 
         
@@ -919,8 +942,9 @@ class subhalo_observables(subhalo_properties):
         (Optional) profile_change: Whether we implement the evolution of subhalo density profile through tidal
                                    mass loss. (default: True)
         (Optional) M0_at_redshift: If True, M0 is regarded as the mass at a given redshift, instead of z=0.
-        (Optional) method:         Method to calculate the subhalo mass stripping. (default: "pert2_shanks")
-                                   - "odeint" : use odeint to solve the differential equation.
+        (Optional) method:         Method to calculate the subhalo mass stripping. (default: "picard_table")
+                                   - "picard_table" : use the precomputed third-order Picard-iteration table.
+            - "odeint" : use odeint to solve the differential equation.
                                    - "pert0" : use perturbative method with zeroth-order correction.
                                    - "pert1" : use perturbative method with first-order correction.
                                    - "pert2" : use perturbative method with second-order correction.

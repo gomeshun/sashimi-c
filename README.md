@@ -124,7 +124,8 @@ M0: Mass of the host halo defined as M_{200} (200 times critial density) at *z =
 (Optional) profile_change: Whether we implement the evolution of subhalo density profile through tidal
                            mass loss. (default: True)
 (Optional) M0_at_redshift: If True, M0 is regarded as the mass at a given redshift, instead of z=0.
-(Optional) method:         Method to calculate the subhalo mass stripping. (default: "pert2_shanks")
+(Optional) method:         Method to calculate the subhalo mass stripping. (default: "picard_table")
+                           - "picard_table" : use the precomputed third-order Picard-iteration table.
                            - "odeint" : use odeint to solve the differential equation.
                            - "pert0" : use perturbative method with zeroth-order correction.
                            - "pert1" : use perturbative method with first-order correction.
