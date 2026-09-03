@@ -26,4 +26,6 @@ jobs:
           python -m pip install numpy scipy pytest
 
       - name: Run tests
+        env:
+          PYTHONPATH: .
         run: pytest -q
