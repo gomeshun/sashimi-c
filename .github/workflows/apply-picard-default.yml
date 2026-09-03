@@ -25,6 +25,9 @@ jobs:
       - name: Install dependencies
         run: python -m pip install numpy scipy pytest
 
+      - name: Align one-shot script with merged Picard table range
+        run: sed -i 's/log10_ratio_min=-18.0/log10_ratio_min=-20.0/' tools/apply_picard_default.py
+
       - name: Apply integration and notebook validation
         env:
           PYTHONPATH: .
