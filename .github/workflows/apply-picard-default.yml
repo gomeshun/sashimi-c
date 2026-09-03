@@ -1,0 +1,48 @@
+name: apply-picard-default
+
+on:
+  push:
+    branches: [feat/picard-default]
+    paths:
+      - tools/apply_picard_default.py
+      - .github/workflows/apply-picard-default.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/picard-default
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install dependencies
+        run: python -m pip install numpy scipy pytest
+
+      - name: Apply integration and notebook validation
+        env:
+          PYTHONPATH: .
+        run: python tools/apply_picard_default.py
+
+      - name: Run test suite before committing generated changes
+        env:
+          PYTHONPATH: .
+        run: pytest -q
+
+      - name: Commit validated changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add sashimi_c.py picard_tidal_stripping.py README.md approx_odeint.ipynb tests/test_picard_default.py
+          if git diff --cached --quiet; then
+            echo "No generated changes"
+            exit 0
+          fi
+          git commit -m "Integrate Picard tidal stripping as default"
+          git push origin HEAD:feat/picard-default
