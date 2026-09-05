@@ -111,7 +111,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: gomeshun/sashimi-family
-          ref: ${{ inputs.family_base_ref || 'main' }}
+          ref: ${{ github.event.inputs.family_base_ref || 'main' }}
           sparse-checkout: |
             .gitmodules
             compatibility.toml
@@ -122,7 +122,9 @@ jobs:
       - name: Test candidate-manifest failure paths
         env:
           FAMILY_TEST_ROOT: ${{ github.workspace }}/.family
-        run: python3 -m unittest discover -s scripts/tests -p 'test_family_manifest.py'
+        run: |
+          test -n "$FAMILY_TEST_ROOT"
+          python3 -m unittest discover -s scripts/tests -p 'test_family_manifest.py'
       - name: Prepare effective family compatibility manifest
         id: compatibility
         run: |

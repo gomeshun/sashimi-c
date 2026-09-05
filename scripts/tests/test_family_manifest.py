@@ -16,9 +16,10 @@ SCRIPT = Path(__file__).resolve().parents[1] / "prepare_family_manifest.py"
 SPEC = importlib.util.spec_from_file_location("prepare_family_manifest", SCRIPT)
 MODULE = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(MODULE)
-FAMILY_SOURCE = Path(os.environ["FAMILY_TEST_ROOT"])
+FAMILY_SOURCE = os.environ.get("FAMILY_TEST_ROOT")
 
 
+@unittest.skipUnless(FAMILY_SOURCE, "Set FAMILY_TEST_ROOT to a sashimi-family checkout")
 class FamilyManifestTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
@@ -28,7 +29,7 @@ class FamilyManifestTests(unittest.TestCase):
         self.family.mkdir()
         (self.family / "scripts").mkdir()
         for name in ("check_compatibility.py", "check_artifact_provenance.py"):
-            shutil.copyfile(FAMILY_SOURCE / "scripts" / name, self.family / "scripts" / name)
+            shutil.copyfile(Path(FAMILY_SOURCE) / "scripts" / name, self.family / "scripts" / name)
         self.git("init", "--quiet")
         self.base = {"compatibility": {"schema": 1}}
         gitmodules, manifest = [], ["[compatibility]\nschema = 1\n"]
