@@ -6,10 +6,11 @@ import os
 import shutil
 import subprocess
 import tempfile
-import tomllib
 import unittest
 import zipfile
 from pathlib import Path
+
+import tomllib
 
 SCRIPT = Path(__file__).resolve().parents[1] / "prepare_family_manifest.py"
 SPEC = importlib.util.spec_from_file_location("prepare_family_manifest", SCRIPT)
@@ -108,7 +109,7 @@ class FamilyManifestTests(unittest.TestCase):
         for revision, expected_code in (("5" * 40, 1), (self.candidate, 0)):
             with zipfile.ZipFile(artifact, "w") as archive:
                 archive.writestr("_sashimi_f_build_provenance.py", f'SOURCE_REVISION = "{revision}"\n')
-            result = subprocess.run(command, capture_output=True, text=True)
+            result = subprocess.run(command, capture_output=True, text=True, check=False)
             self.assertEqual(result.returncode, expected_code, result.stdout + result.stderr)
 
 
