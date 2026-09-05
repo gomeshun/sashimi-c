@@ -6,6 +6,11 @@ on:
   pull_request:
     branches: [main, itamae-migration]
   workflow_dispatch:
+    inputs:
+      family_base_ref:
+        description: Family manifest branch or full commit SHA (resolved once and recorded)
+        type: string
+        default: main
 
 jobs:
   regression:
@@ -40,6 +45,7 @@ jobs:
           sashimi_c_itamae_migration.py
           sashimi_c_itamae_variance.py
           tests
+          scripts
       - name: Run ITAMAE migration regression tests
         run: uv run --no-sync python -m pytest -q --junitxml=test-results.xml
       - name: Upload migration test diagnostics
@@ -101,36 +107,84 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Check out pinned SASHIMI-SI migration revision
+      - name: Check out family compatibility manifest
         uses: actions/checkout@v4
         with:
-          repository: gomeshun/sashimi-si
-          ref: 179d52dcb149db268031ab0aed516ceb224cd033
+          repository: gomeshun/sashimi-family
+          ref: ${{ inputs.family_base_ref || 'main' }}
+          sparse-checkout: |
+            .gitmodules
+            compatibility.toml
+            scripts/check_compatibility.py
+            scripts/check_artifact_provenance.py
+          sparse-checkout-cone-mode: false
+          path: .family
+      - name: Test candidate-manifest failure paths
+        env:
+          FAMILY_TEST_ROOT: ${{ github.workspace }}/.family
+        run: python3 -m unittest discover -s scripts/tests -p 'test_family_manifest.py'
+      - name: Prepare effective family compatibility manifest
+        id: compatibility
+        run: |
+          mkdir -p family-validation
+          python3 scripts/prepare_family_manifest.py \
+            --family-root .family --output family-validation/effective.toml \
+            --candidate sashimi-c --candidate-ref "$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          cp .family/compatibility.toml family-validation/base.toml
+          cat family-validation/effective.json >> "$GITHUB_STEP_SUMMARY"
+      - name: Check out compatible SASHIMI-SI
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ steps.compatibility.outputs.sashimi_si_repo }}
+          ref: ${{ steps.compatibility.outputs.sashimi_si_ref }}
           path: .sashimi-si
-      - name: Check out pinned public ITAMAE
+      - name: Check out compatible ITAMAE
         uses: actions/checkout@v4
         with:
-          repository: gomeshun/itamae
-          ref: 1c5b1ad67725671fd4dc1a2306d2731ba337e563
+          repository: ${{ steps.compatibility.outputs.itamae_repo }}
+          ref: ${{ steps.compatibility.outputs.itamae_ref }}
           path: .itamae
+      - name: Verify checked out family revisions
+        env:
+          ITAMAE_REF: ${{ steps.compatibility.outputs.itamae_ref }}
+          SASHIMI_C_REF: ${{ steps.compatibility.outputs.sashimi_c_ref }}
+          SASHIMI_SI_REF: ${{ steps.compatibility.outputs.sashimi_si_ref }}
+        run: |
+          test "$(git -C .itamae rev-parse HEAD)" = "$ITAMAE_REF"
+          test "$(git rev-parse HEAD)" = "$SASHIMI_C_REF"
+          test "$(git -C .sashimi-si rev-parse HEAD)" = "$SASHIMI_SI_REF"
       - uses: astral-sh/setup-uv@v6
         with:
           python-version: "3.11"
-      - name: Build both distributions
+      - name: Build the candidate and compatible distributions
         run: |
-          uv build --out-dir dist-c
-          cd .sashimi-si
-          uv build --out-dir ../dist-si
-      - name: Install both wheels in one clean environment
+          export ITAMAE_SOURCE_REVISION="$(git -C .itamae rev-parse HEAD)"
+          export SASHIMI_C_SOURCE_REVISION="$(git rev-parse HEAD)"
+          export SASHIMI_SI_SOURCE_REVISION="$(git -C .sashimi-si rev-parse HEAD)"
+          uv build --wheel --out-dir dist-family ./.itamae
+          uv build --wheel --out-dir dist-family .
+          uv build --wheel --out-dir dist-family ./.sashimi-si
+      - name: Verify embedded artifact source revisions
+        run: >-
+          python3 .family/scripts/check_artifact_provenance.py
+          --directory dist-family
+          --manifest family-validation/effective.toml
+          --packages itamae sashimi-c sashimi-si
+      - name: Install compatible wheels in one clean environment
         run: |
           uv venv --python 3.11 .venv-coinstall
-          uv pip install --python .venv-coinstall/bin/python ./.itamae numexpr tqdm
-          uv pip install --python .venv-coinstall/bin/python --no-deps dist-c/*.whl dist-si/*.whl
+          uv pip install --python .venv-coinstall/bin/python dist-family/*.whl
       - name: Import both legacy and ITAMAE facades outside the checkout
+        env:
+          ITAMAE_REF: ${{ steps.compatibility.outputs.itamae_ref }}
+          SASHIMI_C_REF: ${{ steps.compatibility.outputs.sashimi_c_ref }}
+          SASHIMI_SI_REF: ${{ steps.compatibility.outputs.sashimi_si_ref }}
         run: |
           cd "${RUNNER_TEMP}"
           "${GITHUB_WORKSPACE}/.venv-coinstall/bin/python" - <<'PY'
           import importlib.util
+          import os
+          from itamae.provenance import source_revision
           import sashimi_c
           import sashimi_c_itamae
           import sashimi_si
@@ -140,6 +194,9 @@ jobs:
           assert sashimi_c_itamae.subhalo_properties
           assert sashimi_si.subhalo_properties
           assert sashimi_si_itamae.subhalo_properties
+          assert source_revision("itamae") == os.environ["ITAMAE_REF"]
+          assert source_revision("sashimi-c") == os.environ["SASHIMI_C_REF"]
+          assert source_revision("sashimi-si") == os.environ["SASHIMI_SI_REF"]
           for generic_name in (
               "itamae_catalog_migration",
               "itamae_migration",
@@ -147,3 +204,9 @@ jobs:
           ):
               assert importlib.util.find_spec(generic_name) is None
           PY
+      - name: Upload family validation inputs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: family-validation-inputs
+          path: family-validation/

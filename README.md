@@ -123,6 +123,32 @@ For a development installation with the opt-in backend:
 python -m pip install ".[itamae]"
 ```
 
+### Component and family CI
+
+Migration child PRs target `itamae-migration`; the umbrella PR targets `main`.
+The component gates are `regression (3.11)`, `regression (3.12)`,
+`regression (3.13)` and `package`. They retain the component's exact ITAMAE test
+input and run independently of parent-manifest promotion. Required-check branch
+protection is configured separately from the workflow's trigger filters.
+
+`family-coinstall` checks the C candidate together with ITAMAE and SI from
+`sashimi-family/compatibility.toml`. It validates the untouched parent
+manifest/gitlinks, resolves and records the parent commit, then overrides only
+C's revision in a temporary effective manifest. On PRs the candidate is the
+default checkout's synthetic merge commit; checkout, wheel and installed-package
+provenance checks all use that same SHA. The job builds all three wheels and
+installs them together outside the source checkout.
+
+The `family-validation-inputs` artifact contains both manifests and the exact
+source record. Manual runs can select `family_base_ref` (use a full parent
+commit SHA to reproduce a recorded set). This is a C/SI/core co-install gate;
+the parent public job also covers W, and the private F workflow covers the
+complete five-component set. Parent manifest/gitlink promotion is a separate
+step after candidate validation and final-merge revision checks.
+
+See [GOV-03](https://github.com/gomeshun/sashimi-family/issues/4) for the pin
+ownership policy and remaining family integration work.
+
 ## Versions
 
 | Version | Description |
