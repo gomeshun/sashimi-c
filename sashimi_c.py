@@ -10,6 +10,7 @@ from scipy.interpolate import interp1d
 from scipy.interpolate import griddata
 from scipy.special import erf
 from numpy.polynomial.hermite import hermgauss
+from picard_tidal_stripping import PicardTidalStrippingTable
 import os
 import warnings
 warnings.filterwarnings("ignore", category=RuntimeWarning, append=1)
@@ -274,6 +275,7 @@ class TidalStrippingSolver(halo_model):
         self.z_min       = z_min
         self.z_max       = z_max
         self.n_z_interp  = n_z_interp
+        self._picard_tables = {}
         self.M0          = M0
 
 
@@ -285,6 +287,8 @@ class TidalStrippingSolver(halo_model):
     @M0.setter
     def M0(self, value):
         self._M0 = value
+        if hasattr(self, "_picard_tables"):
+            self._picard_tables.clear()
         self.reset_interpolation(
             z_max=self.z_max, 
             z_min=self.z_min,
@@ -355,6 +359,21 @@ class TidalStrippingSolver(halo_model):
     def tdynz(self,z):
         Oz_z = self.OmegaM*(1.+z)**3/self.g(z)
         return 1.628/self.h*(self.Delc(Oz_z-1.)/178.0)**-0.5/(self.Hubble(z)/self.H0)*1.e9*self.yr
+
+
+    def _get_picard_table(self, z_final):
+        """Return a cached x3 Picard table for the requested final redshift."""
+        key = float(z_final)
+        table = self._picard_tables.get(key)
+        if table is None:
+            table = PicardTidalStrippingTable(self, z_final=key)
+            self._picard_tables[key] = table
+        return table
+
+
+    def subhalo_mass_stripped_picard_table(self, ma, za, z):
+        """Calculate tidal mass loss with the precomputed Picard table."""
+        return self._get_picard_table(z).mass(ma, za)
 
 
     def msolve(self,m, z):
@@ -592,6 +611,7 @@ class TidalStrippingSolver(halo_model):
             final redshift.
         method : str, optional
             method to calculate the subhalo mass stripping.
+            - "picard_table" : use the precomputed third-order Picard table.
             - "odeint" : use odeint to solve the differential equation.
             - "pert0" : use perturbative method with zeroth-order correction.
             - "pert1" : use perturbative method with first-order correction.
@@ -609,6 +629,8 @@ class TidalStrippingSolver(halo_model):
             subhalo mass array.
         """
         match method:
+            case "picard_table":
+                return self.subhalo_mass_stripped_picard_table(ma,za,z)
             case "odeint":
                 return self.subhalo_mass_stripped_odeint(ma,za,z,**kwargs)
             case "pert0":

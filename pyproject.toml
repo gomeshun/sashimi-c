@@ -43,6 +43,7 @@ py-modules = [
   "boost_iteration",
   "boost_iteration_prompt_cusps",
   "prompt_cusps",
+  "picard_tidal_stripping",
   "sashimi_c",
   "sashimi_c_itamae",
   "sashimi_c_itamae_catalog",

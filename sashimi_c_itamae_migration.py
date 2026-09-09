@@ -41,6 +41,7 @@ _LEGACY_OMEGA_M = 0.315
 _LEGACY_H = 0.674
 _PHYSICS_MODES = ("consistent", "legacy")
 _STRIPPING_METHODS = (
+    "picard_table",
     "odeint",
     "pert0",
     "pert1",
@@ -606,6 +607,18 @@ class ItamaeMigrationMixin:
             "array=numpy;cosmology="
             f"{self.itamae_cosmology.identifier};units=legacy-sashimi-c-floats"
         )
+        picard_table_settings = None
+        if method == "picard_table":
+            table = solver._get_picard_table(redshift)
+            picard_table_settings = {
+                "n_iterations": int(table.n_iterations),
+                "n_z_acc": int(table.n_z_acc),
+                "n_log_ratio": int(table.n_log_ratio),
+                "log10_ratio_min": float(table.log10_ratio_min),
+                "log10_ratio_max": float(table.log10_ratio_max),
+                "n_integration": int(table.n_integration),
+            }
+
         metadata = build_migration_metadata(
             variant="sashimi-c",
             distribution_name="sashimi-c",
@@ -654,6 +667,7 @@ class ItamaeMigrationMixin:
                 "profile_change": bool(profile_change),
                 "stripping_method": method,
                 "default_stripping_method": _DEFAULT_STRIPPING_METHOD,
+                "picard_table_settings": picard_table_settings,
                 "shanks_small_correction_threshold": (
                     _SHANKS_SMALL_CORRECTION_THRESHOLD
                 ),

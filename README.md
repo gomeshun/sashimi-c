@@ -228,3 +228,18 @@ survive:  If that subhalo survive against tidal disruption or not.
 ```
 
 These outputs are adopted further in various functions of 'subhalo_observables' class. See 'sample.ipynb' for details. They can be used in https://github.com/shinichiroando/dwarf_params to discuss density profiles of dwarf galaxies, as discussed in a related paper: https://arxiv.org/abs/2002.11956
+
+### Tidal-stripping solver compatibility
+
+The historical and migration defaults remain `method="pert2_shanks"`. The
+precomputed third-order Picard solver synchronized from `main` is available as
+an explicit `method="picard_table"` option. This synchronization does **not**
+adopt the proposed default change from PR #5; changing the public scientific
+default requires separate PHY-C review.
+
+Historical migration fixtures continue to use repository revision
+`9f6713b686805645da459e99522e2049e7dea793`, `method="pert2_shanks"`,
+`ct_th=0.0`, and `physics_mode="legacy"` for strict reproduction. Catalog
+metadata records the selected stripping method and, for Picard runs, the table
+iteration/grid settings.
+
