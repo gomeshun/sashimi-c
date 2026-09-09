@@ -25,7 +25,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: gomeshun/itamae
-          ref: 94a1bc54a02fc698204cf20e7c41b8e57df3e614
+          ref: 8bd6d135003e91b6ca2717655df250c8f808cd24
           path: .itamae
       - name: Export migration provenance revisions
         run: |
@@ -42,6 +42,7 @@ jobs:
           uv run --no-sync ruff check
           sashimi_c_itamae.py
           sashimi_c_itamae_catalog.py
+          sashimi_c_itamae_components.py
           sashimi_c_itamae_migration.py
           sashimi_c_itamae_variance.py
           tests
@@ -63,7 +64,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: gomeshun/itamae
-          ref: 94a1bc54a02fc698204cf20e7c41b8e57df3e614
+          ref: 8bd6d135003e91b6ca2717655df250c8f808cd24
           path: .itamae
       - uses: astral-sh/setup-uv@v6
         with:
@@ -100,6 +101,8 @@ jobs:
             "import sashimi_c; assert sashimi_c.subhalo_properties"
           "${GITHUB_WORKSPACE}/.venv-smoke/bin/python" -c \
             "import sashimi_c_itamae; assert sashimi_c_itamae.subhalo_properties"
+          "${GITHUB_WORKSPACE}/.venv-smoke/bin/python" -c \
+            "import sashimi_c_itamae_components; assert sashimi_c_itamae_components.TruncationThresholdSurvival"
           "${GITHUB_WORKSPACE}/.venv-smoke/bin/python" -c \
             "import boost_iteration, boost_iteration_prompt_cusps; assert boost_iteration.main; assert boost_iteration_prompt_cusps.main"
 
