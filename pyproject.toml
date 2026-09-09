@@ -24,12 +24,12 @@ dependencies = [
 [project.optional-dependencies]
 demo = [
   "ipykernel>=6",
-  "sashimi-itamae @ git+https://github.com/gomeshun/itamae.git@94a1bc54a02fc698204cf20e7c41b8e57df3e614 ; python_version >= '3.11'",
+  "sashimi-itamae @ git+https://github.com/gomeshun/itamae.git@8bd6d135003e91b6ca2717655df250c8f808cd24 ; python_version >= '3.11'",
   "matplotlib>=3.8",
   "nbconvert>=7",
 ]
 itamae = [
-  "sashimi-itamae @ git+https://github.com/gomeshun/itamae.git@94a1bc54a02fc698204cf20e7c41b8e57df3e614 ; python_version >= '3.11'",
+  "sashimi-itamae @ git+https://github.com/gomeshun/itamae.git@8bd6d135003e91b6ca2717655df250c8f808cd24 ; python_version >= '3.11'",
 ]
 test = [
   "pytest>=8",
@@ -47,6 +47,7 @@ py-modules = [
   "sashimi_c",
   "sashimi_c_itamae",
   "sashimi_c_itamae_catalog",
+  "sashimi_c_itamae_components",
   "sashimi_c_itamae_migration",
   "sashimi_c_itamae_variance",
 ]
