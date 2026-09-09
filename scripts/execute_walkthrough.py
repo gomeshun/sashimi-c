@@ -1,6 +1,6 @@
 """Execute every walkthrough cell in a fresh kernel and reject incomplete results."""
-from pathlib import Path
 import tempfile
+from pathlib import Path
 
 import nbformat
 from nbclient import NotebookClient
