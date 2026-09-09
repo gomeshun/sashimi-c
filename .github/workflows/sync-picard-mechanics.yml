@@ -1,0 +1,125 @@
+name: sync-picard-mechanics
+
+on:
+  push:
+    branches: [sync/picard-main-20260909]
+    paths: [.github/workflows/sync-picard-mechanics.yml]
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: sync/picard-main-20260909
+      - name: Integrate Picard as an explicit non-default solver
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          def replace_once(text, old, new, label):
+              if old not in text:
+                  raise RuntimeError(f"missing expected text for {label}")
+              return text.replace(old, new, 1)
+
+          path = Path("sashimi_c.py")
+          text = path.read_text()
+          text = replace_once(
+              text,
+              "from numpy.polynomial.hermite import hermgauss\nimport os",
+              "from numpy.polynomial.hermite import hermgauss\nfrom picard_tidal_stripping import PicardTidalStrippingTable\nimport os",
+              "Picard import",
+          )
+          text = replace_once(
+              text,
+              "        self.n_z_interp  = n_z_interp\n        self.M0          = M0",
+              "        self.n_z_interp  = n_z_interp\n        self._picard_tables = {}\n        self.M0          = M0",
+              "Picard cache initialization",
+          )
+          text = replace_once(
+              text,
+              "        self._M0 = value\n        self.reset_interpolation(",
+              "        self._M0 = value\n        if hasattr(self, \"_picard_tables\"):\n            self._picard_tables.clear()\n        self.reset_interpolation(",
+              "Picard cache invalidation",
+          )
+          text = replace_once(
+              text,
+              "    def msolve(self,m, z):",
+              "    def _get_picard_table(self, z_final):\n        \"\"\"Return a cached x3 Picard table for the requested final redshift.\"\"\"\n        key = float(z_final)\n        table = self._picard_tables.get(key)\n        if table is None:\n            table = PicardTidalStrippingTable(self, z_final=key)\n            self._picard_tables[key] = table\n        return table\n\n\n    def subhalo_mass_stripped_picard_table(self, ma, za, z):\n        \"\"\"Calculate tidal mass loss with the precomputed Picard table.\"\"\"\n        return self._get_picard_table(z).mass(ma, za)\n\n\n    def msolve(self,m, z):",
+              "Picard API helpers",
+          )
+          text = replace_once(
+              text,
+              "        match method:\n            case \"odeint\":",
+              "        match method:\n            case \"picard_table\":\n                return self.subhalo_mass_stripped_picard_table(ma,za,z)\n            case \"odeint\":",
+              "Picard dispatch",
+          )
+          text = text.replace(
+              "            - \"odeint\" : use odeint to solve the differential equation.",
+              "            - \"picard_table\" : use the precomputed third-order Picard table.\n            - \"odeint\" : use odeint to solve the differential equation.",
+          )
+          path.write_text(text)
+
+          path = Path("sashimi_c_itamae_migration.py")
+          text = path.read_text()
+          text = replace_once(
+              text,
+              "_STRIPPING_METHODS = (\n    \"odeint\",",
+              "_STRIPPING_METHODS = (\n    \"picard_table\",\n    \"odeint\",",
+              "migration Picard method registration",
+          )
+          text = replace_once(
+              text,
+              "        metadata = build_migration_metadata(\n",
+              "        picard_table_settings = None\n        if method == \"picard_table\":\n            table = solver._get_picard_table(redshift)\n            picard_table_settings = {\n                \"n_iterations\": int(table.n_iterations),\n                \"n_z_acc\": int(table.n_z_acc),\n                \"n_log_ratio\": int(table.n_log_ratio),\n                \"log10_ratio_min\": float(table.log10_ratio_min),\n                \"log10_ratio_max\": float(table.log10_ratio_max),\n                \"n_integration\": int(table.n_integration),\n            }\n\n        metadata = build_migration_metadata(\n",
+              "Picard provenance settings",
+          )
+          text = replace_once(
+              text,
+              "                \"stripping_method\": method,\n                \"default_stripping_method\": _DEFAULT_STRIPPING_METHOD,",
+              "                \"stripping_method\": method,\n                \"default_stripping_method\": _DEFAULT_STRIPPING_METHOD,\n                \"picard_table_settings\": picard_table_settings,",
+              "Picard provenance metadata",
+          )
+          path.write_text(text)
+
+          path = Path("pyproject.toml")
+          text = path.read_text()
+          text = replace_once(
+              text,
+              '  "prompt_cusps",\n  "sashimi_c",',
+              '  "prompt_cusps",\n  "picard_tidal_stripping",\n  "sashimi_c",',
+              "wheel module list",
+          )
+          path.write_text(text)
+
+          path = Path("README.md")
+          text = path.read_text()
+          if "### Tidal-stripping solver compatibility" not in text:
+              text += """
+
+### Tidal-stripping solver compatibility
+
+The historical and migration defaults remain `method=\"pert2_shanks\"`. The
+precomputed third-order Picard solver synchronized from `main` is available as
+an explicit `method=\"picard_table\"` option. This synchronization does **not**
+adopt the proposed default change from PR #5; changing the public scientific
+default requires separate PHY-C review.
+
+Historical migration fixtures continue to use repository revision
+`9f6713b686805645da459e99522e2049e7dea793`, `method=\"pert2_shanks\"`,
+`ct_th=0.0`, and `physics_mode=\"legacy\"` for strict reproduction. Catalog
+metadata records the selected stripping method and, for Picard runs, the table
+iteration/grid settings.
+"""
+          path.write_text(text)
+          PY
+      - name: Commit synchronized mechanics
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add sashimi_c.py sashimi_c_itamae_migration.py pyproject.toml README.md
+          git commit -m "sync: expose Picard as explicit non-default solver"
+          git push
