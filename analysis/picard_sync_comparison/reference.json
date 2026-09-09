@@ -1,0 +1,50 @@
+{
+  "comparisons": {
+    "migrated_legacy_picard_vs_shanks": {
+      "mass_fraction_evolved_picard": 0.0034980432615939446,
+      "mass_fraction_evolved_shanks": 0.0035284809168799162,
+      "mass_fraction_unevolved_picard": 0.012347225141225554,
+      "mass_fraction_unevolved_shanks": 0.012347225141225554,
+      "max_relative_m_bound_difference": 0.01251022688429082,
+      "relative_mass_fraction_evolved_difference": 0.008626277427308926
+    },
+    "public_legacy_vs_migrated_legacy_shanks": {
+      "max_relative_m_bound_difference": 4.440892098500626e-16
+    }
+  },
+  "historical_reference": {
+    "ct_threshold": 0.0,
+    "physics_mode": "legacy",
+    "repository_revision": "9f6713b686805645da459e99522e2049e7dea793",
+    "stripping_method": "pert2_shanks"
+  },
+  "parameters": {
+    "M0": 10000000000.0,
+    "N_herm": 3,
+    "N_hermNa": 3,
+    "N_ma": 6,
+    "Na_model": 3,
+    "ct_th": 0.0,
+    "dz": 0.5,
+    "logmamax": 7.0,
+    "logmamin": 5.0,
+    "profile_change": true,
+    "redshift": 0.0,
+    "sigmalogc": 0.128,
+    "zmax": 1.0
+  },
+  "picard_source": {
+    "default_adopted": false,
+    "main_revision": "e09571be7a1daaef343e97887e34449faf21db7b",
+    "selection": "explicit method=picard_table only"
+  },
+  "picard_table_settings": {
+    "log10_ratio_max": -0.5,
+    "log10_ratio_min": -24.0,
+    "n_integration": 128,
+    "n_iterations": 3,
+    "n_log_ratio": 128,
+    "n_z_acc": 96
+  },
+  "schema": "sashimi-c:picard-sync-comparison:v1"
+}
