@@ -1,0 +1,43 @@
+name: Patch walkthrough rename (temporary)
+on:
+  push:
+    branches: [packaging/sashimi-itamae-dependency-20260909]
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    env:
+      VARIANT: sashimi-c
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: packaging/sashimi-itamae-dependency-20260909
+      - name: Update walkthrough distribution metadata
+        run: |
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          path = Path('notebooks/usage_walkthrough.ipynb')
+          nb = json.loads(path.read_text())
+          variant = os.environ['VARIANT']
+          old_req = 'itamae @ git+https://github.com/gomeshun/itamae.git@1c5b1ad67725671fd4dc1a2306d2731ba337e563'
+          new_req = 'sashimi-itamae @ git+https://github.com/gomeshun/itamae.git@94a1bc54a02fc698204cf20e7c41b8e57df3e614'
+          for cell in nb['cells']:
+              cell['source'] = [line.replace(old_req, new_req) for line in cell.get('source', [])]
+              if cell.get('cell_type') != 'code':
+                  continue
+              for index, line in enumerate(cell['source']):
+                  if line.startswith("packages = [") and "'itamae'" in line:
+                      cell['source'][index] = f"packages = [('sashimi-itamae', 'itamae'), ('{variant}', '{variant}')]\n"
+                      cell['source'][index + 1] = "display({distribution: {'version': version(distribution), 'source_revision': source_revision(component)} for distribution, component in packages})\n"
+          path.write_text(json.dumps(nb, indent=1) + '\n')
+          PY
+      - name: Commit notebook update
+        run: |
+          if git diff --quiet -- notebooks/usage_walkthrough.ipynb; then exit 0; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add notebooks/usage_walkthrough.ipynb
+          git commit -m "docs: use sashimi-itamae distribution metadata"
+          git push origin HEAD:packaging/sashimi-itamae-dependency-20260909
