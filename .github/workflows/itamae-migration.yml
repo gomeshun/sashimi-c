@@ -42,6 +42,7 @@ jobs:
           uv run --no-sync ruff check
           sashimi_c_itamae.py
           sashimi_c_itamae_catalog.py
+          sashimi_c_itamae_components.py
           sashimi_c_itamae_migration.py
           sashimi_c_itamae_variance.py
           tests
@@ -100,6 +101,8 @@ jobs:
             "import sashimi_c; assert sashimi_c.subhalo_properties"
           "${GITHUB_WORKSPACE}/.venv-smoke/bin/python" -c \
             "import sashimi_c_itamae; assert sashimi_c_itamae.subhalo_properties"
+          "${GITHUB_WORKSPACE}/.venv-smoke/bin/python" -c \
+            "import sashimi_c_itamae_components; assert sashimi_c_itamae_components.TruncationThresholdSurvival"
           "${GITHUB_WORKSPACE}/.venv-smoke/bin/python" -c \
             "import boost_iteration, boost_iteration_prompt_cusps; assert boost_iteration.main; assert boost_iteration_prompt_cusps.main"
 
