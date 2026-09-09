@@ -4,7 +4,7 @@ on:
   push:
     branches: [itamae-migration]
   pull_request:
-    branches: [main]
+    branches: [main, itamae-migration]
   workflow_dispatch:
 
 jobs:
