@@ -1,0 +1,33 @@
+name: Normalize C walkthrough sources (temporary)
+on:
+  push:
+    branches: [docs/usage-walkthrough-20260907]
+permissions:
+  contents: write
+jobs:
+  normalize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: docs/usage-walkthrough-20260907
+      - name: Add README entry
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('README.md')
+          text = path.read_text()
+          marker = '</p>\n\n# Semi-Analytical SubHalo Inference ModelIng for CDM (SASHIMI-C)'
+          replacement = '''</p>\n\n## Hands-on usage walkthrough\n\nStart with [the executable usage walkthrough](notebooks/usage_walkthrough.ipynb): a bounded CDM calculation, legacy/migrated comparison, catalogue inspection/export, weighted mass functions, and explicit checks. The **Usage walkthrough** CI executes every cell in a fresh kernel and uploads the executed artifact. This migration deliverable is tracked in [sashimi-family #28](https://github.com/gomeshun/sashimi-family/issues/28).\n\n# Semi-Analytical SubHalo Inference ModelIng for CDM (SASHIMI-C)'''
+          if marker not in text:
+              raise SystemExit('README insertion marker not found')
+          path.write_text(text.replace(marker, replacement, 1))
+          PY
+      - name: Commit README entry
+        run: |
+          if git diff --quiet; then exit 0; fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add README.md
+          git commit -m 'docs: link C usage walkthrough from README'
+          git push origin HEAD:docs/usage-walkthrough-20260907
