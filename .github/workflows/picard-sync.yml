@@ -35,10 +35,17 @@ jobs:
           python-version: "3.11"
       - name: Create clean comparison environment
         run: uv venv --python 3.11 .venv-picard
-      - name: Install candidate and ITAMAE
+      - name: Install candidate, ITAMAE, and lint tooling
         run: |
           uv pip install --python .venv-picard/bin/python ./.itamae
-          uv pip install --python .venv-picard/bin/python ".[test]"
+          uv pip install --python .venv-picard/bin/python ".[test]" ruff
+      - name: Lint Picard synchronization files
+        run: >-
+          .venv-picard/bin/python -m ruff check
+          picard_tidal_stripping.py
+          tests/test_picard_tidal_stripping.py
+          tests/test_picard_migration_sync.py
+          scripts/picard_sync_comparison.py
       - name: Run migration Picard comparison regressions
         run: .venv-picard/bin/python -m pytest -q tests/test_picard_migration_sync.py
       - name: Generate full small-catalog comparison artifact
