@@ -57,14 +57,14 @@ def test_picard3_matches_log_ode_reference(solver, picard3, z_acc, mass_ratio):
 
 
 def test_three_iterations_improve_challenging_high_redshift_case(solver):
-    common = dict(
-        solver=solver,
-        n_z_acc=96,
-        n_log_ratio=96,
-        log10_ratio_min=-18.0,
-        log10_ratio_max=-0.5,
-        n_integration=128,
-    )
+    common = {
+        "solver": solver,
+        "n_z_acc": 96,
+        "n_log_ratio": 96,
+        "log10_ratio_min": -18.0,
+        "log10_ratio_max": -0.5,
+        "n_integration": 128,
+    }
     picard2 = PicardTidalStrippingTable(n_iterations=2, **common)
     picard3 = PicardTidalStrippingTable(n_iterations=3, **common)
 
