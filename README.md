@@ -2,6 +2,10 @@
   <img src="assets/logo.svg" alt="SASHIMI-C logo" width="440">
 </p>
 
+## Hands-on usage walkthrough
+
+Start with [the executable usage walkthrough](notebooks/usage_walkthrough.ipynb): a bounded CDM calculation, legacy/migrated comparison, catalogue inspection/export, weighted mass functions, and explicit checks. The **Usage walkthrough** CI executes every cell in a fresh kernel and uploads the executed artifact. This migration deliverable is tracked in [sashimi-family #28](https://github.com/gomeshun/sashimi-family/issues/28).
+
 # Semi-Analytical SubHalo Inference ModelIng for CDM (SASHIMI-C)
 [![arXiv](https://img.shields.io/badge/arXiv-1803.07691%20-green.svg)](https://arxiv.org/abs/1803.07961)
 [![arXiv](https://img.shields.io/badge/arXiv-1903.11427%20-green.svg)](https://arxiv.org/abs/1903.11427)
