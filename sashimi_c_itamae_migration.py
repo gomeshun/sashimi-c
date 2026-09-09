@@ -35,6 +35,7 @@ from sashimi_c import (
     subhalo_observables,
     subhalo_properties,
 )
+from sashimi_c_itamae_components import TruncationThresholdSurvival
 
 _Base = TypeVar("_Base", bound=type)
 _LEGACY_OMEGA_M = 0.315
@@ -517,9 +518,7 @@ class ItamaeMigrationMixin:
             )
             c_sub = batch.concentration_acc.reshape(N_herm, -1)
             rs_acc = context["rvir_acc"] / c_sub
-            rhos_acc = context["mvir_acc"] / (
-                4.0 * np.pi * rs_acc**3 * self.fc(c_sub)
-            )
+            rhos_acc = context["mvir_acc"] / (4.0 * np.pi * rs_acc**3 * self.fc(c_sub))
             return {
                 "r_s_acc": rs_acc.reshape(-1),
                 "rho_s_acc": rhos_acc.reshape(-1),
@@ -535,9 +534,7 @@ class ItamaeMigrationMixin:
 
             if profile_change:
                 rmax_acc = rs_acc * 2.163
-                Vmax_acc = (
-                    np.sqrt(rhos_acc * 4.0 * np.pi * self.G / 4.625) * rs_acc
-                )
+                Vmax_acc = np.sqrt(rhos_acc * 4.0 * np.pi * self.G / 4.625) * rs_acc
                 Vmax_z0 = Vmax_acc * (
                     2.0**0.4 * (m0 / ma) ** 0.3 * (1.0 + m0 / ma) ** -0.4
                 )
@@ -545,9 +542,7 @@ class ItamaeMigrationMixin:
                     2.0**-0.3 * (m0 / ma) ** 0.4 * (1.0 + m0 / ma) ** 0.3
                 )
                 rs_z0 = rmax_z0 / 2.163
-                rhos_z0 = (4.625 / (4.0 * np.pi * self.G)) * (
-                    Vmax_z0 / rs_z0
-                ) ** 2
+                rhos_z0 = (4.625 / (4.0 * np.pi * self.G)) * (Vmax_z0 / rs_z0) ** 2
             else:
                 rs_z0 = rs_acc
                 rhos_z0 = rhos_acc
@@ -569,8 +564,7 @@ class ItamaeMigrationMixin:
                 "c_t": c_t.reshape(-1),
             }
 
-        def survival(batch, initial, evolved, context):
-            return evolved["c_t"] > ct_th
+        survival_component = TruncationThresholdSurvival(ct_threshold=ct_th)
 
         def columns(batch, initial, evolved, survival_masks, context):
             return {
@@ -588,7 +582,7 @@ class ItamaeMigrationMixin:
         execution = PopulationPipeline(
             initialize=initialize,
             evolve=evolve,
-            survival=survival,
+            survival=survival_component.select,
             columns=columns,
         ).execute(batches, contexts=contexts)
 
@@ -633,9 +627,7 @@ class ItamaeMigrationMixin:
             extra={
                 "cosmology_backend": self.itamae_cosmology.identifier,
                 "cosmology_parameters": {
-                    "omega_m0": float(
-                        np.asarray(self.itamae_cosmology.omega_m(0.0))
-                    ),
+                    "omega_m0": float(np.asarray(self.itamae_cosmology.omega_m(0.0))),
                     "h": float(np.asarray(self.itamae_cosmology.H(0.0))) / 100.0,
                     "omega_lambda0": 1.0
                     - float(np.asarray(self.itamae_cosmology.omega_m(0.0))),
