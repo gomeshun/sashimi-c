@@ -17,9 +17,7 @@ from typing import Any, TypeVar
 import numpy as np
 from itamae.cosmology import NativeFlatLCDM
 from itamae.evolution import shanks_transform
-from itamae.execution import PopulationPipeline
-from itamae.halo import invert_nfw_mass_function
-from itamae.measure import build_accretion_batch
+from itamae.execution import PopulationComponents
 from itamae.numerics import gauss_hermite_lognormal
 from itamae.protocols import CosmologyBackend
 from itamae.provenance import build_migration_metadata
@@ -35,7 +33,13 @@ from sashimi_c import (
     subhalo_observables,
     subhalo_properties,
 )
-from sashimi_c_itamae_components import TruncationThresholdSurvival
+from sashimi_c_itamae_components import (
+    CDMAccretionSlices,
+    CDMCatalogColumns,
+    NFWInitialStructure,
+    TidalProfileEvolution,
+    TruncationThresholdSurvival,
+)
 
 _Base = TypeVar("_Base", bound=type)
 _LEGACY_OMEGA_M = 0.315
@@ -462,130 +466,32 @@ class ItamaeMigrationMixin:
         population_2d = Na / (1.0 + zdist.reshape(-1, 1))
         population_2d = population_2d / np.sum(population_2d) * Na_total
 
-        def make_slice(index: int):
-            z_acc_value = zdist[index]
-            ma = self.Mvir_from_M200_fit(ma200_grid, z_acc_value)
-            Oz = self.OmegaM * (1.0 + z_acc_value) ** 3 / self.g(z_acc_value)
-            c200sub = self.conc200(ma200_grid, z_acc_value)
-            rvirsub = (
-                3.0
-                * ma
-                / (
-                    4.0
-                    * np.pi
-                    * self.rhocrit0
-                    * self.g(z_acc_value)
-                    * self.Delc(Oz - 1.0)
-                )
-            ) ** (1.0 / 3.0)
-            r200sub = (
-                3.0
-                * ma200_grid
-                / (4.0 * np.pi * self.rhocrit0 * self.g(z_acc_value) * 200.0)
-            ) ** (1.0 / 3.0)
-            c_mz = c200sub * rvirsub / r200sub
-            c_sub, concentration_weight = gauss_hermite_lognormal(
-                c_mz, sigmalogc, order=N_herm
-            )
-            batch = build_accretion_batch(
-                ma200_grid,
-                z_acc_value,
-                c_sub,
-                population_2d[index],
-                concentration_weight,
-                mvir_acc=ma,
-                metadata={"model": "sashimi-c", "physics_mode": self.physics_mode},
-            )
-            context = {
-                "redshift_index": index,
-                "mvir_acc": ma,
-                "z_acc": z_acc_value,
-                "rvir_acc": rvirsub,
-                "r200_acc": r200sub,
-            }
-            return batch, context
-
-        slices = [make_slice(index) for index in range(len(zdist))]
-        batches = [item[0] for item in slices]
-        contexts = [item[1] for item in slices]
-
-        def initialize(batch, context):
-            m0 = solver.subhalo_mass_stripped(
-                context["mvir_acc"],
-                context["z_acc"],
-                redshift,
+        slice_builder = CDMAccretionSlices(
+            model=self,
+            ma200_grid=ma200_grid,
+            zdist=zdist,
+            population_2d=population_2d,
+            sigmalogc=sigmalogc,
+            N_herm=N_herm,
+        )
+        slices = [slice_builder.build(index) for index in range(len(zdist))]
+        execution = PopulationComponents(
+            initializer=NFWInitialStructure(model=self, N_herm=N_herm),
+            evolver=TidalProfileEvolution(
+                model=self,
+                solver=solver,
+                redshift=redshift,
                 method=method,
-                **kwargs,
-            )
-            c_sub = batch.concentration_acc.reshape(N_herm, -1)
-            rs_acc = context["rvir_acc"] / c_sub
-            rhos_acc = context["mvir_acc"] / (4.0 * np.pi * rs_acc**3 * self.fc(c_sub))
-            return {
-                "r_s_acc": rs_acc.reshape(-1),
-                "rho_s_acc": rhos_acc.reshape(-1),
-                "m_bound": np.broadcast_to(m0, (N_herm, m0.size)).reshape(-1),
-            }
-
-        def evolve(batch, initial, context):
-            n_mass = context["mvir_acc"].size
-            m0 = initial["m_bound"].reshape(N_herm, n_mass)
-            ma = context["mvir_acc"]
-            rs_acc = initial["r_s_acc"].reshape(N_herm, n_mass)
-            rhos_acc = initial["rho_s_acc"].reshape(N_herm, n_mass)
-
-            if profile_change:
-                rmax_acc = rs_acc * 2.163
-                Vmax_acc = np.sqrt(rhos_acc * 4.0 * np.pi * self.G / 4.625) * rs_acc
-                Vmax_z0 = Vmax_acc * (
-                    2.0**0.4 * (m0 / ma) ** 0.3 * (1.0 + m0 / ma) ** -0.4
-                )
-                rmax_z0 = rmax_acc * (
-                    2.0**-0.3 * (m0 / ma) ** 0.4 * (1.0 + m0 / ma) ** 0.3
-                )
-                rs_z0 = rmax_z0 / 2.163
-                rhos_z0 = (4.625 / (4.0 * np.pi * self.G)) * (Vmax_z0 / rs_z0) ** 2
-            else:
-                rs_z0 = rs_acc
-                rhos_z0 = rhos_acc
-
-            enclosed_fraction = m0 / (4.0 * np.pi * rhos_z0 * rs_z0**3)
-            if self.physics_mode == "consistent":
-                c_t = invert_nfw_mass_function(enclosed_fraction)
-            else:
-                legacy_c_t = np.linspace(0.0, 100.0, 1000)
-                inverse = interp1d(
-                    self.fc(legacy_c_t),
-                    legacy_c_t,
-                    fill_value="extrapolate",
-                )
-                c_t = inverse(enclosed_fraction)
-            return {
-                "r_s": rs_z0.reshape(-1),
-                "rho_s": rhos_z0.reshape(-1),
-                "c_t": c_t.reshape(-1),
-            }
-
-        survival_component = TruncationThresholdSurvival(ct_threshold=ct_th)
-
-        def columns(batch, initial, evolved, survival_masks, context):
-            return {
-                "m200_acc": batch.m200_acc,
-                "z_acc": batch.z_acc,
-                "r_s_acc": initial["r_s_acc"],
-                "rho_s_acc": initial["rho_s_acc"],
-                "m_bound": initial["m_bound"],
-                "r_s": evolved["r_s"],
-                "rho_s": evolved["rho_s"],
-                "c_t": evolved["c_t"],
-                "survive": survival_masks["default"],
-            }
-
-        execution = PopulationPipeline(
-            initialize=initialize,
-            evolve=evolve,
-            survival=survival_component.select,
-            columns=columns,
-        ).execute(batches, contexts=contexts)
+                N_herm=N_herm,
+                profile_change=profile_change,
+                kwargs=kwargs,
+            ),
+            survival=TruncationThresholdSurvival(ct_threshold=ct_th),
+            columns=CDMCatalogColumns(),
+        ).execute(
+            [batch for batch, _ in slices],
+            contexts=[context for _, context in slices],
+        )
 
         survive = execution.survival["default"]
         legacy_weight = (
