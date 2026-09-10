@@ -212,3 +212,12 @@ runs the frozen version outside this product. Current catalog
 metadata records the selected stripping method and, for Picard runs, the table
 iteration/grid settings.
 
+
+### Monte Carlo and prompt-cusp inputs
+
+Use `observables.subhalo_catalog_MC(mth, seed=20260910)` or pass an explicit
+`numpy.random.Generator` with `rng=`. See [runtime inputs](docs/runtime-inputs.md)
+for row-order and reproducibility guarantees. Prompt-cusp calculations accept
+`data_dir=` or `SASHIMI_C_DATA_DIR`; missing required spectra raise an informative
+`RuntimeError`. The unavailable redshift-31 table and its dependent scientific
+validation are explicitly deferred by the project owner.

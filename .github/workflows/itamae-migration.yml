@@ -42,6 +42,7 @@ jobs:
           uv run --no-sync ruff check
           sashimi_c.py
           sashimi_c_physics.py
+          sashimi_c_data.py
           sashimi_c_itamae.py
           sashimi_c_itamae_catalog.py
           sashimi_c_itamae_components.py

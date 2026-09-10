@@ -593,6 +593,7 @@ class SubhaloObservables(SubhaloProperties, CDMObservableKernels):
         alpha=1.8,
         method="pert2_shanks",
         cosmology_backend=None,
+        data_dir=None,
         **kwargs,
     ):
         """
@@ -673,6 +674,7 @@ class SubhaloObservables(SubhaloProperties, CDMObservableKernels):
             k_fs_Mpc=k_fs_Mpc,
             filter=filter,
             alpha=alpha,
+            data_dir=data_dir,
         )
         ma200, z_a, rs_a, rhos_a, m0, rs0, rhos0, ct0, weight, survive = (
             self.subhalo_properties_calc(

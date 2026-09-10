@@ -24,10 +24,11 @@ from scipy.optimize import root
 from scipy.special import erf
 
 from sashimi_c import cosmology
+from sashimi_c_data import data_directory, require_input
 
 
 def build_ps_interpolators(cosmo, k_fs, filter='Sharp-k', alpha=1.8,
-                           datafile='./data/Planck2018_CAMB_extrap.dat'):
+                           datafile=None):
     """
     Build ``sigma(M)`` and ``dsigma^2/dM`` interpolators for the prompt-cusp mass
     function, from the CAMB linear matter power spectrum with a free-streaming
@@ -38,7 +39,8 @@ def build_ps_interpolators(cosmo, k_fs, filter='Sharp-k', alpha=1.8,
     over ``log10(M/Msun)``. Lifted out of ``sashimi_c.halo_model`` so the heavy
     power-spectrum code is only loaded when ``prompt_cusps=True``.
     """
-    k, Pk = np.loadtxt(datafile, unpack=True)
+    source = require_input(datafile if datafile is not None else data_directory(cosmo.data_dir)/"Planck2018_CAMB_extrap.dat")
+    k, Pk = np.loadtxt(source, unpack=True)
     k  = k * (cosmo.Mpc / cosmo.h) ** -1
     Pk = Pk * (cosmo.Mpc / cosmo.h) ** 3
     Pk = Pk * np.exp(-(k / k_fs) ** 2)
@@ -88,8 +90,8 @@ def build_ps_interpolators(cosmo, k_fs, filter='Sharp-k', alpha=1.8,
 class prompt_cusps(cosmology):
     
     
-    def __init__(self, k_fs):
-        cosmology.__init__(self)
+    def __init__(self, k_fs, *, data_dir=None):
+        cosmology.__init__(self, data_dir=data_dir)
         
         self.GeV      = self.Msun/1.118e57
         self.m_chi    = 100.*self.GeV
@@ -103,7 +105,7 @@ class prompt_cusps(cosmology):
         _a         = 1./(1.+_z)
         a          = 1./(1.+z)
         g          = 0.901
-        _k,_Delta2 = np.loadtxt('data/powerspectrum31.txt',unpack=True,delimiter=',')
+        _k,_Delta2 = np.loadtxt(require_input(self.data_dir/'powerspectrum31.txt'),unpack=True,delimiter=',')
         _k        *= self.Mpc**-1
         _Delta2   *= (a/_a)**(2.*g)
         fint       = interp1d(np.log(_k),np.log(_Delta2),fill_value='extrapolate')
@@ -277,7 +279,7 @@ class prompt_cusps(cosmology):
     def _load_or_generate_prompt_cusp_mc(
         self,
         length=10000,
-        mc_cache_file="data/prompt_cusps/prompt_cusps_Monte_Carlo.txt",
+        mc_cache_file=None,
         regenerate=False,
         rng_seed=None,
         verbose=False,
@@ -305,7 +307,7 @@ class prompt_cusps(cosmology):
         x_random, nu_random, e_random, p_random, fec_random : 1D arrays
         """
 
-        cache_path = mc_cache_file
+        cache_path = str(self.data_dir/"prompt_cusps"/"prompt_cusps_Monte_Carlo.txt") if mc_cache_file is None else str(mc_cache_file)
         cache_dir = os.path.dirname(cache_path)
         if cache_dir:
             os.makedirs(cache_dir, exist_ok=True)
@@ -348,7 +350,7 @@ class prompt_cusps(cosmology):
         f_surv=1.,
         z=0.,
         mc_length=10000,
-        mc_cache_file="data/prompt_cusps/prompt_cusps_Monte_Carlo.txt",
+        mc_cache_file=None,
         regenerate_mc=False,
         rng_seed=None,
         verbose=False,
