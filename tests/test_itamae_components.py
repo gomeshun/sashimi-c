@@ -1,6 +1,7 @@
 import numpy as np
 from itamae.execution import PopulationComponents
 
+from sashimi_c_itamae import subhalo_properties
 from sashimi_c_itamae_components import (
     CDMAccretionSlices,
     CDMCatalogColumns,
@@ -8,7 +9,6 @@ from sashimi_c_itamae_components import (
     TidalProfileEvolution,
     TruncationThresholdSurvival,
 )
-from sashimi_c_itamae import subhalo_properties
 
 
 def test_truncation_threshold_survival_preserves_strict_legacy_cut():

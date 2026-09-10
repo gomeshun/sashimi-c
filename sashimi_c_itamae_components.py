@@ -11,12 +11,12 @@ from dataclasses import dataclass
 from typing import Any
 
 import numpy as np
-from scipy.interpolate import interp1d
 from itamae.halo import invert_nfw_mass_function
 from itamae.measure import build_accretion_batch
 from itamae.numerics import gauss_hermite_lognormal
 from itamae.protocols.execution import PopulationState
 from itamae.types import AccretionBatch
+from scipy.interpolate import interp1d
 
 
 @dataclass(frozen=True, slots=True)
@@ -193,8 +193,8 @@ class TruncationThresholdSurvival:
 
 __all__ = [
     "CDMAccretionSlices",
+    "CDMCatalogColumns",
     "NFWInitialStructure",
     "TidalProfileEvolution",
-    "CDMCatalogColumns",
     "TruncationThresholdSurvival",
 ]

@@ -35,9 +35,9 @@ from sashimi_c import (
 )
 from sashimi_c_itamae_components import (
     CDMAccretionSlices,
+    CDMCatalogColumns,
     NFWInitialStructure,
     TidalProfileEvolution,
-    CDMCatalogColumns,
     TruncationThresholdSurvival,
 )
 
