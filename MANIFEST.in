@@ -1,2 +1,6 @@
 recursive-include tests *.py *.json *.npz *.txt
 include setup.py
+include CHANGELOG.md CITATION.cff
+recursive-include docs *.md *.example
+recursive-include notebooks *.ipynb
+recursive-include validation *.json *.npz *.md

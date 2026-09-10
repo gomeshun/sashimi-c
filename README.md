@@ -228,3 +228,18 @@ for row-order and reproducibility guarantees. Prompt-cusp calculations accept
 `data_dir=` or `SASHIMI_C_DATA_DIR`; missing required spectra raise an informative
 `RuntimeError`. The unavailable redshift-31 table and its dependent scientific
 validation are explicitly deferred by the project owner.
+
+## Review candidate
+
+The prepared version is `2.0.0rc1`, with a versioned `sashimi-itamae` dependency.
+See [release preparation](docs/release-preparation.md), [changelog](CHANGELOG.md)
+and [citation metadata](CITATION.cff). The full artifact matrix is recorded in the
+family review handoff after verification; no public upload is implied.
+
+## Measured numerical sensitivity
+
+[Resolution and state validation](docs/resolution-and-states.md) records the
+full saved-grid evidence, solver differences, finite EPS limits and remaining
+use limitations. The last dz refinement (.01 to .005) changes bound mass
+fractions by about 0.754% at fixed reduced settings. These are measured
+sensitivities, not universal error guarantees or a change of physical defaults.

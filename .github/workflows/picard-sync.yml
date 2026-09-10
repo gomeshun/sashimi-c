@@ -19,7 +19,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: gomeshun/itamae
-          ref: e5c77cdf2832104752d641dd553902fc507885ba
+          ref: dfa083d0d46181c376947ac7b2da829facaf2e8b
           path: .itamae
       - name: Install standard API Picard test dependencies
         run: python -m pip install ./.itamae '.[test]'
@@ -34,7 +34,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: gomeshun/itamae
-          ref: e5c77cdf2832104752d641dd553902fc507885ba
+          ref: dfa083d0d46181c376947ac7b2da829facaf2e8b
           path: .itamae
       - uses: astral-sh/setup-uv@v6
         with:

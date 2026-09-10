@@ -1,0 +1,28 @@
+{
+  "source_bundle": "https://github.com/gomeshun/sashimi-family/tree/codex/migration-release-20260910/validation/science/sashimi-c",
+  "summary_sha256": "b99a3b610719ab94328c2921e69bce3662a28d3026d2bb2e0245186b25e92aa9",
+  "audit": "scripts/summarize_population_convergence.py recomputes all metrics from hash-verified saved catalogs; verifies finite arrays, nonnegative weights and fitted accretion virial-mass bound.",
+  "repeated_catalogs_bitwise_equal": [
+    {
+      "label": "baseline",
+      "state": "default",
+      "before": "validation/science/sashimi-c/convergence-3fefa34/baseline-default.npz",
+      "after": "validation/science/sashimi-c/eps-catalog-3a822be/baseline-default.npz",
+      "arrays_bitwise_equal": true
+    },
+    {
+      "label": "N_hermNa-64",
+      "state": "default",
+      "before": "validation/science/sashimi-c/convergence-3fefa34/N_hermNa-64-default.npz",
+      "after": "validation/science/sashimi-c/eps-catalog-3a822be/N_hermNa-64-default.npz",
+      "arrays_bitwise_equal": true
+    },
+    {
+      "label": "N_hermNa-200",
+      "state": "default",
+      "before": "validation/science/sashimi-c/convergence-fine-3fefa34/N_hermNa-200-default.npz",
+      "after": "validation/science/sashimi-c/eps-catalog-3a822be/N_hermNa-200-default.npz",
+      "arrays_bitwise_equal": true
+    }
+  ]
+}

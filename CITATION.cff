@@ -1,0 +1,16 @@
+cff-version: 1.2.0
+message: "Please cite this software and the model papers for the physical prescriptions used."
+type: software
+title: "SASHIMI-C"
+version: "2.0.0rc1"
+repository-code: "https://github.com/gomeshun/sashimi-c"
+license: MIT
+authors:
+  - family-names: "Ando"
+    given-names: "Shin'ichiro"
+  - family-names: "Hiroshima"
+    given-names: "Nagisa"
+  - family-names: "Horigome"
+    given-names: "Shunichi"
+  - family-names: "Dekker"
+    given-names: "Ariane"

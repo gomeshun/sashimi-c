@@ -1,0 +1,784 @@
+{
+  "variant": "sashimi-c",
+  "script_sha256": "412d44ef82e2b11cf2c4c842c55d7a1923ab4e9e500d3f5bb3a9551ce212f6e0",
+  "sources": [
+    {
+      "path": "validation/science/sashimi-c/convergence-3fefa34/report.json",
+      "sha256": "f0685a9310d7e520f4f6f7616d131b46d27e0a6fdada2727fc7c140d3eadd359",
+      "source_revisions": {
+        "sashimi-c": "3fefa3426c33945ce4af63a472812ac6f9e4517c",
+        "itamae": "c2d7b9afb9773bc8cb5b2ee142d70d95cc3afe3b"
+      },
+      "dependencies": {
+        "numpy": "2.4.6",
+        "scipy": "1.17.1",
+        "sashimi-itamae": "0.1.0a4"
+      },
+      "failure": null
+    },
+    {
+      "path": "validation/science/sashimi-c/convergence-fine-3fefa34/report.json",
+      "sha256": "fea7b113fb65eb6664551c921b045abbcfc0004074817d616be6ad6ca4f9f8fd",
+      "source_revisions": {
+        "sashimi-c": "3fefa3426c33945ce4af63a472812ac6f9e4517c",
+        "itamae": "c2d7b9afb9773bc8cb5b2ee142d70d95cc3afe3b"
+      },
+      "dependencies": {
+        "numpy": "2.4.6",
+        "scipy": "1.17.1",
+        "sashimi-itamae": "0.1.0a4"
+      },
+      "failure": null
+    },
+    {
+      "path": "validation/science/sashimi-c/eps-catalog-3a822be/report.json",
+      "sha256": "bdcd797166c19b0364327a4706ee67824a043b0dae82773e69196b24b2613090",
+      "source_revisions": {
+        "sashimi-c": "3a822be2c5d83f5fa00a7ec49fc08d0fed40d505",
+        "itamae": "dfa083d0d46181c376947ac7b2da829facaf2e8b"
+      },
+      "dependencies": {
+        "numpy": "2.4.6",
+        "scipy": "1.17.1",
+        "sashimi-itamae": "0.2.0rc1"
+      },
+      "failure": null
+    }
+  ],
+  "interpretation": "One-variable finite-grid comparisons at fixed reduced settings; no extrapolation or default recalibration. Fitted accretion virial-mass bound, finite arrays, nonnegative weights and all displayed metrics checked for every saved catalog.",
+  "rows": {
+    "baseline": {
+      "label": "baseline",
+      "parameters": {
+        "M0": 1000000000000.0,
+        "redshift": 0.0,
+        "dz": 0.25,
+        "zmax": 3.0,
+        "N_ma": 16,
+        "logmamin": 6.0,
+        "logmamax": 10.0,
+        "N_herm": 3,
+        "N_hermNa": 8,
+        "ct_th": 0.77,
+        "method": "pert2_shanks"
+      },
+      "seconds": 0.8669894689228386,
+      "warnings": [],
+      "states": {
+        "default": {
+          "metrics": {
+            "count": 9744.067724642005,
+            "bound_mass_fraction": 0.029520206580550826,
+            "count_above_1e7": 242.707815795274,
+            "NFW_luminosity_sum": 9.357769563977593e+25
+          },
+          "nodes": 576,
+          "file": "baseline-default.npz",
+          "sha256": "8357b75a65f22ae81034e49caae41508a9da5fa06cf79430750dec755976776f"
+        }
+      },
+      "source_report": "validation/science/sashimi-c/eps-catalog-3a822be/report.json"
+    },
+    "N_ma-32": {
+      "label": "N_ma-32",
+      "parameters": {
+        "M0": 1000000000000.0,
+        "redshift": 0.0,
+        "dz": 0.25,
+        "zmax": 3.0,
+        "N_ma": 32,
+        "logmamin": 6.0,
+        "logmamax": 10.0,
+        "N_herm": 3,
+        "N_hermNa": 8,
+        "ct_th": 0.77,
+        "method": "pert2_shanks"
+      },
+      "seconds": 0.5491966699482873,
+      "warnings": [],
+      "states": {
+        "default": {
+          "metrics": {
+            "count": 9739.810550635744,
+            "bound_mass_fraction": 0.0320655769521397,
+            "count_above_1e7": 288.6941243781321,
+            "NFW_luminosity_sum": 1.0235922216841925e+26
+          },
+          "nodes": 1152,
+          "file": "N_ma-32-default.npz",
+          "sha256": "7dadef6885346a138e12f94cd901e1d64330d472b00d258ba56db5f87dc4a03c"
+        }
+      },
+      "source_report": "validation/science/sashimi-c/convergence-3fefa34/report.json"
+    },
+    "N_ma-64": {
+      "label": "N_ma-64",
+      "parameters": {
+        "M0": 1000000000000.0,
+        "redshift": 0.0,
+        "dz": 0.25,
+        "zmax": 3.0,
+        "N_ma": 64,
+        "logmamin": 6.0,
+        "logmamax": 10.0,
+        "N_herm": 3,
+        "N_hermNa": 8,
+        "ct_th": 0.77,
+        "method": "pert2_shanks"
+      },
+      "seconds": 1.005897432914935,
+      "warnings": [],
+      "states": {
+        "default": {
+          "metrics": {
+            "count": 9739.571066317516,
+            "bound_mass_fraction": 0.03342105341045945,
+            "count_above_1e7": 307.1948527087705,
+            "NFW_luminosity_sum": 1.0704170492325201e+26
+          },
+          "nodes": 2304,
+          "file": "N_ma-64-default.npz",
+          "sha256": "2b56416b320bb5fd4cd1e959111389692e194d85edb81cda4dc4b446f88730aa"
+        }
+      },
+      "source_report": "validation/science/sashimi-c/convergence-3fefa34/report.json"
+    },
+    "N_ma-128": {
+      "label": "N_ma-128",
+      "parameters": {
+        "M0": 1000000000000.0,
+        "redshift": 0.0,
+        "dz": 0.25,
+        "zmax": 3.0,
+        "N_ma": 128,
+        "logmamin": 6.0,
+        "logmamax": 10.0,
+        "N_herm": 3,
+        "N_hermNa": 8,
+        "ct_th": 0.77,
+        "method": "pert2_shanks"
+      },
+      "seconds": 2.122697200975381,
+      "warnings": [],
+      "states": {
+        "default": {
+          "metrics": {
+            "count": 9739.556954214964,
+            "bound_mass_fraction": 0.03411841362627862,
+            "count_above_1e7": 318.99917794955604,
+            "NFW_luminosity_sum": 1.0945273392187885e+26
+          },
+          "nodes": 4608,
+          "file": "N_ma-128-default.npz",
+          "sha256": "90b4a50ac335a9412f367a6aa5e49a47014e354c66e0634ab43d410ca54c3f2d"
+        }
+      },
+      "source_report": "validation/science/sashimi-c/convergence-3fefa34/report.json"
+    },
+    "dz-0.125": {
+      "label": "dz-0.125",
+      "parameters": {
+        "M0": 1000000000000.0,
+        "redshift": 0.0,
+        "dz": 0.125,
+        "zmax": 3.0,
+        "N_ma": 16,
+        "logmamin": 6.0,
+        "logmamax": 10.0,
+        "N_herm": 3,
+        "N_hermNa": 8,
+        "ct_th": 0.77,
+        "method": "pert2_shanks"
+      },
+      "seconds": 2.2675592629238963,
+      "warnings": [],
+      "states": {
+        "default": {
+          "metrics": {
+            "count": 10427.21629741133,
+            "bound_mass_fraction": 0.03590925762057174,
+            "count_above_1e7": 286.47271274684647,
+            "NFW_luminosity_sum": 1.023088561835904e+26
+          },
+          "nodes": 1152,
+          "file": "dz-0.125-default.npz",
+          "sha256": "df6e57b1a9f1de129b0411a3939ba2131290469b7906e1ad4b18bdeae66d893f"
+        }
+      },
+      "source_report": "validation/science/sashimi-c/convergence-3fefa34/report.json"
+    },
+    "dz-0.0625": {
+      "label": "dz-0.0625",
+      "parameters": {
+        "M0": 1000000000000.0,
+        "redshift": 0.0,
+        "dz": 0.0625,
+        "zmax": 3.0,
+        "N_ma": 16,
+        "logmamin": 6.0,
+        "logmamax": 10.0,
+        "N_herm": 3,
+        "N_hermNa": 8,
+        "ct_th": 0.77,
+        "method": "pert2_shanks"
+      },
+      "seconds": 1.1305043970933184,
+      "warnings": [],
+      "states": {
+        "default": {
+          "metrics": {
+            "count": 10777.778315540578,
+            "bound_mass_fraction": 0.03952835262907483,
+            "count_above_1e7": 320.18068093624896,
+            "NFW_luminosity_sum": 1.0683688492877205e+26
+          },
+          "nodes": 2304,
+          "file": "dz-0.0625-default.npz",
+          "sha256": "d23d40b7b2c3b338dce6672d99123dfe47276ab5e55017a0f232006c703d1eb4"
+        }
+      },
+      "source_report": "validation/science/sashimi-c/convergence-3fefa34/report.json"
+    },
+    "dz-0.03125": {
+      "label": "dz-0.03125",
+      "parameters": {
+        "M0": 1000000000000.0,
+        "redshift": 0.0,
+        "dz": 0.03125,
+        "zmax": 3.0,
+        "N_ma": 16,
+        "logmamin": 6.0,
+        "logmamax": 10.0,
+        "N_herm": 3,
+        "N_hermNa": 8,
+        "ct_th": 0.77,
+        "method": "pert2_shanks"
+      },
+      "seconds": 2.130496278987266,
+      "warnings": [],
+      "states": {
+        "default": {
+          "metrics": {
+            "count": 10955.537203350603,
+            "bound_mass_fraction": 0.041449863040147035,
+            "count_above_1e7": 337.6431909201069,
+            "NFW_luminosity_sum": 1.0914228244190768e+26
+          },
+          "nodes": 4608,
+          "file": "dz-0.03125-default.npz",
+          "sha256": "4c7470080affce55d02429adc4a26b0e93048f8f94eb33f7b7a0777643319248"
+        }
+      },
+      "source_report": "validation/science/sashimi-c/convergence-3fefa34/report.json"
+    },
+    "N_herm-5": {
+      "label": "N_herm-5",
+      "parameters": {
+        "M0": 1000000000000.0,
+        "redshift": 0.0,
+        "dz": 0.25,
+        "zmax": 3.0,
+        "N_ma": 16,
+        "logmamin": 6.0,
+        "logmamax": 10.0,
+        "N_herm": 5,
+        "N_hermNa": 8,
+        "ct_th": 0.77,
+        "method": "pert2_shanks"
+      },
+      "seconds": 0.5008654999546707,
+      "warnings": [],
+      "states": {
+        "default": {
+          "metrics": {
+            "count": 9744.067724642005,
+            "bound_mass_fraction": 0.029520206580550823,
+            "count_above_1e7": 242.70781579527397,
+            "NFW_luminosity_sum": 9.364083146312758e+25
+          },
+          "nodes": 960,
+          "file": "N_herm-5-default.npz",
+          "sha256": "32870a970a30e1e724568acdd80f53c8be725773ec404f27a1059b4929247fa8"
+        }
+      },
+      "source_report": "validation/science/sashimi-c/convergence-3fefa34/report.json"
+    },
+    "N_herm-7": {
+      "label": "N_herm-7",
+      "parameters": {
+        "M0": 1000000000000.0,
+        "redshift": 0.0,
+        "dz": 0.25,
+        "zmax": 3.0,
+        "N_ma": 16,
+        "logmamin": 6.0,
+        "logmamax": 10.0,
+        "N_herm": 7,
+        "N_hermNa": 8,
+        "ct_th": 0.77,
+        "method": "pert2_shanks"
+      },
+      "seconds": 0.6957615709397942,
+      "warnings": [],
+      "states": {
+        "default": {
+          "metrics": {
+            "count": 9744.067724642005,
+            "bound_mass_fraction": 0.02952020658055082,
+            "count_above_1e7": 242.70781579527397,
+            "NFW_luminosity_sum": 9.364091498264088e+25
+          },
+          "nodes": 1344,
+          "file": "N_herm-7-default.npz",
+          "sha256": "a47e08f7ba4049b9e9b80eca0a8892ac7d8d4f744016bbff4053eaa15e4eb72f"
+        }
+      },
+      "source_report": "validation/science/sashimi-c/convergence-3fefa34/report.json"
+    },
+    "N_hermNa-16": {
+      "label": "N_hermNa-16",
+      "parameters": {
+        "M0": 1000000000000.0,
+        "redshift": 0.0,
+        "dz": 0.25,
+        "zmax": 3.0,
+        "N_ma": 16,
+        "logmamin": 6.0,
+        "logmamax": 10.0,
+        "N_herm": 3,
+        "N_hermNa": 16,
+        "ct_th": 0.77,
+        "method": "pert2_shanks"
+      },
+      "seconds": 0.3265418279916048,
+      "warnings": [],
+      "states": {
+        "default": {
+          "metrics": {
+            "count": 9737.635436375427,
+            "bound_mass_fraction": 0.029497731471799588,
+            "count_above_1e7": 242.50870357027762,
+            "NFW_luminosity_sum": 9.350747983522531e+25
+          },
+          "nodes": 576,
+          "file": "N_hermNa-16-default.npz",
+          "sha256": "220ef362263ce15e7a4e679b397ce5d6dc2e99f8641a4c03b4d487b2d8e97a7c"
+        }
+      },
+      "source_report": "validation/science/sashimi-c/convergence-3fefa34/report.json"
+    },
+    "N_hermNa-32": {
+      "label": "N_hermNa-32",
+      "parameters": {
+        "M0": 1000000000000.0,
+        "redshift": 0.0,
+        "dz": 0.25,
+        "zmax": 3.0,
+        "N_ma": 16,
+        "logmamin": 6.0,
+        "logmamax": 10.0,
+        "N_herm": 3,
+        "N_hermNa": 32,
+        "ct_th": 0.77,
+        "method": "pert2_shanks"
+      },
+      "seconds": 0.34652368107344955,
+      "warnings": [],
+      "states": {
+        "default": {
+          "metrics": {
+            "count": 9741.335222242455,
+            "bound_mass_fraction": 0.029503785176184974,
+            "count_above_1e7": 242.6014670788137,
+            "NFW_luminosity_sum": 9.35394041750403e+25
+          },
+          "nodes": 576,
+          "file": "N_hermNa-32-default.npz",
+          "sha256": "893eed13236e12054bb018bd7408f545a86a1085770979a6739b9cc59e4e9227"
+        }
+      },
+      "source_report": "validation/science/sashimi-c/convergence-3fefa34/report.json"
+    },
+    "N_hermNa-64": {
+      "label": "N_hermNa-64",
+      "parameters": {
+        "M0": 1000000000000.0,
+        "redshift": 0.0,
+        "dz": 0.25,
+        "zmax": 3.0,
+        "N_ma": 16,
+        "logmamin": 6.0,
+        "logmamax": 10.0,
+        "N_herm": 3,
+        "N_hermNa": 64,
+        "ct_th": 0.77,
+        "method": "pert2_shanks"
+      },
+      "seconds": 0.5008358559571207,
+      "warnings": [],
+      "states": {
+        "default": {
+          "metrics": {
+            "count": 9742.538249716057,
+            "bound_mass_fraction": 0.029512775350427258,
+            "count_above_1e7": 242.66023490121086,
+            "NFW_luminosity_sum": 9.35592403268065e+25
+          },
+          "nodes": 576,
+          "file": "N_hermNa-64-default.npz",
+          "sha256": "e3c7cc4310359e10f4eeef1efcf15ae855910076e08ecb28420a17a27c0227c8"
+        }
+      },
+      "source_report": "validation/science/sashimi-c/eps-catalog-3a822be/report.json"
+    },
+    "odeint": {
+      "label": "odeint",
+      "parameters": {
+        "M0": 1000000000000.0,
+        "redshift": 0.0,
+        "dz": 0.25,
+        "zmax": 3.0,
+        "N_ma": 16,
+        "logmamin": 6.0,
+        "logmamax": 10.0,
+        "N_herm": 3,
+        "N_hermNa": 8,
+        "ct_th": 0.77,
+        "method": "odeint"
+      },
+      "seconds": 1.5259316400624812,
+      "warnings": [],
+      "states": {
+        "default": {
+          "metrics": {
+            "count": 9744.067724642005,
+            "bound_mass_fraction": 0.028392355091460604,
+            "count_above_1e7": 234.9099135554139,
+            "NFW_luminosity_sum": 9.1714036665567e+25
+          },
+          "nodes": 576,
+          "file": "odeint-default.npz",
+          "sha256": "c96b649d38466a7a41ca05988603e5ef0ed5eafaeba8bea235095caacebd9ee0"
+        }
+      },
+      "source_report": "validation/science/sashimi-c/convergence-3fefa34/report.json"
+    },
+    "odeint-tight": {
+      "label": "odeint-tight",
+      "parameters": {
+        "M0": 1000000000000.0,
+        "redshift": 0.0,
+        "dz": 0.25,
+        "zmax": 3.0,
+        "N_ma": 16,
+        "logmamin": 6.0,
+        "logmamax": 10.0,
+        "N_herm": 3,
+        "N_hermNa": 8,
+        "ct_th": 0.77,
+        "method": "odeint",
+        "rtol": 1e-10,
+        "atol": 1e-08
+      },
+      "seconds": 2.011475764098577,
+      "warnings": [],
+      "states": {
+        "default": {
+          "metrics": {
+            "count": 9744.067724642005,
+            "bound_mass_fraction": 0.028392354666201873,
+            "count_above_1e7": 234.9099135554139,
+            "NFW_luminosity_sum": 9.17140354379016e+25
+          },
+          "nodes": 576,
+          "file": "odeint-tight-default.npz",
+          "sha256": "0404bf8767d3413f864eb470df65f614ca70fc0e0718bf692bab620ed7a538a1"
+        }
+      },
+      "source_report": "validation/science/sashimi-c/convergence-3fefa34/report.json"
+    },
+    "N_ma-256": {
+      "label": "N_ma-256",
+      "parameters": {
+        "M0": 1000000000000.0,
+        "redshift": 0.0,
+        "dz": 0.25,
+        "zmax": 3.0,
+        "N_ma": 256,
+        "logmamin": 6.0,
+        "logmamax": 10.0,
+        "N_herm": 3,
+        "N_hermNa": 8,
+        "ct_th": 0.77,
+        "method": "pert2_shanks"
+      },
+      "seconds": 7.825053627952002,
+      "warnings": [],
+      "states": {
+        "default": {
+          "metrics": {
+            "count": 9739.556098993242,
+            "bound_mass_fraction": 0.03447192713674382,
+            "count_above_1e7": 317.9982692671841,
+            "NFW_luminosity_sum": 1.106754952374595e+26
+          },
+          "nodes": 9216,
+          "file": "N_ma-256-default.npz",
+          "sha256": "69811671dea62df2c012ea9cd12b5185b42103887cd549fa29e82f4cbe52f8d8"
+        }
+      },
+      "source_report": "validation/science/sashimi-c/convergence-fine-3fefa34/report.json"
+    },
+    "N_ma-500": {
+      "label": "N_ma-500",
+      "parameters": {
+        "M0": 1000000000000.0,
+        "redshift": 0.0,
+        "dz": 0.25,
+        "zmax": 3.0,
+        "N_ma": 500,
+        "logmamin": 6.0,
+        "logmamax": 10.0,
+        "N_herm": 3,
+        "N_hermNa": 8,
+        "ct_th": 0.77,
+        "method": "pert2_shanks"
+      },
+      "seconds": 13.974244943005033,
+      "warnings": [],
+      "states": {
+        "default": {
+          "metrics": {
+            "count": 9739.55604672412,
+            "bound_mass_fraction": 0.03464560662303975,
+            "count_above_1e7": 321.4473734784297,
+            "NFW_luminosity_sum": 1.1127636469568608e+26
+          },
+          "nodes": 18000,
+          "file": "N_ma-500-default.npz",
+          "sha256": "77ec5d0b52658724ce0e70ca55adf766241383c3c828d8939fce2a008343da04"
+        }
+      },
+      "source_report": "validation/science/sashimi-c/convergence-fine-3fefa34/report.json"
+    },
+    "dz-0.015625": {
+      "label": "dz-0.015625",
+      "parameters": {
+        "M0": 1000000000000.0,
+        "redshift": 0.0,
+        "dz": 0.015625,
+        "zmax": 3.0,
+        "N_ma": 16,
+        "logmamin": 6.0,
+        "logmamax": 10.0,
+        "N_herm": 3,
+        "N_hermNa": 8,
+        "ct_th": 0.77,
+        "method": "pert2_shanks"
+      },
+      "seconds": 6.115965282078832,
+      "warnings": [],
+      "states": {
+        "default": {
+          "metrics": {
+            "count": 11044.784782861792,
+            "bound_mass_fraction": 0.04243833554897868,
+            "count_above_1e7": 347.18898691460896,
+            "NFW_luminosity_sum": 1.1030319670995895e+26
+          },
+          "nodes": 9216,
+          "file": "dz-0.015625-default.npz",
+          "sha256": "3edc64458dcc3bcdfab6b20847a9036faf6910020855fb70495be7d24dea9581"
+        }
+      },
+      "source_report": "validation/science/sashimi-c/convergence-fine-3fefa34/report.json"
+    },
+    "dz-0.01": {
+      "label": "dz-0.01",
+      "parameters": {
+        "M0": 1000000000000.0,
+        "redshift": 0.0,
+        "dz": 0.01,
+        "zmax": 3.0,
+        "N_ma": 16,
+        "logmamin": 6.0,
+        "logmamax": 10.0,
+        "N_herm": 3,
+        "N_hermNa": 8,
+        "ct_th": 0.77,
+        "method": "pert2_shanks"
+      },
+      "seconds": 9.691397340036929,
+      "warnings": [],
+      "states": {
+        "default": {
+          "metrics": {
+            "count": 11077.031660381184,
+            "bound_mass_fraction": 0.04279889413866307,
+            "count_above_1e7": 351.3234508359425,
+            "NFW_luminosity_sum": 1.1072273234111787e+26
+          },
+          "nodes": 14400,
+          "file": "dz-0.01-default.npz",
+          "sha256": "5f72c39629598a700374fa20a276caed92f9158e726b4ced8c0674b8a6855077"
+        }
+      },
+      "source_report": "validation/science/sashimi-c/convergence-fine-3fefa34/report.json"
+    },
+    "dz-0.005": {
+      "label": "dz-0.005",
+      "parameters": {
+        "M0": 1000000000000.0,
+        "redshift": 0.0,
+        "dz": 0.005,
+        "zmax": 3.0,
+        "N_ma": 16,
+        "logmamin": 6.0,
+        "logmamax": 10.0,
+        "N_herm": 3,
+        "N_hermNa": 8,
+        "ct_th": 0.77,
+        "method": "pert2_shanks"
+      },
+      "seconds": 17.340606351033784,
+      "warnings": [],
+      "states": {
+        "default": {
+          "metrics": {
+            "count": 11105.644268016884,
+            "bound_mass_fraction": 0.043121423145727415,
+            "count_above_1e7": 352.3920411248817,
+            "NFW_luminosity_sum": 1.110959759517611e+26
+          },
+          "nodes": 28800,
+          "file": "dz-0.005-default.npz",
+          "sha256": "d40def7f4ff75c54045aea4cf0d6df384442e44d232c7b9070256a8ee8547dd0"
+        }
+      },
+      "source_report": "validation/science/sashimi-c/convergence-fine-3fefa34/report.json"
+    },
+    "N_hermNa-200": {
+      "label": "N_hermNa-200",
+      "parameters": {
+        "M0": 1000000000000.0,
+        "redshift": 0.0,
+        "dz": 0.25,
+        "zmax": 3.0,
+        "N_ma": 16,
+        "logmamin": 6.0,
+        "logmamax": 10.0,
+        "N_herm": 3,
+        "N_hermNa": 200,
+        "ct_th": 0.77,
+        "method": "pert2_shanks"
+      },
+      "seconds": 1.1672949760686606,
+      "warnings": [],
+      "states": {
+        "default": {
+          "metrics": {
+            "count": 9742.979871323387,
+            "bound_mass_fraction": 0.029513883028382752,
+            "count_above_1e7": 242.66839063062505,
+            "NFW_luminosity_sum": 9.356187166335867e+25
+          },
+          "nodes": 576,
+          "file": "N_hermNa-200-default.npz",
+          "sha256": "5fb497198a0668f8548bc461d608be5a2033db5182606fb053b9d2a149dec4d7"
+        }
+      },
+      "source_report": "validation/science/sashimi-c/eps-catalog-3a822be/report.json"
+    }
+  },
+  "repeated_catalog_checks": [
+    {
+      "label": "baseline",
+      "state": "default",
+      "before": "validation/science/sashimi-c/convergence-3fefa34/baseline-default.npz",
+      "after": "validation/science/sashimi-c/eps-catalog-3a822be/baseline-default.npz",
+      "arrays_bitwise_equal": true
+    },
+    {
+      "label": "N_hermNa-64",
+      "state": "default",
+      "before": "validation/science/sashimi-c/convergence-3fefa34/N_hermNa-64-default.npz",
+      "after": "validation/science/sashimi-c/eps-catalog-3a822be/N_hermNa-64-default.npz",
+      "arrays_bitwise_equal": true
+    },
+    {
+      "label": "N_hermNa-200",
+      "state": "default",
+      "before": "validation/science/sashimi-c/convergence-fine-3fefa34/N_hermNa-200-default.npz",
+      "after": "validation/science/sashimi-c/eps-catalog-3a822be/N_hermNa-200-default.npz",
+      "arrays_bitwise_equal": true
+    }
+  ],
+  "final_refinements": [
+    {
+      "before": "N_ma-256",
+      "after": "N_ma-500",
+      "state": "default",
+      "relative_percent": {
+        "count": -5.366684319163539e-07,
+        "bound_mass_fraction": 0.5038287694417942,
+        "count_above_1e7": 1.0846298689593192,
+        "NFW_luminosity_sum": 0.5429110183219565
+      }
+    },
+    {
+      "before": "dz-0.01",
+      "after": "dz-0.005",
+      "state": "default",
+      "relative_percent": {
+        "count": 0.258305731291153,
+        "bound_mass_fraction": 0.753591917630847,
+        "count_above_1e7": 0.3041613892828865,
+        "NFW_luminosity_sum": 0.33709754334216857
+      }
+    },
+    {
+      "before": "N_herm-5",
+      "after": "N_herm-7",
+      "state": "default",
+      "relative_percent": {
+        "count": 0.0,
+        "bound_mass_fraction": -1.1102230246251565e-14,
+        "count_above_1e7": 0.0,
+        "NFW_luminosity_sum": 8.919134100171533e-05
+      }
+    },
+    {
+      "before": "N_hermNa-64",
+      "after": "N_hermNa-200",
+      "state": "default",
+      "relative_percent": {
+        "count": 0.004532921462674366,
+        "bound_mass_fraction": 0.003753215149515654,
+        "count_above_1e7": 0.0033609665866851657,
+        "NFW_luminosity_sum": 0.002812481742031636
+      }
+    },
+    {
+      "before": "baseline",
+      "after": "odeint",
+      "state": "default",
+      "relative_percent": {
+        "count": 0.0,
+        "bound_mass_fraction": -3.820608389079838,
+        "count_above_1e7": -3.2128764433518198,
+        "NFW_luminosity_sum": -1.9915632261164218
+      }
+    },
+    {
+      "before": "odeint",
+      "after": "odeint-tight",
+      "state": "default",
+      "relative_percent": {
+        "count": 0.0,
+        "bound_mass_fraction": -1.4977930895554437e-06,
+        "count_above_1e7": 0.0,
+        "NFW_luminosity_sum": -1.33857961381878e-06
+      }
+    }
+  ]
+}
