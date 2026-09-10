@@ -2,16 +2,32 @@
 
 import hashlib
 import json
+import warnings
 from pathlib import Path
 
 import numpy as np
 import pytest
+from scipy.interpolate import griddata
 
 from sashimi_c import CALCULATION_SPECIFICATION, SubhaloObservables
 
 REFERENCE = json.loads(
     (Path(__file__).parent / "references/boost-positive-inputs.json").read_text()
 )
+
+
+def frozen_boost(model, directory, monkeypatch, *, n):
+    """Run the exact pre-loader method on identical arrays and runtime math."""
+    path = Path(__file__).parent / "references/boost-pre-loader.txt"
+    source = path.read_text()
+    provenance = json.loads(path.with_name("boost-pre-loader-provenance.json").read_text())
+    assert hashlib.sha256(source.encode()).hexdigest() == provenance["method_sha256"]
+    namespace = {"np": np, "griddata": griddata}
+    exec(compile(source, str(path), "exec"), namespace)  # noqa: S102 - pinned, hash-checked local reference
+    with monkeypatch.context() as context, warnings.catch_warnings(record=True):
+        context.chdir(directory.parent.parent)
+        warnings.simplefilter("always")
+        return namespace["annihilation_boost_factor"](model, n=n)
 
 
 def prepare(tmp_path, monkeypatch):
@@ -61,9 +77,9 @@ def test_positive_table_result_is_unchanged_outside_source(tmp_path, monkeypatch
     elsewhere.mkdir()
     monkeypatch.chdir(elsewhere)
     np.testing.assert_array_equal(
-        model.annihilation_boost_factor(n=1), REFERENCE["result"]
+        model.annihilation_boost_factor(n=1), frozen_boost(model, directory, monkeypatch, n=1)
     )
-    np.testing.assert_array_equal(model.annihilation_boost_factor(), REFERENCE["n0"])
+    np.testing.assert_array_equal(model.annihilation_boost_factor(), frozen_boost(model, directory, monkeypatch, n=0))
     assert model.last_boost_provenance["manifest"] == manifest
     assert model.last_boost_provenance["directory"] == str(directory)
 
@@ -180,7 +196,7 @@ def test_explicit_approximation_retains_frozen_results_and_reports_invalid_point
         model.ma200 *= 1.0e10
     with pytest.warns(RuntimeWarning, match="historical boost approximation"):
         result = model.annihilation_boost_factor(n=1, allow_incomplete_tables=True)
-    np.testing.assert_array_equal(result, REFERENCE["incomplete_cases"][case]["result"])
+    np.testing.assert_array_equal(result, frozen_boost(model, directory, monkeypatch, n=1))
     diagnostics = model.last_boost_provenance
     assert diagnostics["valid"] is False
     assert diagnostics["allow_incomplete_tables"] is True

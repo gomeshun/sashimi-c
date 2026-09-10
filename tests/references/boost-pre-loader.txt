@@ -1,0 +1,129 @@
+def annihilation_boost_factor(self, n=0, evolved=True):
+    """
+    Annihilation boost factor B_{sh}. Note that the effect of sub-subhalos and higher order
+    structure is not included.
+
+    -----
+    Input
+    -----
+    (Optional) n:       The effects up to sub^{n}-subhalos will be included.
+                        If n=0 (default), no sub-subhalos and beyond is considered.
+                        For other values of n, the function requires pre-computed boost factors
+                        B_sh from the previous (n-1)th iteration and subhalo mass fraction f_sh.
+                        These are stored under 'data/boost/' directory. If the directory does not
+                        exist, excecuting 'boost_iteraction.py' will generate the  necessary files
+                        and store them in the directory, up to n = 3.
+    (Optional) evolved: If True (False), this function calculates evolved (unevolved) mass function.
+                        Here 'evolved' means that subhalos experiences tidal mass loss, whereas
+                        'unevolved' means that mass loss is ignored.
+
+    ------
+    Output
+    ------
+    Bsh:              Annihilation boost factor B_{sh}. See Eq. (37) of Ando et al.
+                      arXiv:1903.11427 for definition.
+    luminosity_ratio: Ratio of the total luminosity (subhalos+host) and the luminosity due
+                      to host only in the absence of subhalos:
+                      L_{total}/L_{host,0} = 1-f_{sh}^2+B_{sh}
+
+    """
+
+    fsh = self.mass_fraction(evolved)
+    if n == 0:
+        fssh = 0.0
+        Bssh = 0.0
+    else:
+        list_Bssh = np.loadtxt("data/boost/Bsh_%s.txt" % (n - 1))
+        list_fssh = np.loadtxt("data/boost/fsh.txt")
+        list_za = np.loadtxt("data/boost/za.txt")
+        list_ma = np.loadtxt("data/boost/ma.txt")
+
+        list_log_ma_flat = np.log10(list_ma.flatten())
+        list_za_flat = (list_za.reshape(-1, 1) * np.ones_like(list_ma[0])).flatten()
+        list_log_fssh_flat = np.log10(list_fssh.flatten())
+        list_log_Bssh_flat = np.log10((list_Bssh + 1.0e-30).flatten())
+
+        log_Bssh = griddata(
+            (list_log_ma_flat, list_za_flat),
+            list_log_Bssh_flat,
+            (np.log10(self.ma200), self.z_a),
+            method="linear",
+        )
+        log_fssh = griddata(
+            (list_log_ma_flat, list_za_flat),
+            list_log_fssh_flat,
+            (np.log10(self.ma200), self.z_a),
+            method="linear",
+        )
+        log_Bssh[~np.isfinite(log_Bssh)] = -np.inf
+        log_fssh[~np.isfinite(log_fssh)] = -np.inf
+        Bssh = 10.0**log_Bssh
+        fssh = 10.0**log_fssh
+
+        mavir = self.Mvir_from_M200_fit(self.ma200, self.z_a)
+        Oz = self.OmegaM * (1.0 + self.z_a) ** 3 / self.g(self.z_a)
+        ravir = np.cbrt(
+            3.0
+            * mavir
+            / (4.0 * np.pi * self.rhocrit(self.z_a) * self.Delc(Oz - 1.0))
+        )
+        cavir = ravir / self.rs_a
+
+        Bssh = (
+            Bssh
+            * self.rs0**3
+            * (np.arcsinh(self.ct0) - self.ct0 / np.sqrt(1.0 + self.ct0**2))
+        )
+        Bssh = Bssh / (
+            self.rs_a**3 * (np.arcsinh(cavir) - cavir / np.sqrt(1.0 + cavir**2))
+        )
+        Bssh = Bssh / (
+            self.rhos0**2 * self.rs0**3 * (1.0 - 1.0 / (1.0 + self.ct0) ** 3)
+        )
+        Bssh = Bssh * (
+            self.rhos_a**2 * self.rs_a**3 * (1.0 - 1.0 / (1.0 + cavir) ** 3)
+        )
+        fssh = (
+            fssh
+            * self.rs0**3
+            * (np.arcsinh(self.ct0) - self.ct0 / np.sqrt(1.0 + self.ct0**2))
+        )
+        fssh = fssh / (
+            self.rs_a**3 * (np.arcsinh(cavir) - cavir / np.sqrt(1.0 + cavir**2))
+        )
+        fssh = fssh / (self.rhos0 * self.rs0**3 * self.fc(self.ct0))
+        fssh = fssh * (self.rhos_a * self.rs_a**3 * self.fc(cavir))
+
+    if evolved:
+        Lsh = np.sum(
+            (1.0 - fssh**2 + Bssh)
+            * self.rhos0**2
+            * self.rs0**3
+            * (1.0 - 1.0 / (1.0 + self.ct0) ** 3)
+            * self.weight
+        )
+    else:
+        r200 = (
+            3.0 * self.ma200 / (4.0 * np.pi * self.rhocrit(self.redshift) * 200.0)
+        ) ** (1.0 / 3.0)
+        c200 = r200 / self.rs_a
+        Lsh = np.sum(
+            self.rhos_a**2
+            * self.rs_a**3
+            * (1.0 - 1.0 / (1.0 + c200) ** 3)
+            * self.weight
+        )
+
+    Mhost = self.Mzi(self.M0, self.redshift)
+    r200_host = (
+        3.0 * Mhost / (4.0 * np.pi * self.rhocrit(self.redshift) * 200.0)
+    ) ** (1.0 / 3.0)
+    c200_host = self.conc200(Mhost, self.redshift)
+    rs_host = r200_host / c200_host
+    rhos_host = Mhost / (4.0 * np.pi * rs_host**3 * self.fc(c200_host))
+    Lhost0 = rhos_host**2 * rs_host**3 * (1.0 - 1.0 / (1.0 + c200_host) ** 3)
+
+    Bsh = Lsh / Lhost0
+    luminosity_ratio = 1.0 - fsh**2 + Bsh
+
+    return Bsh, luminosity_ratio

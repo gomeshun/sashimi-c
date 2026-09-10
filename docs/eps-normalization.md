@@ -31,3 +31,13 @@ All 95 package tests pass at their existing reference tolerances. A separate
 frozen-method audit records arrays, warnings and changes through host order 200;
 its results are candidate scientific evidence, not a replacement for old fixtures.
 The solver, thresholds and calibration are unchanged.
+
+
+The first EPS PR CI passed all population/physics regressions but the three
+literal boost-result checks differed by up to 5.5e-16 in Python 3.11/3.13;
+Python 3.12 and local 3.11 passed. Those literals combine the population with
+the boost loader. They remain archived without replacement. Loader regression
+now executes the exact pre-loader method from 6f55d83 (source/method hashes
+checked) on the same current population and requires bitwise equality. This
+separates that structural comparison from EPS/population regression, which keeps
+its original full-catalog tolerances. No floating tolerance was widened.
