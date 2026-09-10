@@ -54,6 +54,13 @@ Bsh, Bcusp_dressed, Bcusp_naked, luminosity_ratio, Ncusp_dressed, Ncusp_naked \
 
 With `prompt_cusps=True`, sigma(M) is computed from the CAMB linear matter power spectrum (with a free-streaming cutoff set by `k_fs_Mpc` / `filter` / `alpha`) instead of the Ludlow fit. The higher-order (`n>0`) boost tables are pre-computed with `boost_iteration_prompt_cusps.py`. See Ando et al. (arXiv:2601.19863).
 
+Higher-order boost inputs use an explicit data directory and a validated source/hash
+manifest. See [boost table generation and current boundary limits](docs/boost-tables.md).
+Incomplete interpolation domains fail by default. The explicitly approved
+`allow_incomplete_tables=True` option retains the historical zero approximation
+with warnings, invalid-point counts and provenance; it is not a calibrated
+low-mass boundary. `n=0` remains available without boost tables.
+
 ## Standard ITAMAE-backed API
 
 The reviewed calculation is now available from `sashimi_c`. Runtime

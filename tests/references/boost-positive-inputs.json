@@ -1,0 +1,81 @@
+{
+  "source_revision": "6f55d8331a5de4b861685913a273d51279a10942",
+  "role": "positive-interpolation-software-regression",
+  "parameters": {
+    "M0_per_Msun": 10000000000.0,
+    "dz": 0.5,
+    "zmax": 1.0,
+    "N_ma": 4,
+    "N_herm": 2,
+    "N_hermNa": 3,
+    "logmamin": 6.0,
+    "logmamax": 8.0
+  },
+  "arrays": {
+    "za.txt": [
+      0.0,
+      1.1
+    ],
+    "ma.txt": [
+      [
+        10000.0,
+        10000000000.0
+      ],
+      [
+        10000.0,
+        10000000000.0
+      ]
+    ],
+    "fsh.txt": [
+      [
+        0.01,
+        0.1
+      ],
+      [
+        0.02,
+        0.2
+      ]
+    ],
+    "Bsh_0.txt": [
+      [
+        0.1,
+        1.0
+      ],
+      [
+        0.2,
+        2.0
+      ]
+    ]
+  },
+  "result": [
+    0.04093183603252897,
+    1.0409069738505365
+  ],
+  "n0": [
+    0.038146851527336156,
+    1.0381219893453437
+  ],
+  "notice": "Synthetic positive input tables. Not physical calibration.",
+  "incomplete_cases": {
+    "zero-fsh": {
+      "result": [
+        0.04095225718049614,
+        1.0409273949985038
+      ],
+      "warnings": [
+        "divide by zero encountered in log10"
+      ],
+      "query_count": 16
+    },
+    "outside-domain": {
+      "result": [
+        0.038146851527336156,
+        1.0381219893453437
+      ],
+      "warnings": [],
+      "query_count": 16
+    }
+  },
+  "before_export_sha256": "c5a5be13105d33c9bde1a2ed0b20b0f33deec26c310c2d2c001ac4566627c8c6",
+  "incomplete_cases_worker_sha256": "ef3c1699db5bdb2fb9f16806391a8e68d28767622cf3cfe1155a60039c598793"
+}

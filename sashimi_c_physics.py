@@ -17,10 +17,10 @@ from itamae.protocols import CosmologyBackend
 from itamae.types import WeightedSubhaloCatalog
 from scipy import optimize
 from scipy.integrate import cumulative_trapezoid
-from scipy.interpolate import griddata
 
 from picard_tidal_stripping import PicardTidalStrippingTable
 from sashimi_c_data import data_directory
+from sashimi_c_boost import interpolate_boost_tables, validate_order
 
 _CALIBRATED_OMEGA_M = 0.315
 _CALIBRATED_H = 0.674
@@ -859,7 +859,9 @@ class CDMObservableKernels:
 
         return fsh
 
-    def annihilation_boost_factor(self, n=0, evolved=True):
+    def annihilation_boost_factor(
+        self, n=0, evolved=True, *, allow_incomplete_tables=False
+    ):
         """
         Annihilation boost factor B_{sh}. Note that the effect of sub-subhalos and higher order
         structure is not included.
@@ -871,9 +873,8 @@ class CDMObservableKernels:
                             If n=0 (default), no sub-subhalos and beyond is considered.
                             For other values of n, the function requires pre-computed boost factors
                             B_sh from the previous (n-1)th iteration and subhalo mass fraction f_sh.
-                            These are stored under 'data/boost/' directory. If the directory does not
-                            exist, excecuting 'boost_iteraction.py' will generate the  necessary files
-                            and store them in the directory, up to n = 3.
+                            Tables and their manifest are read from the configured data_dir/boost.
+                            Missing, mismatched or out-of-domain inputs fail explicitly.
         (Optional) evolved: If True (False), this function calculates evolved (unevolved) mass function.
                             Here 'evolved' means that subhalos experiences tidal mass loss, whereas
                             'unevolved' means that mass loss is ignored.
@@ -889,37 +890,19 @@ class CDMObservableKernels:
 
         """
 
+        validate_order(n)
         fsh = self.mass_fraction(evolved)
         if n == 0:
             fssh = 0.0
             Bssh = 0.0
         else:
-            list_Bssh = np.loadtxt("data/boost/Bsh_%s.txt" % (n - 1))
-            list_fssh = np.loadtxt("data/boost/fsh.txt")
-            list_za = np.loadtxt("data/boost/za.txt")
-            list_ma = np.loadtxt("data/boost/ma.txt")
-
-            list_log_ma_flat = np.log10(list_ma.flatten())
-            list_za_flat = (list_za.reshape(-1, 1) * np.ones_like(list_ma[0])).flatten()
-            list_log_fssh_flat = np.log10(list_fssh.flatten())
-            list_log_Bssh_flat = np.log10((list_Bssh + 1.0e-30).flatten())
-
-            log_Bssh = griddata(
-                (list_log_ma_flat, list_za_flat),
-                list_log_Bssh_flat,
-                (np.log10(self.ma200), self.z_a),
-                method="linear",
+            tables = interpolate_boost_tables(
+                self,
+                getattr(self, "_boost_table_directory", self.data_dir / "boost"),
+                {"Bssh": (f"Bsh_{n - 1}.txt", 1.0e-30), "fssh": ("fsh.txt", 0.0)},
+                allow_incomplete_tables=allow_incomplete_tables,
             )
-            log_fssh = griddata(
-                (list_log_ma_flat, list_za_flat),
-                list_log_fssh_flat,
-                (np.log10(self.ma200), self.z_a),
-                method="linear",
-            )
-            log_Bssh[~np.isfinite(log_Bssh)] = -np.inf
-            log_fssh[~np.isfinite(log_fssh)] = -np.inf
-            Bssh = 10.0**log_Bssh
-            fssh = 10.0**log_fssh
+            Bssh, fssh = tables["Bssh"], tables["fssh"]
 
             mavir = self.Mvir_from_M200_fit(self.ma200, self.z_a)
             Oz = self.OmegaM * (1.0 + self.z_a) ** 3 / self.g(self.z_a)
@@ -990,7 +973,7 @@ class CDMObservableKernels:
         return Bsh, luminosity_ratio
 
     def annihilation_boost_factor_prompt_cusps(
-        self, n=0, f_surv=1.0, f_surv_stripped=1.0
+        self, n=0, f_surv=1.0, f_surv_stripped=1.0, *, allow_incomplete_tables=False
     ):
         """
         Annihilation boost factor B_{sh}. Note that the effect of sub-subhalos and higher order
@@ -1003,9 +986,8 @@ class CDMObservableKernels:
                             If n=0 (default), no sub-subhalos and beyond is considered.
                             For other values of n, the function requires pre-computed boost factors
                             B_sh from the previous (n-1)th iteration and subhalo mass fraction f_sh.
-                            These are stored under 'data/boost/' directory. If the directory does not
-                            exist, excecuting 'boost_iteraction.py' will generate the  necessary files
-                            and store them in the directory, up to n = 3.
+                            Tables and their manifest are read from the configured data_dir/boost.
+                            Missing, mismatched or out-of-domain inputs fail explicitly.
         (Optional) evolved: If True (False), this function calculates evolved (unevolved) mass function.
                             Here 'evolved' means that subhalos experiences tidal mass loss, whereas
                             'unevolved' means that mass loss is ignored.
@@ -1021,6 +1003,7 @@ class CDMObservableKernels:
 
         """
 
+        validate_order(n)
         from prompt_cusps import prompt_cusps as _prompt_cusps
 
         prc = _prompt_cusps(k_fs=self.k_fs, data_dir=self.data_dir)
@@ -1034,59 +1017,31 @@ class CDMObservableKernels:
             Ncusp_dressed = 0.0
             Ncusp_naked = 0.0
         else:
-            list_Bssh = np.loadtxt(
-                f"data/prompt_cusps/boost/Bsh_{n - 1}_{f_surv:.1f}_{f_surv_stripped:.1f}.txt"
+            suffix = f"{n - 1}_{f_surv:.1f}_{f_surv_stripped:.1f}.txt"
+            tables = interpolate_boost_tables(
+                self,
+                getattr(
+                    self,
+                    "_boost_table_directory",
+                    self.data_dir / "prompt_cusps" / "boost",
+                ),
+                {
+                    "Bssh": (f"Bsh_{suffix}", 1.0e-30),
+                    "fssh": ("fsh.txt", 0.0),
+                    "Ncusp_dressed": (f"Ncusp_dressed_{suffix}", 0.0),
+                    "Ncusp_naked": (f"Ncusp_naked_{suffix}", 0.0),
+                },
+                allow_incomplete_tables=allow_incomplete_tables,
+                extra_contract={
+                    "f_surv": float(f_surv),
+                    "f_surv_stripped": float(f_surv_stripped),
+                },
             )
-            list_Ncusp_dressed = np.loadtxt(
-                f"data/prompt_cusps/boost/Ncusp_dressed_{n - 1}_{f_surv:.1f}_{f_surv_stripped:.1f}.txt"
+            Bssh, fssh = tables["Bssh"], tables["fssh"]
+            Ncusp_dressed0, Ncusp_naked0 = (
+                tables["Ncusp_dressed"],
+                tables["Ncusp_naked"],
             )
-            list_Ncusp_naked = np.loadtxt(
-                f"data/prompt_cusps/boost/Ncusp_naked_{n - 1}_{f_surv:.1f}_{f_surv_stripped:.1f}.txt"
-            )
-            list_fssh = np.loadtxt("data/prompt_cusps/boost/fsh.txt")
-            list_za = np.loadtxt("data/prompt_cusps/boost/za.txt")
-            list_ma = np.loadtxt("data/prompt_cusps/boost/ma.txt")
-
-            list_log_ma_flat = np.log10(list_ma.flatten())
-            list_za_flat = (list_za.reshape(-1, 1) * np.ones_like(list_ma[0])).flatten()
-            list_log_fssh_flat = np.log10(list_fssh.flatten())
-            list_log_Bssh_flat = np.log10((list_Bssh + 1.0e-30).flatten())
-            list_log_Ncusp_dressed_flat = np.log10((list_Ncusp_dressed).flatten())
-            list_log_Ncusp_naked_flat = np.log10((list_Ncusp_naked).flatten())
-
-            log_Bssh = griddata(
-                (list_log_ma_flat, list_za_flat),
-                list_log_Bssh_flat,
-                (np.log10(self.ma200), self.z_a),
-                method="linear",
-            )
-            log_Ncusp_dressed = griddata(
-                (list_log_ma_flat, list_za_flat),
-                list_log_Ncusp_dressed_flat,
-                (np.log10(self.ma200), self.z_a),
-                method="linear",
-            )
-            log_Ncusp_naked = griddata(
-                (list_log_ma_flat, list_za_flat),
-                list_log_Ncusp_naked_flat,
-                (np.log10(self.ma200), self.z_a),
-                method="linear",
-            )
-            log_fssh = griddata(
-                (list_log_ma_flat, list_za_flat),
-                list_log_fssh_flat,
-                (np.log10(self.ma200), self.z_a),
-                method="linear",
-            )
-
-            log_Bssh[~np.isfinite(log_Bssh)] = -np.inf
-            log_Ncusp_dressed[~np.isfinite(log_Ncusp_dressed)] = -np.inf
-            log_Ncusp_naked[~np.isfinite(log_Ncusp_naked)] = -np.inf
-            log_fssh[~np.isfinite(log_fssh)] = -np.inf
-            Bssh = 10.0**log_Bssh
-            Ncusp_dressed0 = 10.0**log_Ncusp_dressed
-            Ncusp_naked0 = 10.0**log_Ncusp_naked
-            fssh = 10.0**log_fssh
 
             mavir = self.Mvir_from_M200_fit(self.ma200, self.z_a)
             Oz = self.OmegaM * (1.0 + self.z_a) ** 3 / self.g(self.z_a)

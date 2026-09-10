@@ -43,6 +43,9 @@ jobs:
           sashimi_c.py
           sashimi_c_physics.py
           sashimi_c_data.py
+          sashimi_c_boost.py
+          boost_iteration.py
+          boost_iteration_prompt_cusps.py
           sashimi_c_itamae.py
           sashimi_c_itamae_catalog.py
           sashimi_c_itamae_components.py

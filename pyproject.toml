@@ -47,6 +47,7 @@ py-modules = [
   "sashimi_c",
   "sashimi_c_physics",
   "sashimi_c_data",
+  "sashimi_c_boost",
   "sashimi_c_itamae",
   "sashimi_c_itamae_catalog",
   "sashimi_c_itamae_components",
