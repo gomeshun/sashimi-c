@@ -4,11 +4,12 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sashimi-c"
-version = "1.2.0"
+version = "2.0.0rc1"
 description = "Semi-Analytical SubHalo Inference ModelIng for cold dark matter"
 readme = "README.md"
 requires-python = ">=3.11"
 license = "MIT"
+license-files = ["LICENSE"]
 authors = [
   {name = "Shin'ichiro Ando"},
   {name = "Nagisa Hiroshima"},
@@ -16,7 +17,7 @@ authors = [
   {name = "Ariane Dekker"},
 ]
 dependencies = [
-  "sashimi-itamae>=0.1.0a4",
+  "sashimi-itamae>=0.2.0rc1,<0.3",
   "numpy>=1.26",
   "scipy>=1.11",
   "tqdm>=4.66",
@@ -61,3 +62,6 @@ py-modules = [
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-ra --strict-markers --strict-config"
+
+[tool.uv.sources]
+sashimi-itamae = {git = "https://github.com/gomeshun/itamae.git", rev = "dfa083d0d46181c376947ac7b2da829facaf2e8b"}

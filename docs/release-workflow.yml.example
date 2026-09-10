@@ -1,0 +1,45 @@
+# INACTIVE TEMPLATE — enable only after explicit post-review authorization.
+name: Publish approved artifacts
+on:
+  workflow_dispatch:
+    inputs:
+      source_sha:
+        description: Approved full commit SHA after peer review
+        required: true
+        type: string
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source_sha }}
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: '3.12'
+      - name: Verify exact approved checkout and build
+        env:
+          APPROVED_SOURCE: ${{ inputs.source_sha }}
+        run: |
+          test "${#APPROVED_SOURCE}" -eq 40
+          test "$(git rev-parse HEAD)" = "$APPROVED_SOURCE"
+          uv build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: approved-dist
+          path: dist/*
+  publish:
+    needs: build
+    # Configure required human reviewers before enabling this template.
+    environment: pypi
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: approved-dist
+          path: dist
+      - uses: pypa/gh-action-pypi-publish@release/v1
