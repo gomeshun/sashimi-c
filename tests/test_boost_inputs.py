@@ -6,6 +6,7 @@ from pathlib import Path
 
 import numpy as np
 import pytest
+
 from sashimi_c import CALCULATION_SPECIFICATION, SubhaloObservables
 
 REFERENCE = json.loads(
