@@ -181,6 +181,31 @@ class SubhaloProperties(CDMPhysics):
             * np.exp(-((delc2 - delc1) ** 2) / (2.0 * (s2 - s1)))
         )
 
+    def _normalized_yang_kernel(self, delc1, delc2, s1, s2, smin):
+        """Yang Eq. (14) divided by its mass-support integral, including gap=0.
+
+        For x=delta/sqrt(2*(smin-s1)), erf(x)/x tends to 2/sqrt(pi).
+        The small-x series evaluates that ratio before the vanishing factors
+        are divided. This is the same normalized kernel, with no weight cut.
+        """
+        d1, d2, a, b, minimum = np.broadcast_arrays(delc1, delc2, s1, s2, smin)
+        gap, ds, dsmin = d2 - d1, b - a, minimum - a
+        if np.any(gap < 0) or np.any(ds <= 0) or np.any(dsmin <= 0):
+            raise ValueError("Normalized Yang kernel requires nonnegative barrier gap and positive variance gaps.")
+        x2 = gap**2 / (2.0 * dsmin)
+        small = x2 < 1e-8
+        result = np.empty_like(x2, dtype=float)
+        x = x2[small]
+        integral = 1.0 - x / 3.0 + x**2 / 10.0 - x**3 / 42.0 + x**4 / 216.0
+        result[small] = (
+            np.sqrt(dsmin[small]) / (2.0 * ds[small]**1.5)
+            * np.exp(-gap[small]**2 / (2.0 * ds[small])) / integral
+        )
+        regular = ~small
+        norm = special.gamma(0.5) * special.gammainc(0.5, x2[regular]) / np.sqrt(np.pi)
+        result[regular] = self.Ffunc_Yang(d1[regular], d2[regular], a[regular], b[regular]) / norm
+        return result
+
     def Na_calc(self, ma, zacc, Mhost, z0=0.0, N_herm=200, Nrand=1000, Na_model=3):
         """Evaluate the Yang et al. accretion rate with ITAMAE quadrature.
 
@@ -217,7 +242,7 @@ class SubhaloProperties(CDMPhysics):
         Mmax = np.minimum(M200_0 + mmax, Mhost)
 
         if Na_model == 3:
-            zlist = zacc_2d * np.linspace(1.0, 0.0, Nrand)
+            zlist = zacc_2d * np.linspace(1, 0, Nrand)
             iMmax = np.argmin(np.abs(self.Mzzi(Mhost, zlist, z0) - Mmax), axis=-1)
             z_Max = zlist[np.arange(len(zlist)), iMmax]
             z_Max_3d = z_Max.reshape(N_herm, len(zlist), 1)
@@ -225,58 +250,74 @@ class SubhaloProperties(CDMPhysics):
             delca = self.deltac_func(zacc_2d)
             sM = self.s_func(Mmax)
             sa = self.s_func(ma)
-            xmax = (delca - delcM) ** 2 / (2.0 * (self.s_func(mmax) - sM))
-            normB = special.gamma(0.5) * special.gammainc(0.5, xmax) / np.sqrt(np.pi)
-            Phi = (
-                self.Ffunc_Yang(delcM, delca, sM, sa)
-                / normB
-                * np.heaviside(mmax - ma, 0)
+            # those reside in the exponential part of Eq. (14)
+            d1, d2, s1, s2, smin, allowed = np.broadcast_arrays(
+                delcM, delca, sM, sa, self.s_func(mmax), mmax > ma
+            )
+            Phi = np.zeros(s2.shape)
+            Phi[allowed] = self._normalized_yang_kernel(
+                d1[allowed], d2[allowed], s1[allowed], s2[allowed], smin[allowed]
             )
         elif Na_model == 1:
             delca = self.deltac_func(zacc_2d)
             sM = self.s_func(M200)
             sa = self.s_func(ma)
             xmin = self.s_func(mmax) - self.s_func(M200)
-            normB = (
+            d_norm, s_norm, x_norm = np.broadcast_arrays(delca, sM, xmin)
+            if np.any(x_norm < 0):
+                raise ValueError("EPS normalization requires a nonnegative variance support gap.")
+            positive = x_norm > 0
+            normB = np.full(x_norm.shape, np.inf)
+            d_pos, s_pos, x_pos = d_norm[positive], s_norm[positive], x_norm[positive]
+            normB[positive] = (
                 1.0
-                / np.sqrt(2.0 * np.pi)
-                * delca
+                / np.sqrt(2 * np.pi)
+                * d_pos
                 * 2.0
-                / xmin**0.5
-                * special.hyp2f1(0.5, 0.0, 1.5, -sM / xmin)
+                / x_pos**0.5
+                * special.hyp2f1(0.5, 0.0, 1.5, -s_pos / x_pos)
             )
-            Phi = self.Ffunc(delca, sM, sa) / normB * np.heaviside(mmax - ma, 0)
+            d, s1, s2, norm, allowed = np.broadcast_arrays(delca, sM, sa, normB, mmax > ma)
+            if np.any((s2 - s1)[allowed] <= 0):
+                raise ValueError("EPS accretion requires positive variance gaps in its active mass domain.")
+            Phi = np.zeros(s2.shape)
+            Phi[allowed] = self.Ffunc(d[allowed], s1[allowed], s2[allowed]) / norm[allowed]
         elif Na_model == 2:
             delca = self.deltac_func(zacc_2d)
             sM = self.s_func(M200)
             sa = self.s_func(ma)
             xmin = self.s_func(mmax) - self.s_func(M200)
-            normB = (
+            d_norm, s_norm, x_norm = np.broadcast_arrays(delca, sM, xmin)
+            if np.any(x_norm < 0):
+                raise ValueError("EPS normalization requires a nonnegative variance support gap.")
+            positive = x_norm > 0
+            normB = np.full(x_norm.shape, np.inf)
+            d_pos, s_pos, x_pos = d_norm[positive], s_norm[positive], x_norm[positive]
+            normB[positive] = (
                 1.0
                 / np.sqrt(2.0 * np.pi)
-                * delca
+                * d_pos
                 * 0.57
-                * (delca / np.sqrt(sM)) ** -0.01
+                * (d_pos / np.sqrt(s_pos)) ** -0.01
                 * (2.0 / (1.0 - 0.38))
-                * sM ** (-0.38 / 2.0)
-                * xmin ** (0.5 * (0.38 - 1.0))
-                * special.hyp2f1(
-                    0.5 * (1.0 - 0.38),
-                    -0.38 / 2.0,
-                    0.5 * (3.0 - 0.38),
-                    -sM / xmin,
-                )
+                * s_pos ** (-0.38 / 2.0)
+                * x_pos ** (0.5 * (0.38 - 1.0))
+                * special.hyp2f1(0.5 * (1 - 0.38), -0.38 / 2.0, 0.5 * (3.0 - 0.38), -s_pos / x_pos)
             )
-            Phi = (
-                self.Ffunc(delca, sM, sa)
-                * self.Gfunc(delca, sM, sa)
-                / normB
-                * np.heaviside(mmax - ma, 0)
+            d, s1, s2, norm, allowed = np.broadcast_arrays(delca, sM, sa, normB, mmax > ma)
+            if np.any((s2 - s1)[allowed] <= 0):
+                raise ValueError("EPS accretion requires positive variance gaps in its active mass domain.")
+            Phi = np.zeros(s2.shape)
+            Phi[allowed] = (
+                self.Ffunc(d[allowed], s1[allowed], s2[allowed])
+                * self.Gfunc(d[allowed], s1[allowed], s2[allowed])
+                / norm[allowed]
             )
         else:
             raise ValueError("Na_model must be 1, 2, or 3.")
-
-        F2 = np.sum(np.nan_to_num(Phi) * host_weight, axis=0)
+        if not np.all(np.isfinite(Phi)):
+            raise ValueError("Non-finite EPS accretion kernel inside its active mass domain.")
+        F2 = np.sum(Phi * host_weight, axis=0)
         return F2 * self.dsdm(ma, 0.0) * self.dMdz(Mhost, zacc_2d, z0) * (1.0 + zacc_2d)
 
     def subhalo_catalog_calc(
