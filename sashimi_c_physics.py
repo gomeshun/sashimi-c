@@ -13,11 +13,13 @@ from typing import Any
 import numpy as np
 from itamae.cosmology import NativeFlatLCDM
 from itamae.protocols import CosmologyBackend
+from itamae.types import WeightedSubhaloCatalog
 from scipy import optimize
 from scipy.integrate import cumulative_trapezoid, odeint
 from scipy.interpolate import griddata
 
 from picard_tidal_stripping import PicardTidalStrippingTable
+from sashimi_c_data import data_directory
 
 _CALIBRATED_OMEGA_M = 0.315
 _CALIBRATED_H = 0.674
@@ -49,6 +51,7 @@ class CDMPhysics(CDMUnits):
         alpha=1.8,
         *,
         cosmology_backend=None,
+        data_dir=None,
     ):
         backend = cosmology_backend or NativeFlatLCDM(
             omega_m0=_CALIBRATED_OMEGA_M, h=_CALIBRATED_H
@@ -63,6 +66,7 @@ class CDMPhysics(CDMUnits):
         self.h = _CALIBRATED_H
         self._rho_crit_scale = 1.0
         self._synchronize_physics_constants()
+        self.data_dir = data_directory(data_dir)
         self.prompt_cusps = prompt_cusps
         self.k_fs = k_fs_Mpc * self.Mpc**-1
         self.filter = filter
@@ -997,7 +1001,7 @@ class CDMObservableKernels:
 
         from prompt_cusps import prompt_cusps as _prompt_cusps
 
-        prc = _prompt_cusps(k_fs=self.k_fs)
+        prc = _prompt_cusps(k_fs=self.k_fs, data_dir=self.data_dir)
         _f_coll, J_cusps = prc.cusp_properties(f_surv=1.0, z=self.redshift)
         J_cusps_mean = np.mean(J_cusps)
 
@@ -1155,7 +1159,7 @@ class CDMObservableKernels:
             Ncusp_naked,
         )
 
-    def subhalo_catalog_MC(self, mth):
+    def subhalo_catalog_MC(self, mth, *, rng=None, seed=None):
         """
         This function returns a subhalo catalog generated with the Monte Carlo simulations.
 
@@ -1163,6 +1167,12 @@ class CDMObservableKernels:
         Input
         -----
         mth:  Threshold of subhalo mass above which the catalog is generated.
+        rng:  Explicit numpy.random.Generator, mutually exclusive with seed.
+        seed: Seed for a local generator. None requests an independent random draw.
+
+        Independent Poisson multiplicities use ITAMAE and are returned in input
+        node order. This has the same point-process law as the former total-count
+        Poisson plus categorical sampling; global NumPy random state is unused.
 
         ------
         Output
@@ -1178,30 +1188,37 @@ class CDMObservableKernels:
 
         """
 
+        if not np.isfinite(mth) or mth < 0:
+            raise ValueError("Mass threshold must be finite and nonnegative.")
+        if rng is not None and seed is not None:
+            raise ValueError("Pass either rng or seed, not both.")
+        if rng is None:
+            rng = np.random.default_rng(seed)
         condition = self.m0 > mth
-        ma200 = self.ma200[condition]
-        z_a = self.z_a[condition]
-        rs_a = self.rs_a[condition]
-        rhos_a = self.rhos_a[condition]
-        m0 = self.m0[condition]
-        rs0 = self.rs0[condition]
-        rhos0 = self.rhos0[condition]
-        ct0 = self.ct0[condition]
-        weight = self.weight[condition]
-
-        mu_sh = np.sum(weight)
-        prob = weight / mu_sh
-        subhalo_id = np.arange(len(prob))
-        N_sh = np.random.poisson(mu_sh)
-        id_MC = np.random.choice(subhalo_id, size=N_sh, p=prob)
-        ma200_MC = ma200[id_MC]
-        z_a_MC = z_a[id_MC]
-        rs_a_MC = rs_a[id_MC]
-        rhos_a_MC = rhos_a[id_MC]
-        m0_MC = m0[id_MC]
-        rs0_MC = rs0[id_MC]
-        rhos0_MC = rhos0[id_MC]
-        ct0_MC = ct0[id_MC]
+        columns = {
+            "ma200": self.ma200[condition],
+            "z_a": self.z_a[condition],
+            "rs_a": self.rs_a[condition],
+            "rhos_a": self.rhos_a[condition],
+            "m0": self.m0[condition],
+            "rs0": self.rs0[condition],
+            "rhos0": self.rhos0[condition],
+            "ct0": self.ct0[condition],
+        }
+        population = WeightedSubhaloCatalog(
+            columns=columns,
+            weights={"weight_base": self.weight[condition]},
+            metadata={
+                "schema_version": "1.0",
+                "model_identifier": "sashimi-c:mc:v1",
+                "backend_identifier": self.itamae_cosmology.identifier,
+            },
+        )
+        realization = population.poisson_realization(rng)
+        ma200_MC, z_a_MC = realization["ma200"], realization["z_a"]
+        rs_a_MC, rhos_a_MC = realization["rs_a"], realization["rhos_a"]
+        m0_MC, rs0_MC = realization["m0"], realization["rs0"]
+        rhos0_MC, ct0_MC = realization["rhos0"], realization["ct0"]
 
         return (
             ma200_MC / self.Msun,
