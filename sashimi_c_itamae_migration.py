@@ -494,9 +494,10 @@ class ItamaeMigrationMixin:
                 population_2d[index],
                 concentration_weight,
                 mvir_acc=ma,
-                metadata={"redshift_index": index},
+                metadata={"model": "sashimi-c", "physics_mode": self.physics_mode},
             )
             context = {
+                "redshift_index": index,
                 "mvir_acc": ma,
                 "z_acc": z_acc_value,
                 "rvir_acc": rvirsub,
