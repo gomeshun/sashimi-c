@@ -4,7 +4,7 @@
 
 ## Hands-on usage walkthrough
 
-Start with [the executable usage walkthrough](notebooks/usage_walkthrough.ipynb): a bounded CDM calculation, legacy/migrated comparison, catalogue inspection/export, weighted mass functions, and explicit checks. The **Usage walkthrough** CI executes every cell in a fresh kernel and uploads the executed artifact. This migration deliverable is tracked in [sashimi-family #28](https://github.com/gomeshun/sashimi-family/issues/28).
+Start with [the executable usage walkthrough](notebooks/usage_walkthrough.ipynb): a bounded CDM calculation through the standard API, catalogue inspection/export, weighted mass functions, and explicit checks. The **Usage walkthrough** CI executes every cell in a fresh kernel and uploads the executed artifact. This migration deliverable is tracked in [sashimi-family #28](https://github.com/gomeshun/sashimi-family/issues/28).
 
 # Semi-Analytical SubHalo Inference ModelIng for CDM (SASHIMI-C)
 [![arXiv](https://img.shields.io/badge/arXiv-1803.07691%20-green.svg)](https://arxiv.org/abs/1803.07961)
@@ -21,7 +21,7 @@ The codes allow to calculate various subhalo properties efficiently using semi-a
 
 Special thanks to Tomoaki Ishiyama, who provided data of cosmological N-body simulations that were used for calibration of model output.
 
-Please send enquiries to Shin'ichiro Ando (s.ando@uva.nl). We have checked that the codes work with python 3.10 but cannot guarantee for other versions of python. In any case, we cannot help with any technical issues not directly related to the content of SASHIMI (such as installation, sub-packages required, etc.)
+Please send enquiries to Shin'ichiro Ando (s.ando@uva.nl). The migration release targets Python 3.11–3.13. In any case, we cannot help with any technical issues not directly related to the content of SASHIMI (such as installation, sub-packages required, etc.)
 
 ## What can we do with SASHIMI?
 
@@ -54,78 +54,46 @@ Bsh, Bcusp_dressed, Bcusp_naked, luminosity_ratio, Ncusp_dressed, Ncusp_naked \
 
 With `prompt_cusps=True`, sigma(M) is computed from the CAMB linear matter power spectrum (with a free-streaming cutoff set by `k_fs_Mpc` / `filter` / `alpha`) instead of the Ludlow fit. The higher-order (`n>0`) boost tables are pre-computed with `boost_iteration_prompt_cusps.py`. See Ando et al. (arXiv:2601.19863).
 
-## Opt-in ITAMAE migration
+## Standard ITAMAE-backed API
 
-SASHIMI-C is being migrated incrementally to the shared
-[ITAMAE](https://github.com/gomeshun/itamae) numerical toolkit. The established
-`sashimi_c` import path and its tuple-returning API remain unchanged. To test
-the migrated mechanisms explicitly, change only the imported module:
-
-```python
-from sashimi_c_itamae import subhalo_properties
-
-model = subhalo_properties(physics_mode="consistent")  # opt-in default
-legacy_tuple = model.subhalo_properties_calc(1.0e12 * model.Msun)
-catalog = model.subhalo_catalog_calc(1.0e12 * model.Msun)
-```
-
-The first call preserves the historical SASHIMI-C return contract. The second
-returns an ITAMAE `WeightedSubhaloCatalog` with separate population,
-concentration, and survival weights.
-
-The opt-in path has two explicit physical-numerical conventions:
-
-- `physics_mode="consistent"` is the default. ITAMAE critical density and the
-  SASHIMI-C gravitational constant use one common constant convention.
-- `physics_mode="legacy"` preserves the historical rounded SASHIMI-C constant
-  and critical-density normalization for strict result reproduction.
-
-Catalog metadata records the mode in a distinct `model_identifier`, along with
-the backend, solver, grid, weight, survival-threshold, and version provenance.
-The established `sashimi_c` module remains legacy-only and unchanged.
-
-Both opt-in modes retain the canonical SASHIMI-C cosmology
-(`OmegaM=0.315`, `h=0.674`) by design. A different cosmology backend is rejected
-until all host-history and halo-definition formulae have been migrated, because
-mixing a new expansion/growth backend with legacy cosmological coefficients
-would not define one self-consistent physical model.
-
-The default stripping method remains `pert2_shanks`, and the default disruption
-threshold remains `ct_th=0.0`. They are recorded in catalog metadata. The
-approximation can be diagnosed explicitly without changing catalog defaults:
+The reviewed calculation is now available from `sashimi_c`. Runtime
+`physics_mode` selection and dynamic legacy-class migration have been removed.
+This is a breaking API/numerical change for the planned 2.0.0rc1 release.
 
 ```python
-import numpy as np
-from sashimi_c_itamae import diagnose_stripping_approximation
+from sashimi_c import SubhaloProperties
 
-diagnostic = diagnose_stripping_approximation(
-    host_mass=1.0e12,
-    mass_at_accretion=np.logspace(6, 10, 9),
-    accretion_redshift=1.0,
+model = SubhaloProperties()
+catalog = model.subhalo_catalog_calc(
+    M0=1e12, dz=0.5, zmax=2.0, N_ma=24, N_herm=3, N_hermNa=8,
+    logmamin=6.0, logmamax=10.0, method="pert2_shanks", ct_th=0.0,
 )
-print(diagnostic.summary())
+print(catalog.columns.keys(), catalog.weight_final.sum())
 ```
 
-See [`itamae_migration_demo.ipynb`](itamae_migration_demo.ipynb) for a
-lightweight, executable comparison of the established API, the migrated legacy
-mode, and the default consistent mode. It checks the full catalog, subhalo mass
-function, and cumulative satellite counts, and visualizes the small
-mode-dependent profile changes.
+Catalogs contain named columns, separate population/concentration/survival
+weights, canonical units and versioned calculation/source provenance. The
+lowercase class names and `sashimi_c_itamae` imports are aliases of these same
+classes. `subhalo_properties_calc` only converts this population to the
+historical ten-column tuple; it cannot execute old physics.
 
-Install the notebook-only dependencies and execute every cell from a clean
-kernel with:
+The calibrated background remains `OmegaM=0.315`, `h=0.674`. Incompatible
+backgrounds are rejected because host history, EPS and concentration are
+calibrated together. The default remains `pert2_shanks` with `ct_th=0.0`;
+Picard and direct ODE integration remain explicit solver choices.
 
-```bash
-uv run --python 3.11 --extra demo jupyter-nbconvert \
-  --to notebook --execute --inplace \
-  itamae_migration_demo.ipynb
-```
+See the [API migration guide](docs/standard-api-migration.md), the
+[usage walkthrough](notebooks/usage_walkthrough.ipynb), and the separate
+[scientific comparison](notebooks/scientific_validation.ipynb). Frozen old
+versions and individual correction patches are maintained by
+[sashimi-family](https://github.com/gomeshun/sashimi-family/tree/codex/migration-release-20260910/validation/references),
+outside the product runtime. Historical fixture provenance is retained.
 
-For a development installation with the opt-in backend:
-
-```bash
-python -m pip install ".[itamae]"
-```
+For this unpublished candidate, install the pinned ITAMAE wheel and C wheel
+from the review wheelhouse. The package metadata uses a version dependency;
+users do not need a Git checkout or VCS dependency. Optional `demo` extras add
+notebook/plotting tools; the former `itamae` extra is empty because ITAMAE is now
+required. Public release and main integration await peer review.
 
 ## Versions
 
@@ -239,7 +207,8 @@ default requires separate PHY-C review.
 
 Historical migration fixtures continue to use repository revision
 `9f6713b686805645da459e99522e2049e7dea793`, `method="pert2_shanks"`,
-`ct_th=0.0`, and `physics_mode="legacy"` for strict reproduction. Catalog
+`ct_th=0.0`, and `physics_mode="legacy"` as historical provenance. Reproduction
+runs the frozen version outside this product. Current catalog
 metadata records the selected stripping method and, for Picard runs, the table
 iteration/grid settings.
 

@@ -7,3 +7,4 @@ dist/
 *.egg-info/
 data/
 log/
+artifacts/

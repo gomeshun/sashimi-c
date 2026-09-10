@@ -1,4 +1,4 @@
-"""Regression tests for the incremental SASHIMI-C ITAMAE migration."""
+"""Standard CDM API, immutable references, observables and invariants."""
 
 import json
 from pathlib import Path
@@ -8,21 +8,18 @@ import pytest
 from itamae.cosmology import NativeFlatLCDM
 from itamae.halo import nfw_mass_function
 from itamae.numerics import gauss_hermite_lognormal
-from itamae.provenance import MIGRATION_METADATA_KEYS
+from itamae.provenance import CALCULATION_METADATA_KEYS
 
 import sashimi_c
-import sashimi_c_itamae
 import sashimi_c_itamae_catalog
 import sashimi_c_itamae_migration
 from sashimi_c import (
     TidalStrippingSolver,
-    halo_model,
     subhalo_observables,
     subhalo_properties,
 )
 from sashimi_c_itamae_catalog import (
     ItamaeSubhaloProperties,
-    ItamaeTidalStrippingSolver,
 )
 from sashimi_c_itamae_migration import (
     ItamaeHaloModel,
@@ -55,79 +52,6 @@ def test_golden_fixture_provenance_is_complete() -> None:
         "identifier": provenance["cosmology"]["backend_identifier"],
         "parameters": provenance["cosmology"]["parameters"],
     }
-    backend_parameters = provenance["cosmology"]["parameters"]
-    backend = NativeFlatLCDM(
-        omega_m0=backend_parameters["omega_m0"],
-        h=backend_parameters["h"],
-    )
-    for physics_mode in provenance["constructor_parameters"]["physics_mode"]:
-        model = ItamaeSubhaloProperties(
-            physics_mode=physics_mode,
-            cosmology_backend=backend,
-        )
-        assert model.physics_mode == physics_mode
-        assert model.itamae_cosmology.identifier == provenance["cosmology"][
-            "backend_identifier"
-        ]
-
-
-def test_itamae_cosmology_matches_legacy_background() -> None:
-    """Legacy mode reproduces old constants; consistent mode uses ITAMAE's."""
-
-    legacy = halo_model()
-    migrated = ItamaeHaloModel(physics_mode="legacy")
-    consistent = ItamaeHaloModel()
-    backend = NativeFlatLCDM(omega_m0=0.315, h=0.674)
-    redshift = np.array([0.0, 0.5, 1.0, 3.0, 7.0])
-
-    np.testing.assert_allclose(
-        migrated.Hubble(redshift), legacy.Hubble(redshift), rtol=2.0e-12, atol=0.0
-    )
-    np.testing.assert_allclose(
-        migrated.growthD(redshift), legacy.growthD(redshift), rtol=2.0e-12, atol=0.0
-    )
-    np.testing.assert_allclose(
-        migrated.rhocrit(redshift), legacy.rhocrit(redshift), rtol=2.0e-12, atol=0.0
-    )
-    np.testing.assert_allclose(
-        consistent.Hubble(redshift), legacy.Hubble(redshift), rtol=2.0e-12, atol=0.0
-    )
-    np.testing.assert_allclose(
-        consistent.growthD(redshift),
-        legacy.growthD(redshift),
-        rtol=2.0e-12,
-        atol=0.0,
-    )
-    np.testing.assert_allclose(
-        consistent.rhocrit(redshift),
-        backend.rho_crit(redshift),
-        rtol=2.0e-12,
-        atol=0.0,
-    )
-    assert consistent.physics_mode == "consistent"
-    assert migrated.physics_mode == "legacy"
-
-
-def test_itamae_cosmology_preserves_halo_calculations() -> None:
-    """Representative halo calculations should remain regression-equivalent."""
-
-    legacy = halo_model()
-    migrated = ItamaeHaloModel(physics_mode="legacy")
-    mass = np.array([1.0e8, 1.0e10, 1.0e12]) * legacy.Msun
-    redshift = np.array([0.0, 1.0, 3.0])
-
-    np.testing.assert_allclose(
-        migrated.sigmaMz(mass, redshift),
-        legacy.sigmaMz(mass, redshift),
-        rtol=2.0e-12,
-        atol=0.0,
-    )
-    np.testing.assert_allclose(
-        migrated.Mvir_from_M200_fit(mass, redshift),
-        legacy.Mvir_from_M200_fit(mass, redshift),
-        rtol=2.0e-12,
-        atol=0.0,
-    )
 
 
 def test_itamae_concentration_quadrature_is_normalized() -> None:
@@ -143,87 +67,6 @@ def test_itamae_concentration_quadrature_is_normalized() -> None:
         rtol=0.0,
         atol=2.0e-15,
     )
-
-
-def test_itamae_shanks_solver_matches_legacy() -> None:
-    """The migrated perturbative solver should preserve SASHIMI stabilization."""
-
-    host_mass = 1.0e10
-    legacy = TidalStrippingSolver(host_mass, z_min=0.0, z_max=1.5, n_z_interp=32)
-    migrated = ItamaeTidalStrippingSolver(
-        host_mass, z_min=0.0, z_max=1.5, n_z_interp=32
-    )
-    mass = np.array([1.0e6, 1.0e7, 1.0e8])
-
-    np.testing.assert_allclose(
-        migrated.subhalo_mass_stripped_pert2_shanks(mass, 1.0, 0.0),
-        legacy.subhalo_mass_stripped_pert2_shanks(mass, 1.0, 0.0),
-        rtol=2.0e-12,
-        atol=0.0,
-    )
-
-
-def test_itamae_catalog_preserves_small_legacy_catalog() -> None:
-    """Legacy mode should reproduce every historical catalog field."""
-
-    parameters = {
-        "M0": 1.0e10,
-        "redshift": 0.0,
-        "dz": 0.5,
-        "zmax": 1.0,
-        "N_ma": 6,
-        "sigmalogc": 0.128,
-        "N_herm": 3,
-        "logmamin": 5.0,
-        "logmamax": 7.0,
-        "N_hermNa": 3,
-        "Na_model": 3,
-        "ct_th": 0.0,
-        "profile_change": True,
-        "method": "pert2_shanks",
-    }
-    legacy_result = subhalo_properties().subhalo_properties_calc(**parameters)
-    catalog = ItamaeSubhaloProperties(physics_mode="legacy").subhalo_catalog_calc(
-        **parameters
-    )
-
-    column_names = (
-        "m200_acc",
-        "z_acc",
-        "r_s_acc",
-        "rho_s_acc",
-        "m_bound",
-        "r_s",
-        "rho_s",
-    )
-    for index, name in enumerate(column_names):
-        np.testing.assert_allclose(
-            catalog.columns[name], legacy_result[index], rtol=5.0e-11, atol=0.0
-        )
-
-    legacy_ct = legacy_result[7]
-    np.testing.assert_allclose(catalog.columns["c_t"], legacy_ct, rtol=5.0e-14)
-    np.testing.assert_array_equal(catalog.columns["survive"], legacy_result[9])
-
-    legacy_weight = legacy_result[8]
-    migrated_weight = np.asarray(catalog.weights["weight_base"]) * np.asarray(
-        catalog.weights["weight_concentration"]
-    )
-    np.testing.assert_allclose(migrated_weight, legacy_weight, rtol=5.0e-11, atol=0.0)
-    np.testing.assert_allclose(
-        catalog.weight_final,
-        legacy_weight * legacy_result[9].astype(float),
-        rtol=5.0e-11,
-        atol=0.0,
-    )
-    assert set(catalog.weights) == {
-        "weight_base",
-        "weight_concentration",
-        "weight_survival",
-    }
-    assert catalog.metadata["schema_version"] == "1.0"
-    assert catalog.metadata["model_identifier"] == "sashimi-c:cdm:legacy:v1.2"
-    assert catalog.metadata["physics_mode"] == "legacy"
 
 
 def test_catalog_satisfies_mass_profile_and_weight_invariants() -> None:
@@ -268,165 +111,13 @@ def test_catalog_satisfies_mass_profile_and_weight_invariants() -> None:
     )
 
 
-def test_catalog_preserves_target_redshift_host_mass_convention() -> None:
-    """M0_at_redshift should retain the established inverse-history behavior."""
-
-    parameters = {
-        "M0": 1.0e10,
-        "redshift": 1.0,
-        "dz": 0.5,
-        "zmax": 2.0,
-        "N_ma": 6,
-        "N_herm": 3,
-        "logmamin": 5.0,
-        "logmamax": 7.0,
-        "N_hermNa": 3,
-        "M0_at_redshift": True,
-    }
-    legacy = subhalo_properties().subhalo_properties_calc(**parameters)
-    migrated = ItamaeSubhaloProperties(physics_mode="legacy").subhalo_properties_calc(
-        **parameters
-    )
-    for index, (migrated_value, legacy_value) in enumerate(
-        zip(migrated, legacy, strict=True)
-    ):
-        np.testing.assert_allclose(
-            migrated_value,
-            legacy_value,
-            rtol=5.0e-11,
-            atol=0.0,
-        )
-
-
-def test_opt_in_module_preserves_legacy_module_and_observable_results() -> None:
-    """The public opt-in path must not alter the established legacy API."""
-
-    assert sashimi_c.halo_model is halo_model
-    assert sashimi_c.subhalo_properties is subhalo_properties
-    assert sashimi_c.subhalo_observables is subhalo_observables
-    assert sashimi_c_itamae.halo_model is ItamaeHaloModel
-    assert sashimi_c_itamae.TidalStrippingSolver is ItamaeTidalStrippingSolver
-    assert sashimi_c_itamae.subhalo_properties is ItamaeSubhaloProperties
-    assert sashimi_c_itamae.subhalo_observables is ItamaeSubhaloObservables
-
-    parameters = {
-        "M0_per_Msun": 1.0e10,
-        "redshift": 0.0,
-        "dz": 0.5,
-        "zmax": 1.0,
-        "N_ma": 6,
-        "N_herm": 3,
-        "logmamin": 5.0,
-        "logmamax": 7.0,
-        "N_hermNa": 3,
-    }
-    legacy = subhalo_observables(**parameters)
-    migrated = sashimi_c_itamae.subhalo_observables(physics_mode="legacy", **parameters)
-    for name in (
-        "ma200",
-        "z_a",
-        "rs_a",
-        "rhos_a",
-        "m0",
-        "rs0",
-        "rhos0",
-        "ct0",
-        "weight",
-        "rmax",
-        "Vmax",
-        "rpeak",
-        "Vpeak",
-    ):
-        np.testing.assert_allclose(
-            getattr(migrated, name),
-            getattr(legacy, name),
-            rtol=5.0e-11,
-            atol=0.0,
-        )
-    for evolved in (False, True):
-        for migrated_value, legacy_value in zip(
-            migrated.mass_function(evolved=evolved),
-            legacy.mass_function(evolved=evolved),
-            strict=True,
-        ):
-            np.testing.assert_allclose(
-                migrated_value,
-                legacy_value,
-                rtol=5.0e-11,
-                atol=0.0,
-            )
-        np.testing.assert_allclose(
-            migrated.mass_fraction(evolved=evolved),
-            legacy.mass_fraction(evolved=evolved),
-            rtol=5.0e-11,
-            atol=0.0,
-        )
-    assert migrated.catalog.metadata["physics_mode"] == "legacy"
-    np.testing.assert_array_equal(
-        migrated.catalog.columns["survive"],
-        migrated.catalog.weights["weight_survival"].astype(bool),
-    )
-
-
-@pytest.mark.parametrize("selection", ["Mpeak", "Vpeak"])
-def test_legacy_mode_matches_public_accumulated_satellite_number(selection) -> None:
-    """Legacy migration must reproduce every cumulative-satellite output array."""
-
-    parameters = {
-        "M0_per_Msun": 1.0e12,
-        "redshift": 0.0,
-        "dz": 0.25,
-        "zmax": 2.0,
-        "N_ma": 32,
-        "sigmalogc": 0.128,
-        "N_herm": 5,
-        "logmamin": 5.0,
-        "logmamax": 10.0,
-        "N_hermNa": 16,
-        "Na_model": 3,
-        "ct_th": 0.0,
-        "profile_change": True,
-        "method": "pert2_shanks",
-    }
-    legacy = subhalo_observables(**parameters)
-    migrated = ItamaeSubhaloObservables(physics_mode="legacy", **parameters)
-
-    if selection == "Mpeak":
-        threshold = 1.0e8 * legacy.Msun
-        legacy_result = legacy.Nsat_Mpeak(threshold)
-        migrated_result = migrated.Nsat_Mpeak(threshold)
-    else:
-        threshold = 18.0 * legacy.km / legacy.s
-        legacy_result = legacy.Nsat_Vpeak(threshold)
-        migrated_result = migrated.Nsat_Vpeak(threshold)
-
-    for migrated_value, legacy_value in zip(
-        migrated_result,
-        legacy_result,
-        strict=True,
-    ):
-        np.testing.assert_allclose(
-            migrated_value,
-            legacy_value,
-            rtol=5.0e-13,
-            atol=0.0,
-        )
-
-
 def test_migration_rejects_mixed_cosmology() -> None:
     """A partial migration must not combine incompatible cosmologies."""
 
-    with pytest.raises(ValueError, match="requires OmegaM=0.315"):
+    with pytest.raises(ValueError, match=r"requires OmegaM=0\.315"):
         ItamaeHaloModel(cosmology_backend=NativeFlatLCDM(omega_m0=0.30, h=0.674))
-    with pytest.raises(ValueError, match="requires h=0.674"):
+    with pytest.raises(ValueError, match=r"requires h=0\.674"):
         ItamaeHaloModel(cosmology_backend=NativeFlatLCDM(omega_m0=0.315, h=0.70))
-
-
-def test_migration_rejects_unknown_physics_mode() -> None:
-    """Mode selection is explicit and cannot silently fall back."""
-
-    with pytest.raises(ValueError, match="physics_mode must be one of"):
-        ItamaeHaloModel(physics_mode="hybrid")
 
 
 @pytest.mark.parametrize(
@@ -525,24 +216,22 @@ def _observable_summary(observable):
     }
 
 
-@pytest.mark.parametrize("physics_mode", ["consistent", "legacy"])
-def test_full_catalog_and_observables_match_mode_specific_golden(physics_mode) -> None:
+def test_full_catalog_and_observables_match_preserved_consistent_golden() -> None:
     """Exercise all catalog nodes and public CDM observables against goldens."""
     parameters = dict(GOLDEN["parameters"])
-    model = ItamaeSubhaloProperties(physics_mode=physics_mode)
+    model = ItamaeSubhaloProperties()
     catalog = model.subhalo_catalog_calc(**parameters)
     observable_parameters = {
         ("M0_per_Msun" if name == "M0" else name): value
         for name, value in parameters.items()
     }
     observable = ItamaeSubhaloObservables(
-        physics_mode=physics_mode,
         **observable_parameters,
     )
     actual = {**_catalog_summary(catalog), **_observable_summary(observable)}
-    expected = GOLDEN["modes"][physics_mode]
+    expected = GOLDEN["modes"]["consistent"]
 
-    assert actual["model_identifier"] == expected["model_identifier"]
+    assert actual["model_identifier"] == sashimi_c.CALCULATION_SPECIFICATION
     assert actual["node_count"] == expected["node_count"]
     assert actual["survive_count"] == expected["survive_count"]
     for name in expected.keys() - {
@@ -557,49 +246,10 @@ def test_full_catalog_and_observables_match_mode_specific_golden(physics_mode) -
             atol=0.0,
         )
 
-    if physics_mode == "legacy":
-        legacy_catalog = subhalo_properties().subhalo_properties_calc(**parameters)
-        migrated_catalog = model.subhalo_properties_calc(**parameters)
-        for migrated_value, legacy_value in zip(
-            migrated_catalog,
-            legacy_catalog,
-            strict=True,
-        ):
-            if migrated_value.dtype == bool:
-                np.testing.assert_array_equal(migrated_value, legacy_value)
-            else:
-                np.testing.assert_allclose(
-                    migrated_value,
-                    legacy_value,
-                    rtol=5.0e-13,
-                    atol=0.0,
-                )
 
-        legacy_observable = subhalo_observables(**observable_parameters)
-        for name in (
-            "ma200",
-            "z_a",
-            "rs_a",
-            "rhos_a",
-            "m0",
-            "rs0",
-            "rhos0",
-            "ct0",
-            "weight",
-            "rmax",
-            "Vmax",
-            "rpeak",
-            "Vpeak",
-        ):
-            np.testing.assert_allclose(
-                getattr(observable, name),
-                getattr(legacy_observable, name),
-                rtol=5.0e-13,
-                atol=0.0,
-            )
-
-
-def test_catalog_metadata_records_mode_solver_weights_and_threshold(tmp_path: Path) -> None:
+def test_catalog_metadata_records_mode_solver_weights_and_threshold(
+    tmp_path: Path,
+) -> None:
     """Reproducibility metadata must expose every migration choice."""
     parameters = {
         "M0": 1.0e10,
@@ -618,19 +268,21 @@ def test_catalog_metadata_records_mode_solver_weights_and_threshold(tmp_path: Pa
     metadata = catalog.metadata
 
     assert model.catalog is catalog
-    assert set(MIGRATION_METADATA_KEYS) <= set(metadata)
+    assert set(CALCULATION_METADATA_KEYS) <= set(metadata)
     assert metadata["sashimi_variant"] == "sashimi-c"
     assert len(metadata["itamae_source_revision"]) == 40
     assert len(metadata["sashimi_source_revision"]) == 40
     assert metadata["sashimi_version"] == "1.2.0"
     assert metadata["catalog_schema_version"] == "1.0"
     assert metadata["canonical_unit_schema"] == "1.0"
-    assert metadata["cosmology_backend"] == GOLDEN["provenance"]["cosmology"][
-        "backend_identifier"
-    ]
-    assert metadata["cosmology_parameters"] == GOLDEN["provenance"]["cosmology"][
-        "parameters"
-    ]
+    assert (
+        metadata["cosmology_backend"]
+        == GOLDEN["provenance"]["cosmology"]["backend_identifier"]
+    )
+    assert (
+        metadata["cosmology_parameters"]
+        == GOLDEN["provenance"]["cosmology"]["parameters"]
+    )
     assert metadata["variance_identifier"] == "sashimi-c:analytic-cdm-fit:v1"
     assert metadata["power_identifier"] == "sashimi-c:cdm-linear-power:v1"
     assert metadata["solver_identifier"] == "sashimi-c:tidal-stripping:pert2_shanks:v1"
@@ -639,8 +291,9 @@ def test_catalog_metadata_records_mode_solver_weights_and_threshold(tmp_path: Pa
         "h": 0.674,
         "omega_lambda0": 0.685,
     }
-    assert metadata["physics_mode"] == "consistent"
-    assert metadata["model_identifier"] == "sashimi-c:cdm:consistent:v1.2"
+    assert "physics_mode" not in metadata
+    assert metadata["calculation_specification"] == sashimi_c.CALCULATION_SPECIFICATION
+    assert metadata["model_identifier"] == sashimi_c.CALCULATION_SPECIFICATION
     assert metadata["stripping_method"] == "pert2_shanks"
     assert metadata["default_stripping_method"] == "pert2_shanks"
     assert metadata["shanks_small_correction_threshold"] == 0.02
@@ -693,7 +346,7 @@ def test_shanks_vs_ode_diagnostic_does_not_change_defaults() -> None:
         accretion_redshift=1.0,
     )
 
-    assert diagnostic.physics_mode == "consistent"
+    assert diagnostic.calculation_specification == sashimi_c.CALCULATION_SPECIFICATION
     assert diagnostic.summary()["comparison"] == "pert2_shanks-vs-odeint"
     assert diagnostic.summary()["sample_size"] == len(masses)
     np.testing.assert_allclose(

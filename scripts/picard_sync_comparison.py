@@ -41,8 +41,8 @@ def build_report():
     public = subhalo_properties().subhalo_properties_calc(
         **PARAMETERS, method="pert2_shanks"
     )
-    migrated_shanks_model = ItamaeSubhaloProperties(physics_mode="legacy")
-    migrated_picard_model = ItamaeSubhaloProperties(physics_mode="legacy")
+    migrated_shanks_model = ItamaeSubhaloProperties()
+    migrated_picard_model = ItamaeSubhaloProperties()
     shanks = migrated_shanks_model.subhalo_catalog_calc(
         **PARAMETERS, method="pert2_shanks"
     )
@@ -59,15 +59,15 @@ def build_report():
         for key, value in PARAMETERS.items()
     }
     shanks_obs = ItamaeSubhaloObservables(
-        physics_mode="legacy", method="pert2_shanks", **observable_parameters
+        method="pert2_shanks", **observable_parameters
     )
     picard_obs = ItamaeSubhaloObservables(
-        physics_mode="legacy", method="picard_table", **observable_parameters
+        method="picard_table", **observable_parameters
     )
 
     report = {
-        "schema": "sashimi-c:picard-sync-comparison:v1",
-        "historical_reference": {
+        "schema": "sashimi-c:solver-comparison:v2",
+        "historical_reference_not_executed_here": {
             "repository_revision": HISTORICAL_REFERENCE,
             "physics_mode": "legacy",
             "stripping_method": "pert2_shanks",
@@ -79,14 +79,15 @@ def build_report():
             "selection": "explicit method=picard_table only",
         },
         "parameters": PARAMETERS,
+        "product_metadata": dict(shanks.metadata),
         "picard_table_settings": dict(picard.metadata["picard_table_settings"]),
         "comparisons": {
-            "public_legacy_vs_migrated_legacy_shanks": {
+            "tuple_vs_named_shanks": {
                 "max_relative_m_bound_difference": max_relative(
                     shanks_m_bound, public_m_bound
                 ),
             },
-            "migrated_legacy_picard_vs_shanks": {
+            "picard_vs_shanks": {
                 "max_relative_m_bound_difference": max_relative(
                     picard_m_bound, shanks_m_bound
                 ),

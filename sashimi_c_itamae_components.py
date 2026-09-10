@@ -16,7 +16,6 @@ from itamae.measure import build_accretion_batch
 from itamae.numerics import gauss_hermite_lognormal
 from itamae.protocols.execution import PopulationState
 from itamae.types import AccretionBatch
-from scipy.interpolate import interp1d
 
 
 @dataclass(frozen=True, slots=True)
@@ -62,7 +61,10 @@ class CDMAccretionSlices:
             self.population_2d[index],
             concentration_weight,
             mvir_acc=ma,
-            metadata={"model": "sashimi-c", "physics_mode": self.model.physics_mode},
+            metadata={
+                "model": "sashimi-c",
+                "calculation_specification": "sashimi-c:cdm:2026-09-10:v1",
+            },
         )
         context = {
             "redshift_index": index,
@@ -131,16 +133,7 @@ class TidalProfileEvolution:
             rhos_z0 = rhos_acc
 
         enclosed_fraction = m0 / (4.0 * np.pi * rhos_z0 * rs_z0**3)
-        if self.model.physics_mode == "consistent":
-            c_t = invert_nfw_mass_function(enclosed_fraction)
-        else:
-            legacy_c_t = np.linspace(0.0, 100.0, 1000)
-            inverse = interp1d(
-                self.model.fc(legacy_c_t),
-                legacy_c_t,
-                fill_value="extrapolate",
-            )
-            c_t = inverse(enclosed_fraction)
+        c_t = invert_nfw_mass_function(enclosed_fraction)
         return {
             "m_bound": m0.reshape(-1),
             "r_s": rs_z0.reshape(-1),

@@ -15,7 +15,10 @@ def test_c_variance_adapter_matches_legacy_model() -> None:
     redshift = np.array([0.0, 1.0, 3.0])
 
     np.testing.assert_allclose(
-        variance.sigma(mass, redshift), legacy.sigmaMz(mass, redshift), rtol=0.0, atol=0.0
+        variance.sigma(mass, redshift),
+        legacy.sigmaMz(mass, redshift),
+        rtol=0.0,
+        atol=0.0,
     )
     np.testing.assert_allclose(
         variance.variance(mass, redshift),

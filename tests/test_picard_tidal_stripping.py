@@ -29,8 +29,7 @@ def reference_log_ode_mass(solver, ma, z_acc, z_final=0.0):
 
     def rhs(z, y):
         return [
-            solver.Phi(z)
-            * np.exp(solver.zetaMz(z) * (y[0] - np.log(solver.Mzvir(z))))
+            solver.Phi(z) * np.exp(solver.zetaMz(z) * (y[0] - np.log(solver.Mzvir(z))))
         ]
 
     result = solve_ivp(
