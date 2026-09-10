@@ -15,12 +15,11 @@ from itamae.cosmology import NativeFlatLCDM
 from itamae.evolution import solve_evolution
 from itamae.protocols import CosmologyBackend
 from itamae.types import WeightedSubhaloCatalog
+from picard_tidal_stripping import PicardTidalStrippingTable
+from sashimi_c_boost import interpolate_boost_tables, validate_order
+from sashimi_c_data import data_directory
 from scipy import optimize
 from scipy.integrate import cumulative_trapezoid
-
-from picard_tidal_stripping import PicardTidalStrippingTable
-from sashimi_c_data import data_directory
-from sashimi_c_boost import interpolate_boost_tables, validate_order
 
 _CALIBRATED_OMEGA_M = 0.315
 _CALIBRATED_H = 0.674

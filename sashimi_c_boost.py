@@ -12,9 +12,8 @@ import warnings
 from pathlib import Path
 
 import numpy as np
-from scipy.interpolate import griddata
-
 from sashimi_c_data import data_directory, require_input
+from scipy.interpolate import griddata
 
 MODEL_KEYS = (
     "cosmology_backend",
@@ -63,14 +62,14 @@ def interpolate_boost_tables(
     exposes its invalid points; it is not a calibrated boundary model.
     """
     if not isinstance(allow_incomplete_tables, (bool, np.bool_)):
-        raise ValueError("allow_incomplete_tables must be an explicit boolean.")
+        raise TypeError("allow_incomplete_tables must be an explicit boolean.")
     directory = directory.resolve()
     model.last_boost_provenance = {"directory": str(directory), "valid": False}
     manifest_path = require_input(directory / "manifest.json")
     raw_manifest = manifest_path.read_bytes()
     manifest = json.loads(raw_manifest)
     if not isinstance(manifest, dict):
-        raise ValueError("Boost manifest must be an object.")
+        raise TypeError("Boost manifest must be an object.")
     expected = {
         "schema_version": 1,
         "variant": "sashimi-c",
@@ -91,10 +90,10 @@ def interpolate_boost_tables(
         ):
             raise ValueError(f"Boost manifest {key} must record a full source SHA.")
     if not isinstance(manifest.get("generation_parameters"), dict):
-        raise ValueError("Boost manifest must record generation_parameters.")
+        raise TypeError("Boost manifest must record generation_parameters.")
     hashes = manifest.get("files")
     if not isinstance(hashes, dict):
-        raise ValueError("Boost manifest must record file hashes.")
+        raise TypeError("Boost manifest must record file hashes.")
     invalid_cells = manifest.get("generation_diagnostics", {}).get(
         "invalid_cell_count", 0
     )
@@ -212,7 +211,7 @@ def generate_boost_tables(configuration, *, data_dir=None, prompt_cusps=False):
     validate_order(order)
     allow_incomplete = configuration.get("allow_incomplete_tables", False)
     if not isinstance(allow_incomplete, bool):
-        raise ValueError("allow_incomplete_tables must be an explicit boolean.")
+        raise TypeError("allow_incomplete_tables must be an explicit boolean.")
     redshifts = np.asarray(configuration["redshift_grid"])
     masses = np.asarray(configuration["mass_grid_Msun"])
     if redshifts.dtype.kind not in "iuf" or masses.dtype.kind not in "iuf":
