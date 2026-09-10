@@ -12,10 +12,11 @@ from typing import Any
 
 import numpy as np
 from itamae.cosmology import NativeFlatLCDM
+from itamae.evolution import solve_evolution
 from itamae.protocols import CosmologyBackend
 from itamae.types import WeightedSubhaloCatalog
 from scipy import optimize
-from scipy.integrate import cumulative_trapezoid, odeint
+from scipy.integrate import cumulative_trapezoid
 from scipy.interpolate import griddata
 
 from picard_tidal_stripping import PicardTidalStrippingTable
@@ -443,9 +444,30 @@ class CDMTidalKernels(CDMPhysics):
         )
 
     def subhalo_mass_stripped_odeint(self, ma, za, z0, **kwargs):
+        """Integrate the owned tidal RHS through ITAMAE's odeint controller.
+
+        Numerical options retain SciPy meanings. A supplied Dfun keeps this
+        method's historical state-first signature; ITAMAE receives time first.
+        The controller owns args/tfirst/full_output, which are not accepted as
+        duplicate overrides. Repeated times and zero evolution are preserved.
+        """
+        options = dict(kwargs)
+        rtol, atol = options.pop("rtol", None), options.pop("atol", None)
+        jacobian = options.get("Dfun")
+        if callable(jacobian):
+            options["Dfun"] = lambda time, state: jacobian(state, time)
         zcalc = np.linspace(za, z0, 100)
-        sol = odeint(self.msolve, ma, zcalc, **kwargs)
-        return sol[-1]
+        solution = solve_evolution(
+            lambda time, state: self.msolve(state, time),
+            ma,
+            zcalc,
+            method="odeint",
+            rtol=rtol,
+            atol=atol,
+            odeint_options=options,
+            allow_repeated_times=True,
+        )
+        return solution[-1]
 
     def Phi(self, z):
         """subhalo stripping factor assuming zetaMz(z) = 0.
