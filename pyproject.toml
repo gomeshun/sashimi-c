@@ -32,6 +32,7 @@ itamae = [
 ]
 test = [
   "pytest>=8",
+  "setuptools>=77",
 ]
 
 [project.urls]
