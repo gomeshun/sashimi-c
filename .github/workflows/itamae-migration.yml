@@ -25,7 +25,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: gomeshun/itamae
-          ref: 8bd6d135003e91b6ca2717655df250c8f808cd24
+          ref: 5da8dbbbd88f3f45dd7d2fbe66f11203d9632fa7
           path: .itamae
       - name: Export migration provenance revisions
         run: |
@@ -40,6 +40,8 @@ jobs:
       - name: Lint migration code
         run: >-
           uv run --no-sync ruff check
+          sashimi_c.py
+          sashimi_c_physics.py
           sashimi_c_itamae.py
           sashimi_c_itamae_catalog.py
           sashimi_c_itamae_components.py
@@ -64,7 +66,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: gomeshun/itamae
-          ref: 8bd6d135003e91b6ca2717655df250c8f808cd24
+          ref: 5da8dbbbd88f3f45dd7d2fbe66f11203d9632fa7
           path: .itamae
       - uses: astral-sh/setup-uv@v6
         with:
@@ -94,7 +96,7 @@ jobs:
           assert source_revision("itamae") == os.environ["EXPECTED_ITAMAE_REVISION"]
           assert source_revision("sashimi-c") == os.environ["EXPECTED_SASHIMI_REVISION"]
           PY
-      - name: Smoke-test legacy and opt-in imports
+      - name: Smoke-test standard API and import aliases
         run: |
           cd "${RUNNER_TEMP}"
           "${GITHUB_WORKSPACE}/.venv-smoke/bin/python" -c \
@@ -134,7 +136,9 @@ jobs:
           mkdir -p family-validation
           python3 scripts/prepare_family_manifest.py \
             --family-root .family --output family-validation/effective.toml \
-            --candidate sashimi-c --candidate-ref "$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+            --candidate sashimi-c --candidate-ref "$(git rev-parse HEAD)" \
+            --override itamae=5da8dbbbd88f3f45dd7d2fbe66f11203d9632fa7 \
+            --override sashimi-si=aeecf2b80c6273818d3b12df15645b3db891f176 >> "$GITHUB_OUTPUT"
           cp .family/compatibility.toml family-validation/base.toml
           cat family-validation/effective.json >> "$GITHUB_STEP_SUMMARY"
       - name: Check out compatible SASHIMI-SI
@@ -179,7 +183,7 @@ jobs:
         run: |
           uv venv --python 3.11 .venv-coinstall
           uv pip install --python .venv-coinstall/bin/python dist-family/*.whl
-      - name: Import both legacy and ITAMAE facades outside the checkout
+      - name: Import standard APIs outside the checkout
         env:
           ITAMAE_REF: ${{ steps.compatibility.outputs.itamae_ref }}
           SASHIMI_C_REF: ${{ steps.compatibility.outputs.sashimi_c_ref }}

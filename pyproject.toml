@@ -7,7 +7,7 @@ name = "sashimi-c"
 version = "1.2.0"
 description = "Semi-Analytical SubHalo Inference ModelIng for cold dark matter"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 license = "MIT"
 authors = [
   {name = "Shin'ichiro Ando"},
@@ -16,20 +16,19 @@ authors = [
   {name = "Ariane Dekker"},
 ]
 dependencies = [
-  "numpy>=1.23",
-  "scipy>=1.9",
+  "sashimi-itamae>=0.1.0a4",
+  "numpy>=1.26",
+  "scipy>=1.11",
   "tqdm>=4.66",
 ]
 
 [project.optional-dependencies]
 demo = [
   "ipykernel>=6",
-  "sashimi-itamae @ git+https://github.com/gomeshun/itamae.git@8bd6d135003e91b6ca2717655df250c8f808cd24 ; python_version >= '3.11'",
   "matplotlib>=3.8",
   "nbconvert>=7",
 ]
 itamae = [
-  "sashimi-itamae @ git+https://github.com/gomeshun/itamae.git@8bd6d135003e91b6ca2717655df250c8f808cd24 ; python_version >= '3.11'",
 ]
 test = [
   "pytest>=8",
@@ -45,6 +44,7 @@ py-modules = [
   "prompt_cusps",
   "picard_tidal_stripping",
   "sashimi_c",
+  "sashimi_c_physics",
   "sashimi_c_itamae",
   "sashimi_c_itamae_catalog",
   "sashimi_c_itamae_components",
@@ -53,7 +53,7 @@ py-modules = [
 ]
 
 [tool.setuptools.data-files]
-"share/sashimi-c" = ["itamae_migration_demo.ipynb"]
+"share/sashimi-c" = ["notebooks/usage_walkthrough.ipynb"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

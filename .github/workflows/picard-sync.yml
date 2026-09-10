@@ -28,7 +28,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: gomeshun/itamae
-          ref: 8bd6d135003e91b6ca2717655df250c8f808cd24
+          ref: 5da8dbbbd88f3f45dd7d2fbe66f11203d9632fa7
           path: .itamae
       - uses: astral-sh/setup-uv@v6
         with:

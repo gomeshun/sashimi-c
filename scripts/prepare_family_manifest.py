@@ -8,23 +8,35 @@ import json
 import re
 import subprocess
 import sys
-from pathlib import Path
-
 import tomllib
+from pathlib import Path
 
 PACKAGES = ("itamae", "sashimi-c", "sashimi-si", "sashimi-w", "sashimi-f")
 
 
-def prepare(family_root, output, candidate, candidate_ref, mode="candidate"):
-    """Preserve the base set and override only the explicitly tested candidate."""
+def prepare(
+    family_root, output, candidate, candidate_ref, mode="candidate", overrides=None
+):
+    """Preserve the base set and record every explicitly coordinated candidate."""
     family_root, output = Path(family_root).resolve(), Path(output).resolve()
     source = family_root / "compatibility.toml"
     if output == source:
-        raise ValueError("The effective manifest must not overwrite the canonical manifest")
+        raise ValueError(
+            "The effective manifest must not overwrite the canonical manifest"
+        )
     if candidate not in PACKAGES or mode not in ("candidate", "promoted"):
         raise ValueError("Unknown candidate package or validation mode")
     if re.fullmatch(r"[0-9a-f]{40}", candidate_ref) is None:
         raise ValueError("The candidate revision must be a full lowercase commit SHA")
+
+    overrides = dict(overrides or {})
+    if mode != "candidate" and overrides:
+        raise ValueError("Recorded/promoted validation cannot apply overrides")
+    for name, revision in overrides.items():
+        if name not in PACKAGES or name == candidate:
+            raise ValueError("Overrides must name other known family packages")
+        if re.fullmatch(r"[0-9a-f]{40}", revision) is None:
+            raise ValueError("Override revisions must be full lowercase commit SHAs")
 
     # Check the untouched base against its own gitlinks, never against an override.
     subprocess.run(
@@ -39,24 +51,43 @@ def prepare(family_root, output, candidate, candidate_ref, mode="candidate"):
     effective = copy.deepcopy(base)
     if mode == "candidate":
         effective[candidate]["ref"] = candidate_ref
+        for name, revision in overrides.items():
+            effective[name]["ref"] = revision
 
     # Schema 1 has scalar-valued tables. Verify the serialization round trip so
     # future unsupported fields fail explicitly instead of being discarded.
-    rendered = "\n\n".join(
-        f"[{json.dumps(name)}]\n"
-        + "\n".join(f"{json.dumps(key)} = {json.dumps(value)}" for key, value in entry.items())
-        for name, entry in effective.items()
-    ) + "\n"
+    rendered = (
+        "\n\n".join(
+            f"[{json.dumps(name)}]\n"
+            + "\n".join(
+                f"{json.dumps(key)} = {json.dumps(value)}"
+                for key, value in entry.items()
+            )
+            for name, entry in effective.items()
+        )
+        + "\n"
+    )
     if tomllib.loads(rendered) != effective:
         raise ValueError("Effective manifest serialization changed its contents")
     output.write_text(rendered)
-    output.with_suffix(".json").write_text(json.dumps({
-        "family_base_ref": base_ref,
-        "validation_mode": mode,
-        "candidate_package": candidate,
-        "workflow_source_ref": candidate_ref,
-        "effective_revisions": {name: effective[name]["ref"] for name in PACKAGES},
-    }, indent=2) + "\n")
+    output.with_suffix(".json").write_text(
+        json.dumps(
+            {
+                "family_base_ref": base_ref,
+                "validation_mode": mode,
+                "candidate_package": candidate,
+                "workflow_source_ref": candidate_ref,
+                "overrides": {candidate: candidate_ref, **overrides}
+                if mode == "candidate"
+                else {},
+                "effective_revisions": {
+                    name: effective[name]["ref"] for name in PACKAGES
+                },
+            },
+            indent=2,
+        )
+        + "\n"
+    )
     return base_ref, effective
 
 
@@ -66,10 +97,26 @@ def main():
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--candidate", choices=PACKAGES, required=True)
     parser.add_argument("--candidate-ref", required=True)
-    parser.add_argument("--mode", choices=("candidate", "promoted"), default="candidate")
+    parser.add_argument(
+        "--mode", choices=("candidate", "promoted"), default="candidate"
+    )
+    parser.add_argument(
+        "--override", action="append", default=[], metavar="PACKAGE=SHA"
+    )
     args = parser.parse_args()
+    overrides = {}
+    for item in args.override:
+        name, separator, revision = item.partition("=")
+        if not separator or name in overrides:
+            parser.error("Each override must be a unique PACKAGE=SHA")
+        overrides[name] = revision
     base_ref, manifest = prepare(
-        args.family_root, args.output, args.candidate, args.candidate_ref, args.mode
+        args.family_root,
+        args.output,
+        args.candidate,
+        args.candidate_ref,
+        args.mode,
+        overrides,
     )
     print(f"family_base_ref={base_ref}")
     print(f"validation_mode={args.mode}")

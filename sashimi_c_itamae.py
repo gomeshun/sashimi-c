@@ -1,9 +1,4 @@
-"""Opt-in ITAMAE-backed public API for SASHIMI-C.
-
-Importing this module leaves :mod:`sashimi_c` unchanged. The lower-case aliases
-mirror the established SASHIMI-C class names and method signatures while using
-ITAMAE for migrated numerical mechanisms and structured catalog output.
-"""
+"""Transitional import aliases for the standard ITAMAE-backed SASHIMI-C API."""
 
 from sashimi_c_itamae_migration import (
     ItamaeHaloModel,
