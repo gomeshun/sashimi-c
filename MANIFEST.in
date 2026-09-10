@@ -1,2 +1,2 @@
-include tests/golden/*.json
+recursive-include tests *.py *.json *.npz
 include setup.py
