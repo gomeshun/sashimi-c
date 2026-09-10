@@ -272,7 +272,7 @@ def test_catalog_metadata_records_mode_solver_weights_and_threshold(
     assert metadata["sashimi_variant"] == "sashimi-c"
     assert len(metadata["itamae_source_revision"]) == 40
     assert len(metadata["sashimi_source_revision"]) == 40
-    assert metadata["sashimi_version"] == "1.2.0"
+    assert metadata["sashimi_version"] == "2.0.0rc1"
     assert metadata["catalog_schema_version"] == "1.0"
     assert metadata["canonical_unit_schema"] == "1.0"
     assert (

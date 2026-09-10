@@ -31,3 +31,9 @@ The inactive `release-workflow.yml.example` stays outside `.github/workflows`.
 Before any later enabling, configure a protected PyPI environment with required
 human reviewers and trusted publishing; manual dispatch alone is insufficient.
 No upload workflow or release tag is enabled during this preparation.
+
+Validation used the installed 2.0.0rc1 candidate. The full run initially had
+94 passes and one stale 1.2.0 version assertion; after updating the expected
+metadata version, that focused check passed. No numerical check or tolerance
+changed. Scientific and usage notebooks executed in fresh kernels, with saved
+figures inspected; the source distribution includes their validation summaries.
