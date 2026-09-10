@@ -36,7 +36,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - run: uv venv --python ${{ matrix.python-version }}
       - name: Install migration dependencies
-        run: uv pip install ./.itamae ".[test]" ruff
+        run: uv pip install --no-sources ./.itamae ".[test]" ruff
       - name: Lint migration code
         run: >-
           uv run --no-sync ruff check

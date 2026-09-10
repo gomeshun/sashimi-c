@@ -37,3 +37,9 @@ Validation used the installed 2.0.0rc1 candidate. The full run initially had
 metadata version, that focused check passed. No numerical check or tolerance
 changed. Scientific and usage notebooks executed in fresh kernels, with saved
 figures inspected; the source distribution includes their validation summaries.
+
+The initial RC regression CI failed during dependency resolution: its explicit
+local core checkout conflicted with the new developer-only Git source entry.
+The job now uses `--no-sources`, keeping exactly one core input (the separately
+checked-out fixed SHA). Package, walkthrough, Picard and family jobs had already
+passed; no numerical calculation was changed by this correction.
