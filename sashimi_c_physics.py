@@ -998,7 +998,7 @@ class CDMObservableKernels:
         from prompt_cusps import prompt_cusps as _prompt_cusps
 
         prc = _prompt_cusps(k_fs=self.k_fs)
-        f_coll, J_cusps = prc.cusp_properties(f_surv=1.0, z=self.redshift)
+        _f_coll, J_cusps = prc.cusp_properties(f_surv=1.0, z=self.redshift)
         J_cusps_mean = np.mean(J_cusps)
 
         fsh = self.mass_fraction()
@@ -1009,16 +1009,13 @@ class CDMObservableKernels:
             Ncusp_naked = 0.0
         else:
             list_Bssh = np.loadtxt(
-                "data/prompt_cusps/boost/Bsh_%s_%.1f_%.1f.txt"
-                % ((n - 1), f_surv, f_surv_stripped)
+                f"data/prompt_cusps/boost/Bsh_{n - 1}_{f_surv:.1f}_{f_surv_stripped:.1f}.txt"
             )
             list_Ncusp_dressed = np.loadtxt(
-                "data/prompt_cusps/boost/Ncusp_dressed_%s_%.1f_%.1f.txt"
-                % ((n - 1), f_surv, f_surv_stripped)
+                f"data/prompt_cusps/boost/Ncusp_dressed_{n - 1}_{f_surv:.1f}_{f_surv_stripped:.1f}.txt"
             )
             list_Ncusp_naked = np.loadtxt(
-                "data/prompt_cusps/boost/Ncusp_naked_%s_%.1f_%.1f.txt"
-                % ((n - 1), f_surv, f_surv_stripped)
+                f"data/prompt_cusps/boost/Ncusp_naked_{n - 1}_{f_surv:.1f}_{f_surv_stripped:.1f}.txt"
             )
             list_fssh = np.loadtxt("data/prompt_cusps/boost/fsh.txt")
             list_za = np.loadtxt("data/prompt_cusps/boost/za.txt")

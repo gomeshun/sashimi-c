@@ -114,9 +114,9 @@ def test_catalog_satisfies_mass_profile_and_weight_invariants() -> None:
 def test_migration_rejects_mixed_cosmology() -> None:
     """A partial migration must not combine incompatible cosmologies."""
 
-    with pytest.raises(ValueError, match="requires OmegaM=0.315"):
+    with pytest.raises(ValueError, match=r"requires OmegaM=0\.315"):
         ItamaeHaloModel(cosmology_backend=NativeFlatLCDM(omega_m0=0.30, h=0.674))
-    with pytest.raises(ValueError, match="requires h=0.674"):
+    with pytest.raises(ValueError, match=r"requires h=0\.674"):
         ItamaeHaloModel(cosmology_backend=NativeFlatLCDM(omega_m0=0.315, h=0.70))
 
 

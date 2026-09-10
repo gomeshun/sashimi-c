@@ -16,9 +16,16 @@ from sashimi_c import (
 )
 from sashimi_c_itamae_migration import ItamaeSubhaloProperties
 
-SMALL = dict(
-    M0=1e10, dz=0.5, zmax=1.0, N_ma=4, N_herm=2, N_hermNa=3, logmamin=6.0, logmamax=8.0
-)
+SMALL = {
+    "M0": 1e10,
+    "dz": 0.5,
+    "zmax": 1.0,
+    "N_ma": 4,
+    "N_herm": 2,
+    "N_hermNa": 3,
+    "logmamin": 6.0,
+    "logmamax": 8.0,
+}
 
 
 def test_corrected_full_catalog_matches_independent_reference_b():
