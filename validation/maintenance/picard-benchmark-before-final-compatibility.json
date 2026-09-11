@@ -1,0 +1,87 @@
+{
+  "variant": "c",
+  "python": "3.11.15 (main, Mar  3 2026, 14:59:53) [Clang 21.1.4 ]",
+  "numpy": "1.26.4",
+  "scipy": "1.13.1",
+  "platform": "Linux-6.8.0-138-generic-x86_64-with-glibc2.39",
+  "repetitions": 3,
+  "runs": {
+    "legacy": [
+      {
+        "whole_catalog_seconds": 0.08647058403585106,
+        "peak_rss_kib": 143148,
+        "catalog_table_build_seconds": 0,
+        "catalog_table_count": 0,
+        "catalog_fallback_events": [],
+        "stderr": ""
+      },
+      {
+        "whole_catalog_seconds": 0.08935914188623428,
+        "peak_rss_kib": 144168,
+        "catalog_table_build_seconds": 0,
+        "catalog_table_count": 0,
+        "catalog_fallback_events": [],
+        "stderr": ""
+      },
+      {
+        "whole_catalog_seconds": 0.0890450089937076,
+        "peak_rss_kib": 144176,
+        "catalog_table_build_seconds": 0,
+        "catalog_table_count": 0,
+        "catalog_fallback_events": [],
+        "stderr": ""
+      }
+    ],
+    "picard": [
+      {
+        "whole_catalog_seconds": 0.08361160208005458,
+        "peak_rss_kib": 149688,
+        "catalog_table_build_seconds": 0.018998203915543854,
+        "catalog_table_count": 1,
+        "catalog_fallback_events": [],
+        "first_solver_seconds": 0.0197195679647848,
+        "reused_solver_seconds": 0.0006435359828174114,
+        "solver_table_build_seconds": 0.018557862960733473,
+        "solver_fallback_events": [],
+        "stderr": ""
+      },
+      {
+        "whole_catalog_seconds": 0.08409749006386846,
+        "peak_rss_kib": 149684,
+        "catalog_table_build_seconds": 0.01898002007510513,
+        "catalog_table_count": 1,
+        "catalog_fallback_events": [],
+        "first_solver_seconds": 0.019551631063222885,
+        "reused_solver_seconds": 0.0006319539388641715,
+        "solver_table_build_seconds": 0.018417877960018814,
+        "solver_fallback_events": [],
+        "stderr": ""
+      },
+      {
+        "whole_catalog_seconds": 0.08156384399626404,
+        "peak_rss_kib": 149692,
+        "catalog_table_build_seconds": 0.018826198996976018,
+        "catalog_table_count": 1,
+        "catalog_fallback_events": [],
+        "first_solver_seconds": 0.01953688298817724,
+        "reused_solver_seconds": 0.0006286280695348978,
+        "solver_table_build_seconds": 0.018382231006398797,
+        "solver_fallback_events": [],
+        "stderr": ""
+      }
+    ]
+  },
+  "source_sha256": {
+    "boost_iteration.py": "81a1497480b6c05a2cac51c671f98a355cdb5c2639f90293bae3bae22ccbb8cd",
+    "picard_tidal_stripping.py": "a861df71091c2b0b51374cc27851485b05bdfdf1ed4767d0acc6d7c264a99d87",
+    "boost_iteration_prompt_cusps.py": "9f9c339118e028901b7e1be29f265c08d9135496f465fbd0ae48b5300461d050",
+    "prompt_cusps.py": "32ff4ec51a712c27f83e9a4a9219e729290ee732bd2087812f94a80bc2fdb79c",
+    "sashimi_c.py": "5259c8d3e6b0f988facc3496d6957ce1e9eeaeb945ed4344a49cfd4eef730c2f"
+  },
+  "measurement": "Each mode and repetition is a fresh process; whole catalog includes constructor and table build. Peak RSS is sampled before solver microbenchmark. No competing validation jobs.",
+  "median_seconds": {
+    "legacy": 0.0890450089937076,
+    "picard": 0.08361160208005458
+  },
+  "whole_catalog_speedup": 1.0649838871458384
+}

@@ -1,0 +1,46 @@
+{
+  "variant": "c",
+  "source_commit": "4cc95dffbfa67cf4b72eb523f03d0f85f46a0a59",
+  "tests": [
+    {
+      "python": "310",
+      "passed": 36,
+      "log": "tests-python310.txt",
+      "log_sha256": "668525c08755ab05fb1cf24f7b78a183640ab310329ff37a18fbcc014f684112"
+    },
+    {
+      "python": "311",
+      "passed": 36,
+      "log": "tests-python311.txt",
+      "log_sha256": "6f70e935037aebd3bab92511c602895304a4cec6cbeac4fa6cb083dfeac4b51e"
+    },
+    {
+      "python": "312",
+      "passed": 36,
+      "log": "tests-python312.txt",
+      "log_sha256": "7779db201792a4cae0f91fb783480e4536d07de24c657493ccbe1e812a5e5d97"
+    },
+    {
+      "python": "313",
+      "passed": 36,
+      "log": "tests-python313.txt",
+      "log_sha256": "c09f3fa1f978f826bbe4b9fa68de3112cd1d11d57b9284f3802a7dc3f9d9887d"
+    }
+  ],
+  "example_passed": true,
+  "gate_passed": true,
+  "review": [
+    "Original module imports, class names, tuple ordering and units retained.",
+    "Explicit old-solver references pass separately from the Picard comparisons.",
+    "C two-node standalone table configuration remains supported.",
+    "SI zero-scattering infinite-collapse-time limit remains supported.",
+    "W unsupported native domains and all correction ablations remain recorded.",
+    "F saved identities include helper sources and explicit CDM sentinel; Colossus compatibility example passes.",
+    "No ITAMAE runtime imports; no release, package-layout or main merge changes."
+  ],
+  "limitations": [
+    "Numerical and runtime acceptance is not physical calibration.",
+    "Original unmodified C EPS/NFW issues remain outside this scoped change.",
+    "No downstream prior or likelihood campaign was run."
+  ]
+}

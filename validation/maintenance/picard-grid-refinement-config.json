@@ -1,0 +1,16 @@
+{
+  "parameters": {
+    "M0": 1000000000000.0,
+    "dz": 0.1,
+    "zmax": 3.5,
+    "N_ma": 95,
+    "N_herm": 5,
+    "N_hermNa": 16,
+    "logmamin": 6.0,
+    "logmamax": 10.5,
+    "ct_th": 0.77,
+    "redshift": 0.5
+  },
+  "constructor": {},
+  "selection": "Fixed numerical variant/boundary check; no physical calibration claim."
+}

@@ -1,31 +1,26 @@
 name: tests
-
 on:
   push:
-    branches: [main]
+    branches: [main, minor-updates]
   pull_request:
-
+permissions:
+  contents: read
 jobs:
   pytest:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        python-version: ["3.10"]
-
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
     steps:
       - uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install numpy scipy pytest
-
-      - name: Run tests
+      - name: Install standalone test dependencies
+        run: python -m pip install -r requirements-test.txt
+      - name: Test original imports and numerical regressions
         env:
           PYTHONPATH: .
-        run: pytest -q
+          MPLBACKEND: Agg
+        run: python -m pytest -q

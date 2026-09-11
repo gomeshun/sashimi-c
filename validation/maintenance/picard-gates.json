@@ -1,0 +1,158 @@
+{
+  "specification": "standalone-picard-gates-2026-09-11-v1",
+  "status": "fixed before Picard candidate pilot",
+  "reference": {
+    "method": "DOP853 log mass",
+    "rtol": 1e-11,
+    "atol": 1e-12,
+    "refined_rtol": 3e-13,
+    "refined_atol": 3e-14,
+    "refinement_relative_max": 1e-08
+  },
+  "mass_relative_max": 0.001,
+  "smooth_catalog_relative_max": 0.01,
+  "near_zero_absolute": {
+    "satellite_count": 1e-06,
+    "bound_mass_fraction": 1e-08,
+    "mean_vmax_km_s": 1e-05,
+    "boost": 1e-08,
+    "mean_core_radius_kpc": 1e-06,
+    "collapse_weight_fraction": 0.0001
+  },
+  "boundary": {
+    "changed_survival_or_collapse_weight_fraction_max": 0.001,
+    "record_every_changed_node": true,
+    "refine_solver_and_grid": true
+  },
+  "solver_domain": {
+    "host_mass_msun": [
+      100000000.0,
+      1000000000000.0,
+      1000000000000000.0
+    ],
+    "observed_redshift": [
+      0.0,
+      0.5,
+      2.0
+    ],
+    "accretion_redshift_offsets": [
+      0.0,
+      0.001,
+      0.5,
+      2.0,
+      5.0
+    ],
+    "maximum_accretion_redshift": 7.0,
+    "log10_mass_ratios": [
+      -24.0,
+      -21.0,
+      -18.0,
+      -12.0,
+      -6.0,
+      -2.0,
+      -0.5,
+      0.0,
+      2.0
+    ],
+    "restriction": "Only hosts for which the existing native history and concentration are finite; failed physical domains are retained explicitly, not silently approximated."
+  },
+  "refinement": {
+    "iterations": [
+      2,
+      3,
+      4
+    ],
+    "endpoint_grid_candidates": [
+      [
+        96,
+        128,
+        128
+      ],
+      [
+        128,
+        128,
+        256
+      ],
+      [
+        192,
+        256,
+        512
+      ]
+    ],
+    "history_integration_candidates": [
+      100,
+      129,
+      257
+    ]
+  },
+  "performance": {
+    "repetitions": 3,
+    "same_environment": true,
+    "full_catalog_speedup_median_min": 1.05,
+    "measure": [
+      "table build",
+      "first call",
+      "reused call",
+      "whole catalog",
+      "peak RSS"
+    ],
+    "fallback_count_required": true
+  },
+  "catalogs": {
+    "c": {
+      "M0": 1000000000000.0,
+      "dz": 0.1,
+      "zmax": 7.0,
+      "N_ma": 128,
+      "N_herm": 5,
+      "N_hermNa": 64,
+      "logmamin": -6.0
+    },
+    "si": {
+      "M0": 1000000000000.0,
+      "dz": 0.1,
+      "zmax": 7.0,
+      "N_ma": 128,
+      "N_herm": 5,
+      "N_hermNa": 64,
+      "logmamin": 6.0
+    },
+    "w": {
+      "M0": 1000000000000.0,
+      "dz": 0.1,
+      "zmax": 7.0,
+      "N_ma": 100,
+      "N_herm": 5,
+      "N_hermNa": 64,
+      "logmamin": 1.0
+    },
+    "f": {
+      "M0": 1000000000000.0,
+      "m_22": 1.0,
+      "dz": 0.1,
+      "zmax": 7.0,
+      "N_ma": 128,
+      "N_herm": 5,
+      "N_hermNa": 64,
+      "logmamin": 6.0
+    }
+  },
+  "variation": {
+    "si_sigma0_m_cm2_per_g": [
+      0.1,
+      147.1,
+      1000.0
+    ],
+    "w_mass_kev": [
+      0.5,
+      2.0,
+      5.0
+    ],
+    "f_m22": [
+      0.1,
+      1.0,
+      10.0
+    ]
+  },
+  "limits": "These are numerical equivalence and performance gates, not scientific or simulation calibration."
+}
