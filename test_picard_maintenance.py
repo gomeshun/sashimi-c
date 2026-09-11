@@ -113,7 +113,7 @@ def test_no_silent_extrapolation_and_counted_fallback():
 
 
 def test_public_dispatcher_candidate_and_legacy_paths():
-    variant=Path(__file__).parent.name.split('-')[-1]
+    variant=next(v for v in ('c','si','w','f') if Path(__file__).with_name('sashimi_'+v+'.py').exists())
     module=importlib.import_module('sashimi_'+variant)
     if variant=='w':
         solver=module.TidalStrippingSolver(module.subhalos(2.),1e12,z_max=3.)
@@ -141,4 +141,41 @@ def test_long_solver_range_does_not_extend_an_in_domain_table():
     endpoint_mass(solver,1e6,3.,0.)
     assert next(iter(solver._picard_tables.values())).z_acc_max <= 7.+1e-13
     with pytest.warns(PicardFallbackWarning):
-        endpoint_mass(solver,1e15,3.,0.)
+        endpoint_mass(solver,1e16,3.,0.)
+
+
+def test_public_default_matches_explicit_picard_and_observables():
+    variant=next(v for v in ('c','si','w','f') if Path(__file__).with_name('sashimi_'+v+'.py').exists())
+    module=importlib.import_module('sashimi_'+variant)
+    cls={'c':'subhalo_properties','si':'subhalo_properties','w':'subhalos','f':'fdm_subhalo_properties'}[variant]
+    model=getattr(module,cls)()
+    options=dict(M0=1e12,dz=.5,zmax=1.,N_ma=8,N_herm=2,N_hermNa=2,logmamin=8.,logmamax=10.)
+    method='picard' if variant=='si' else 'picard_table'
+    call=model.rs_rhos_calc if variant=='w' else model.subhalo_properties_calc
+    for profile_change in [True,False] if variant!='si' else [None]:
+        profile={} if profile_change is None else {'profile_change':profile_change}
+        actual=call(**options,**profile)
+        expected=call(**options,**profile,method=method)
+        for a,b in zip(actual,expected):np.testing.assert_array_equal(a,b)
+    if variant=='w':
+        for name,args in [('subhalo_distr',()),('N_sat',()),('N_sat_Vthres',(10.,))]:
+            observable=getattr(model,name)
+            opts={k:v for k,v in options.items() if k!='M0'}
+            a=observable(options['M0'],*args,**opts)
+            b=observable(options['M0'],*args,**opts,method=method)
+            for x,y in zip(a,b):np.testing.assert_array_equal(x,y)
+    elif variant in ['c','f']:
+        cls=getattr(module,'subhalo_observables' if variant=='c' else 'fdm_subhalo_observables')
+        opts={k:v for k,v in options.items() if k!='M0'}
+        a=cls(M0_per_Msun=options['M0'],**opts)
+        b=cls(M0_per_Msun=options['M0'],**opts,method=method)
+        np.testing.assert_array_equal(a.m0,b.m0)
+        for x,y in zip(a.mass_function(),b.mass_function()):np.testing.assert_array_equal(x,y)
+
+
+
+def test_original_two_point_table_configuration_remains_supported():
+    table=PicardTidalStrippingTable(AnalyticHost(),n_z_acc=2,n_log_ratio=2)
+    assert table.interpolation=='linear'
+    assert np.isfinite(table.mass(1e6,3.))
+    np.testing.assert_array_equal(table.mass([1.,2.],0.),[1.,2.])

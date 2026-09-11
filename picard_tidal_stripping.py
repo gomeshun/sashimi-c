@@ -215,7 +215,7 @@ class PicardTidalStrippingTable:
     def __init__(self, solver, z_final=None, z_acc_max=None, n_z_acc=48,
                  n_log_ratio=32, log10_ratio_min=-24., log10_ratio_max=3.,
                  n_integration=129, n_iterations=3, convergence_tolerance=8e-4,
-                 interpolation='cubic'):
+                 interpolation=None):
         self.solver = solver
         self.z_final = float(_real(solver.z_min if z_final is None else z_final,'z_final'))
         self.z_acc_max = float(_real(solver.z_max if z_acc_max is None else z_acc_max,'z_acc_max'))
@@ -232,6 +232,8 @@ class PicardTidalStrippingTable:
         self.convergence_tolerance = float(_real(convergence_tolerance,'convergence_tolerance'))
         if self.convergence_tolerance <= 0:
             raise ValueError('convergence_tolerance must be positive.')
+        if interpolation is None:
+            interpolation = 'cubic' if min(self.n_z_acc,self.n_log_ratio)>=4 else 'linear'
         if interpolation not in ('linear','cubic'):
             raise ValueError('interpolation must be linear or cubic.')
         if interpolation=='cubic' and min(self.n_z_acc,self.n_log_ratio)<4:
@@ -319,7 +321,7 @@ class PicardTidalStrippingTable:
 
 def endpoint_mass(solver, ma, za, z, *, n_z_acc=48, n_log_ratio=32,
                   log10_ratio_min=-24., log10_ratio_max=3., n_integration=129,
-                  n_iterations=3, convergence_tolerance=8e-4, interpolation='cubic'):
+                  n_iterations=3, convergence_tolerance=8e-4, interpolation=None):
     n_z_acc = _integer(n_z_acc,'n_z_acc',2)
     n_log_ratio = _integer(n_log_ratio,'n_log_ratio',2)
     n_integration = _integer(n_integration,'n_integration',2)
@@ -331,6 +333,8 @@ def endpoint_mass(solver, ma, za, z, *, n_z_acc=48, n_log_ratio=32,
     convergence_tolerance = float(_real(convergence_tolerance,'convergence_tolerance'))
     if convergence_tolerance <= 0:
         raise ValueError('convergence_tolerance must be positive.')
+    if interpolation is None:
+        interpolation = 'cubic' if min(n_z_acc,n_log_ratio)>=4 else 'linear'
     if interpolation not in ('linear','cubic'):
         raise ValueError('interpolation must be linear or cubic.')
     if interpolation=='cubic' and min(n_z_acc,n_log_ratio)<4:
@@ -353,7 +357,7 @@ def endpoint_mass(solver, ma, za, z, *, n_z_acc=48, n_log_ratio=32,
         if np.any(~np.isfinite(host)) or np.any(host <= 0):
             raise ValueError('Tidal stripping requires finite positive host mass.')
         ratio = np.log10(m/host)
-        outside = (a>7.+32*np.finfo(float).eps) | (target<0.) | (ratio<-24.) | (ratio>2.+32*np.finfo(float).eps)
+        outside = (a>7.+32*np.finfo(float).eps) | (target<0.) | (ratio<-24.) | (ratio>3.+32*np.finfo(float).eps)
         selected_output = np.empty_like(m)
         for start in np.unique(a[outside]):
             use = outside & (a==start)
@@ -403,7 +407,7 @@ def history_mass(solver, ma, za, z, *, n_integration=100, n_iterations=3,
     if times[-1] == za:
         return mass.copy() if scalar_z else np.broadcast_to(mass,times.shape+mass.shape).copy()
     ratio = np.log10(mass/solver.Mzvir(za))
-    if za>7.+32*np.finfo(float).eps or times[-1]<0 or np.any(ratio<-24) or np.any(ratio>2.+32*np.finfo(float).eps):
+    if za>7.+32*np.finfo(float).eps or times[-1]<0 or np.any(ratio<-24) or np.any(ratio>3.+32*np.finfo(float).eps):
         return _fallback(solver,mass,za,z,'outside validated redshift or mass-ratio domain')
     log_mass = np.log(mass.ravel())
     # Wider requests receive enough mass nodes to keep the interpolation
