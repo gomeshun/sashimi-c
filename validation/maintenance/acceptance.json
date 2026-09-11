@@ -1,0 +1,110 @@
+{
+  "variant": "c",
+  "gate_specification": "standalone-picard-gates-2026-09-11-v1",
+  "passed": true,
+  "checks": [
+    {
+      "name": "independent mass accuracy",
+      "passed": true,
+      "details": 0.00016348156024625915
+    },
+    {
+      "name": "independent reference convergence",
+      "passed": true,
+      "details": 1.4246381851990009e-12
+    },
+    {
+      "name": "frozen supported domain completed",
+      "passed": true,
+      "details": {
+        "cases": 45,
+        "domain_failures": []
+      }
+    },
+    {
+      "name": "whole catalog median speedup",
+      "passed": true,
+      "details": 1.074523698398152
+    },
+    {
+      "name": "three process repetitions",
+      "passed": true,
+      "details": 3
+    },
+    {
+      "name": "ordinary catalog has no fallback",
+      "passed": true,
+      "details": [
+        [],
+        [],
+        []
+      ]
+    },
+    {
+      "name": "picard-scenario-None-result.json completed",
+      "passed": true,
+      "details": []
+    },
+    {
+      "name": "picard-scenario-None-result.json mass function",
+      "passed": true,
+      "details": 0.0
+    },
+    {
+      "name": "picard-grid-refinement-result.json completed",
+      "passed": true,
+      "details": []
+    },
+    {
+      "name": "picard-grid-refinement-result.json mass function",
+      "passed": true,
+      "details": 0.0
+    },
+    {
+      "name": "picard-final-catalog.json completed",
+      "passed": true,
+      "details": []
+    },
+    {
+      "name": "picard-final-catalog.json mass function",
+      "passed": true,
+      "details": 5.9754923592099894e-12
+    },
+    {
+      "name": "catalog mass error",
+      "passed": true,
+      "details": 0.0002751431883805111
+    },
+    {
+      "name": "smooth catalog observables",
+      "passed": true,
+      "details": 8.6577279694606e-06
+    },
+    {
+      "name": "survival masks",
+      "passed": true,
+      "details": 0.0
+    },
+    {
+      "name": "explicit survival and collapse boundary audit",
+      "passed": true,
+      "details": {
+        "catalogs": 3,
+        "changed_nodes": 0
+      }
+    },
+    {
+      "name": "standalone numerical helper present",
+      "passed": true,
+      "details": "005643cd500fbdab74896933bdb7779bca8ca73feca0c27b7bd3956e09a745e1"
+    }
+  ],
+  "source_sha256": {
+    "boost_iteration.py": "81a1497480b6c05a2cac51c671f98a355cdb5c2639f90293bae3bae22ccbb8cd",
+    "picard_tidal_stripping.py": "005643cd500fbdab74896933bdb7779bca8ca73feca0c27b7bd3956e09a745e1",
+    "boost_iteration_prompt_cusps.py": "9f9c339118e028901b7e1be29f265c08d9135496f465fbd0ae48b5300461d050",
+    "prompt_cusps.py": "32ff4ec51a712c27f83e9a4a9219e729290ee732bd2087812f94a80bc2fdb79c",
+    "sashimi_c.py": "b2375dcb41645f48211ea6f0a85e10c55672bef91685d4e823c6114de6decede"
+  },
+  "limits": "Numerical agreement and runtime evidence only. No simulation calibration, downstream inference, main merge, or publication."
+}

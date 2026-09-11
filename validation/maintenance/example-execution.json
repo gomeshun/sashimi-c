@@ -1,0 +1,90 @@
+{
+  "notebook": "sample.ipynb",
+  "source_sha256": "a9900b1249e497aa54fc7fa81efa9e2c1349bc39385c50dcd46df88b62ddade3",
+  "python": "3.13.12 (main, Mar  3 2026, 15:01:51) [Clang 21.1.4 ]",
+  "grid_overrides": {
+    "N_ma": 32,
+    "N_herm": 3,
+    "N_hermNa": 16,
+    "dz": 0.2,
+    "zmax": 2.0
+  },
+  "cells": [
+    {
+      "index": 0,
+      "status": "passed",
+      "warnings": []
+    },
+    {
+      "index": 2,
+      "status": "passed",
+      "warnings": []
+    },
+    {
+      "index": 4,
+      "status": "passed",
+      "warnings": [
+        "FigureCanvasAgg is non-interactive, and thus cannot be shown"
+      ]
+    },
+    {
+      "index": 6,
+      "status": "passed",
+      "warnings": [
+        "FigureCanvasAgg is non-interactive, and thus cannot be shown",
+        "FigureCanvasAgg is non-interactive, and thus cannot be shown",
+        "FigureCanvasAgg is non-interactive, and thus cannot be shown"
+      ]
+    },
+    {
+      "index": 8,
+      "status": "passed",
+      "warnings": [
+        "FigureCanvasAgg is non-interactive, and thus cannot be shown",
+        "FigureCanvasAgg is non-interactive, and thus cannot be shown",
+        "FigureCanvasAgg is non-interactive, and thus cannot be shown"
+      ]
+    },
+    {
+      "index": 10,
+      "status": "passed",
+      "warnings": []
+    },
+    {
+      "index": 16,
+      "status": "passed",
+      "warnings": []
+    },
+    {
+      "index": 18,
+      "status": "passed",
+      "warnings": [
+        "FigureCanvasAgg is non-interactive, and thus cannot be shown"
+      ]
+    },
+    {
+      "index": 20,
+      "status": "passed",
+      "warnings": [
+        "FigureCanvasAgg is non-interactive, and thus cannot be shown"
+      ]
+    }
+  ],
+  "other_overrides": [
+    "NumPy RNG seed 20260911",
+    "F bootstrap repetitions 2",
+    "F diagnostic mass plot 1e6..1e16 Msun"
+  ],
+  "not_executed": [
+    {
+      "cell": 12,
+      "reason": "Generating/reusing recursive boost tables is a separate data product; n=0 observable is exercised."
+    },
+    {
+      "cell": 14,
+      "reason": "Generating/reusing recursive boost tables is a separate data product; n=0 observable is exercised."
+    }
+  ],
+  "passed": true,
+  "itamae_imported": false
+}

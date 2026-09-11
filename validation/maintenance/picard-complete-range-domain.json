@@ -1,0 +1,425 @@
+{
+  "variant": "c",
+  "particle": 1.0,
+  "gates": "standalone-picard-gates-2026-09-11-v1",
+  "source_sha256": {
+    "sashimi_c.py": "2d1873b3003d4167e5149c6ec21fa3d4d613a6bf8bdb22e66bfa446cfb29d9aa",
+    "picard_tidal_stripping.py": "75b25671876c5d3428e492e406537c0b666108980d70101f3f2ee0e05b7879e3"
+  },
+  "cases": [
+    {
+      "host": 100000000.0,
+      "target": 0.0,
+      "acc": 0.0,
+      "reference_refinement_max": 0.0,
+      "mass_relative_max": 0.0,
+      "refined_candidate_relative_max": 0.0,
+      "warnings": []
+    },
+    {
+      "host": 100000000.0,
+      "target": 0.0,
+      "acc": 0.001,
+      "reference_refinement_max": 0.0,
+      "mass_relative_max": 2.912703063850941e-06,
+      "refined_candidate_relative_max": 5.286697866146994e-07,
+      "warnings": []
+    },
+    {
+      "host": 100000000.0,
+      "target": 0.0,
+      "acc": 0.5,
+      "reference_refinement_max": 5.340172748447003e-14,
+      "mass_relative_max": 2.507319560307586e-06,
+      "refined_candidate_relative_max": 1.6950131587201156e-07,
+      "warnings": []
+    },
+    {
+      "host": 100000000.0,
+      "target": 0.0,
+      "acc": 2.0,
+      "reference_refinement_max": 6.394884621840902e-13,
+      "mass_relative_max": 2.0915580185021376e-05,
+      "refined_candidate_relative_max": 4.6332318146546925e-06,
+      "warnings": []
+    },
+    {
+      "host": 100000000.0,
+      "target": 0.0,
+      "acc": 5.0,
+      "reference_refinement_max": 1.2114753644709708e-12,
+      "mass_relative_max": 0.00014155156727824192,
+      "refined_candidate_relative_max": 3.367445253954493e-05,
+      "warnings": []
+    },
+    {
+      "host": 100000000.0,
+      "target": 0.5,
+      "acc": 0.5,
+      "reference_refinement_max": 0.0,
+      "mass_relative_max": 0.0,
+      "refined_candidate_relative_max": 0.0,
+      "warnings": []
+    },
+    {
+      "host": 100000000.0,
+      "target": 0.5,
+      "acc": 0.501,
+      "reference_refinement_max": 0.0,
+      "mass_relative_max": 2.393707896342079e-07,
+      "refined_candidate_relative_max": 3.209253573999149e-08,
+      "warnings": []
+    },
+    {
+      "host": 100000000.0,
+      "target": 0.5,
+      "acc": 1.0,
+      "reference_refinement_max": 3.694822225952521e-13,
+      "mass_relative_max": 7.68418623287026e-07,
+      "refined_candidate_relative_max": 9.054849214873428e-08,
+      "warnings": []
+    },
+    {
+      "host": 100000000.0,
+      "target": 0.5,
+      "acc": 2.5,
+      "reference_refinement_max": 5.364597654988756e-13,
+      "mass_relative_max": 1.2355606131886354e-05,
+      "refined_candidate_relative_max": 2.872620652571989e-06,
+      "warnings": []
+    },
+    {
+      "host": 100000000.0,
+      "target": 0.5,
+      "acc": 5.5,
+      "reference_refinement_max": 5.897504706808832e-13,
+      "mass_relative_max": 8.913949112698827e-05,
+      "refined_candidate_relative_max": 2.1627939060464563e-05,
+      "warnings": []
+    },
+    {
+      "host": 100000000.0,
+      "target": 2.0,
+      "acc": 2.0,
+      "reference_refinement_max": 0.0,
+      "mass_relative_max": 0.0,
+      "refined_candidate_relative_max": 0.0,
+      "warnings": []
+    },
+    {
+      "host": 100000000.0,
+      "target": 2.0,
+      "acc": 2.001,
+      "reference_refinement_max": 0.0,
+      "mass_relative_max": 3.947212667831934e-08,
+      "refined_candidate_relative_max": 4.935104547243441e-09,
+      "warnings": []
+    },
+    {
+      "host": 100000000.0,
+      "target": 2.0,
+      "acc": 2.5,
+      "reference_refinement_max": 3.552713678800501e-15,
+      "mass_relative_max": 1.3154361089284805e-07,
+      "refined_candidate_relative_max": 2.722288816592311e-08,
+      "warnings": []
+    },
+    {
+      "host": 100000000.0,
+      "target": 2.0,
+      "acc": 4.0,
+      "reference_refinement_max": 7.105427357601002e-15,
+      "mass_relative_max": 2.820946007420222e-05,
+      "refined_candidate_relative_max": 3.0179678995767567e-05,
+      "warnings": []
+    },
+    {
+      "host": 100000000.0,
+      "target": 2.0,
+      "acc": 7.0,
+      "reference_refinement_max": 7.216449660063518e-15,
+      "mass_relative_max": 3.145886904842854e-05,
+      "refined_candidate_relative_max": 7.827788642056355e-06,
+      "warnings": []
+    },
+    {
+      "host": 1000000000000.0,
+      "target": 0.0,
+      "acc": 0.0,
+      "reference_refinement_max": 0.0,
+      "mass_relative_max": 0.0,
+      "refined_candidate_relative_max": 0.0,
+      "warnings": []
+    },
+    {
+      "host": 1000000000000.0,
+      "target": 0.0,
+      "acc": 0.001,
+      "reference_refinement_max": 2.220446049250313e-16,
+      "mass_relative_max": 3.073859195401596e-06,
+      "refined_candidate_relative_max": 5.592376841612179e-07,
+      "warnings": []
+    },
+    {
+      "host": 1000000000000.0,
+      "target": 0.0,
+      "acc": 0.5,
+      "reference_refinement_max": 4.9960036108132044e-14,
+      "mass_relative_max": 2.6216459123595826e-06,
+      "refined_candidate_relative_max": 1.862466922908368e-07,
+      "warnings": []
+    },
+    {
+      "host": 1000000000000.0,
+      "target": 0.0,
+      "acc": 2.0,
+      "reference_refinement_max": 7.460698725481052e-13,
+      "mass_relative_max": 2.19205243616738e-05,
+      "refined_candidate_relative_max": 5.206254281353573e-06,
+      "warnings": []
+    },
+    {
+      "host": 1000000000000.0,
+      "target": 0.0,
+      "acc": 5.0,
+      "reference_refinement_max": 1.3322676295501878e-12,
+      "mass_relative_max": 0.0001536147723266712,
+      "refined_candidate_relative_max": 3.781432338456625e-05,
+      "warnings": []
+    },
+    {
+      "host": 1000000000000.0,
+      "target": 0.5,
+      "acc": 0.5,
+      "reference_refinement_max": 0.0,
+      "mass_relative_max": 0.0,
+      "refined_candidate_relative_max": 0.0,
+      "warnings": []
+    },
+    {
+      "host": 1000000000000.0,
+      "target": 0.5,
+      "acc": 0.501,
+      "reference_refinement_max": 0.0,
+      "mass_relative_max": 2.405706311936484e-07,
+      "refined_candidate_relative_max": 3.2249068082634835e-08,
+      "warnings": []
+    },
+    {
+      "host": 1000000000000.0,
+      "target": 0.5,
+      "acc": 1.0,
+      "reference_refinement_max": 4.051203816857196e-13,
+      "mass_relative_max": 7.947232406602112e-07,
+      "refined_candidate_relative_max": 9.916259624542789e-08,
+      "warnings": []
+    },
+    {
+      "host": 1000000000000.0,
+      "target": 0.5,
+      "acc": 2.5,
+      "reference_refinement_max": 5.506706202140776e-13,
+      "mass_relative_max": 1.3219292735899835e-05,
+      "refined_candidate_relative_max": 3.202268496482752e-06,
+      "warnings": []
+    },
+    {
+      "host": 1000000000000.0,
+      "target": 0.5,
+      "acc": 5.5,
+      "reference_refinement_max": 6.288303211476887e-13,
+      "mass_relative_max": 9.733123463384619e-05,
+      "refined_candidate_relative_max": 2.4100108468760872e-05,
+      "warnings": []
+    },
+    {
+      "host": 1000000000000.0,
+      "target": 2.0,
+      "acc": 2.0,
+      "reference_refinement_max": 0.0,
+      "mass_relative_max": 0.0,
+      "refined_candidate_relative_max": 0.0,
+      "warnings": []
+    },
+    {
+      "host": 1000000000000.0,
+      "target": 2.0,
+      "acc": 2.001,
+      "reference_refinement_max": 0.0,
+      "mass_relative_max": 4.140863096857572e-08,
+      "refined_candidate_relative_max": 5.1741753104295185e-09,
+      "warnings": []
+    },
+    {
+      "host": 1000000000000.0,
+      "target": 2.0,
+      "acc": 2.5,
+      "reference_refinement_max": 3.6637359812630166e-15,
+      "mass_relative_max": 1.3904445017587364e-07,
+      "refined_candidate_relative_max": 2.9636061493754084e-08,
+      "warnings": []
+    },
+    {
+      "host": 1000000000000.0,
+      "target": 2.0,
+      "acc": 4.0,
+      "reference_refinement_max": 3.6637359812630166e-15,
+      "mass_relative_max": 1.3153094859608139e-05,
+      "refined_candidate_relative_max": 1.1752343457183123e-05,
+      "warnings": []
+    },
+    {
+      "host": 1000000000000.0,
+      "target": 2.0,
+      "acc": 7.0,
+      "reference_refinement_max": 7.105427357601002e-15,
+      "mass_relative_max": 3.433228348281858e-05,
+      "refined_candidate_relative_max": 8.573610219442251e-06,
+      "warnings": []
+    },
+    {
+      "host": 1000000000000000.0,
+      "target": 0.0,
+      "acc": 0.0,
+      "reference_refinement_max": 0.0,
+      "mass_relative_max": 0.0,
+      "refined_candidate_relative_max": 0.0,
+      "warnings": []
+    },
+    {
+      "host": 1000000000000000.0,
+      "target": 0.0,
+      "acc": 0.001,
+      "reference_refinement_max": 0.0,
+      "mass_relative_max": 3.1915001115212505e-06,
+      "refined_candidate_relative_max": 5.815731298763893e-07,
+      "warnings": []
+    },
+    {
+      "host": 1000000000000000.0,
+      "target": 0.0,
+      "acc": 0.5,
+      "reference_refinement_max": 5.695444116327053e-14,
+      "mass_relative_max": 2.7281985278682086e-06,
+      "refined_candidate_relative_max": 2.0152834911968398e-07,
+      "warnings": []
+    },
+    {
+      "host": 1000000000000000.0,
+      "target": 0.0,
+      "acc": 2.0,
+      "reference_refinement_max": 1.3501422202466529e-12,
+      "mass_relative_max": 2.3272478228419935e-05,
+      "refined_candidate_relative_max": 5.677156087902091e-06,
+      "warnings": []
+    },
+    {
+      "host": 1000000000000000.0,
+      "target": 0.0,
+      "acc": 5.0,
+      "reference_refinement_max": 1.4246381851990009e-12,
+      "mass_relative_max": 0.00016348156024625915,
+      "refined_candidate_relative_max": 4.072869988247518e-05,
+      "warnings": []
+    },
+    {
+      "host": 1000000000000000.0,
+      "target": 0.5,
+      "acc": 0.5,
+      "reference_refinement_max": 0.0,
+      "mass_relative_max": 0.0,
+      "refined_candidate_relative_max": 0.0,
+      "warnings": []
+    },
+    {
+      "host": 1000000000000000.0,
+      "target": 0.5,
+      "acc": 0.501,
+      "reference_refinement_max": 0.0,
+      "mass_relative_max": 2.4250010444148984e-07,
+      "refined_candidate_relative_max": 3.243061041935391e-08,
+      "warnings": []
+    },
+    {
+      "host": 1000000000000000.0,
+      "target": 0.5,
+      "acc": 1.0,
+      "reference_refinement_max": 4.618527782440651e-13,
+      "mass_relative_max": 8.327340293989849e-07,
+      "refined_candidate_relative_max": 1.0701888653041891e-07,
+      "warnings": []
+    },
+    {
+      "host": 1000000000000000.0,
+      "target": 0.5,
+      "acc": 2.5,
+      "reference_refinement_max": 2.2737367544323206e-13,
+      "mass_relative_max": 1.4058853387122205e-05,
+      "refined_candidate_relative_max": 3.4571296311236566e-06,
+      "warnings": []
+    },
+    {
+      "host": 1000000000000000.0,
+      "target": 0.5,
+      "acc": 5.5,
+      "reference_refinement_max": 6.360467708077522e-13,
+      "mass_relative_max": 0.00010288886130827013,
+      "refined_candidate_relative_max": 2.566349805799284e-05,
+      "warnings": []
+    },
+    {
+      "host": 1000000000000000.0,
+      "target": 2.0,
+      "acc": 2.0,
+      "reference_refinement_max": 0.0,
+      "mass_relative_max": 0.0,
+      "refined_candidate_relative_max": 0.0,
+      "warnings": []
+    },
+    {
+      "host": 1000000000000000.0,
+      "target": 2.0,
+      "acc": 2.001,
+      "reference_refinement_max": 1.1102230246251565e-16,
+      "mass_relative_max": 4.3326031207158167e-08,
+      "refined_candidate_relative_max": 5.410959902363288e-09,
+      "warnings": []
+    },
+    {
+      "host": 1000000000000000.0,
+      "target": 2.0,
+      "acc": 2.5,
+      "reference_refinement_max": 3.552713678800501e-15,
+      "mass_relative_max": 1.460583305412655e-07,
+      "refined_candidate_relative_max": 3.135662629549785e-08,
+      "warnings": []
+    },
+    {
+      "host": 1000000000000000.0,
+      "target": 2.0,
+      "acc": 4.0,
+      "reference_refinement_max": 3.552713678800501e-15,
+      "mass_relative_max": 4.612334390086126e-06,
+      "refined_candidate_relative_max": 1.2822304372717142e-06,
+      "warnings": []
+    },
+    {
+      "host": 1000000000000000.0,
+      "target": 2.0,
+      "acc": 7.0,
+      "reference_refinement_max": 6.994405055138486e-15,
+      "mass_relative_max": 3.530420463293549e-05,
+      "refined_candidate_relative_max": 8.823464938578773e-06,
+      "warnings": []
+    }
+  ],
+  "domain_failures": [],
+  "log10_mass_ratio_range": [
+    -24.0,
+    3.0
+  ],
+  "domain_extension_reason": "The original frozen probe ended at +2. The full native W catalog reaches larger ratios at high accretion redshift; extend to +3 without changing error gates.",
+  "maximum_mass_relative_error": 0.00016348156024625915,
+  "maximum_reference_refinement_error": 1.4246381851990009e-12,
+  "fallbacks": []
+}

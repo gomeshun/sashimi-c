@@ -1,0 +1,99 @@
+{
+  "role": "A",
+  "constructor": {},
+  "method": "subhalo_properties_calc",
+  "repository": "gomeshun/sashimi-c",
+  "source_revision": "e09571be7a1daaef343e97887e34449faf21db7b",
+  "module": "sashimi_c",
+  "class": "subhalo_properties",
+  "parameters": {
+    "M0": 1000000000000.0,
+    "N_herm": 5,
+    "N_hermNa": 16,
+    "N_ma": 32,
+    "Na_model": 3,
+    "ct_th": 0.0,
+    "dz": 0.25,
+    "logmamax": 10.0,
+    "logmamin": 5.0,
+    "method": "pert2_shanks",
+    "profile_change": true,
+    "redshift": 0.0,
+    "sigmalogc": 0.128,
+    "zmax": 2.0
+  },
+  "input_files": [],
+  "probes": [
+    {
+      "name": "growth",
+      "method": "growthD",
+      "args": [
+        [
+          0.0,
+          0.5,
+          1.0,
+          2.0,
+          5.0
+        ]
+      ]
+    },
+    {
+      "name": "growth_derivative",
+      "method": "dDdz",
+      "args": [
+        [
+          0.0,
+          0.5,
+          1.0,
+          2.0,
+          5.0
+        ]
+      ]
+    },
+    {
+      "name": "variance",
+      "method": "sigmaMz",
+      "args": [
+        [
+          10000000.0,
+          100000000.0,
+          1000000000.0
+        ],
+        1.0
+      ]
+    },
+    {
+      "name": "variance_derivative",
+      "method": "dsdm",
+      "args": [
+        [
+          10000000.0,
+          100000000.0,
+          1000000000.0
+        ],
+        1.0
+      ]
+    }
+  ],
+  "environment": {
+    "python": "3.11.15",
+    "dependencies": {
+      "colossus": "1.4.0",
+      "contourpy": "1.3.3",
+      "cycler": "0.12.1",
+      "fonttools": "4.64.0",
+      "kiwisolver": "1.5.1",
+      "matplotlib": "3.8.4",
+      "numexpr": "2.14.2",
+      "numpy": "1.26.4",
+      "packaging": "26.3",
+      "pillow": "12.3.0",
+      "pyparsing": "3.3.2",
+      "python-dateutil": "2.9.0.post0",
+      "scipy": "1.13.1",
+      "six": "1.17.0",
+      "tqdm": "4.70.0",
+      "mpmath": "1.3.0"
+    }
+  }
+}

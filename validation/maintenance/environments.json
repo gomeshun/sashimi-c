@@ -1,0 +1,78 @@
+{
+  "310": {
+    "python": "3.10.20 (main, Mar  3 2026, 14:59:16) [Clang 21.1.4 ]",
+    "platform": "Linux-6.8.0-138-generic-x86_64-with-glibc2.39",
+    "packages": {
+      "numpy": "2.2.6",
+      "scipy": "1.15.3",
+      "colossus": "1.4.0",
+      "numexpr": "2.14.1",
+      "tqdm": "4.70.1",
+      "matplotlib": "3.10.9",
+      "pytest": "9.1.1",
+      "mpmath": "1.4.1",
+      "pandas": "2.3.3",
+      "h5py": "3.16.0"
+    },
+    "itamae_present": false,
+    "itamae_distributions": [],
+    "probe": "isolated Python (-I); working directory and PYTHONPATH excluded"
+  },
+  "311": {
+    "python": "3.11.15 (main, Mar  3 2026, 14:59:53) [Clang 21.1.4 ]",
+    "platform": "Linux-6.8.0-138-generic-x86_64-with-glibc2.39",
+    "packages": {
+      "numpy": "1.26.4",
+      "scipy": "1.13.1",
+      "colossus": "1.4.0",
+      "numexpr": "2.14.2",
+      "tqdm": "4.70.0",
+      "matplotlib": "3.8.4",
+      "pytest": "9.1.1",
+      "mpmath": "1.4.1",
+      "pandas": "3.0.5",
+      "h5py": "3.16.0"
+    },
+    "itamae_present": false,
+    "itamae_distributions": [],
+    "probe": "isolated Python (-I); working directory and PYTHONPATH excluded"
+  },
+  "312": {
+    "python": "3.12.13 (main, Mar  3 2026, 14:59:34) [Clang 21.1.4 ]",
+    "platform": "Linux-6.8.0-138-generic-x86_64-with-glibc2.39",
+    "packages": {
+      "numpy": "2.4.6",
+      "scipy": "1.17.1",
+      "colossus": "1.4.0",
+      "numexpr": "2.14.2",
+      "tqdm": "4.70.1",
+      "matplotlib": "3.11.1",
+      "pytest": "9.1.1",
+      "mpmath": "1.4.1",
+      "pandas": "3.0.5",
+      "h5py": "3.16.0"
+    },
+    "itamae_present": false,
+    "itamae_distributions": [],
+    "probe": "isolated Python (-I); working directory and PYTHONPATH excluded"
+  },
+  "313": {
+    "python": "3.13.12 (main, Mar  3 2026, 15:01:51) [Clang 21.1.4 ]",
+    "platform": "Linux-6.8.0-138-generic-x86_64-with-glibc2.39",
+    "packages": {
+      "numpy": "2.4.6",
+      "scipy": "1.17.1",
+      "colossus": "1.4.0",
+      "numexpr": "2.14.2",
+      "tqdm": "4.70.1",
+      "matplotlib": "3.11.1",
+      "pytest": "9.1.1",
+      "mpmath": "1.4.1",
+      "pandas": "3.0.5",
+      "h5py": "3.16.0"
+    },
+    "itamae_present": false,
+    "itamae_distributions": [],
+    "probe": "isolated Python (-I); working directory and PYTHONPATH excluded"
+  }
+}
