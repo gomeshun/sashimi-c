@@ -25,7 +25,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: gomeshun/itamae
-          ref: dfa083d0d46181c376947ac7b2da829facaf2e8b
+          ref: 23d01e8758a88b061b87de9e488c38ec89fd8e4f
           path: .itamae
       - name: Export migration provenance revisions
         run: |
@@ -40,17 +40,17 @@ jobs:
       - name: Lint migration code
         run: >-
           uv run --no-sync ruff check
-          sashimi_c.py
-          sashimi_c_physics.py
-          sashimi_c_data.py
-          sashimi_c_boost.py
-          boost_iteration.py
-          boost_iteration_prompt_cusps.py
-          sashimi_c_itamae.py
-          sashimi_c_itamae_catalog.py
-          sashimi_c_itamae_components.py
-          sashimi_c_itamae_migration.py
-          sashimi_c_itamae_variance.py
+          src/sashimi_c/__init__.py
+          src/sashimi_c/_physics.py
+          src/sashimi_c/_data.py
+          src/sashimi_c/_boost.py
+          src/sashimi_c/boost_iteration.py
+          src/sashimi_c/boost_iteration_prompt_cusps.py
+          src/sashimi_c/_itamae.py
+          src/sashimi_c/_itamae_catalog.py
+          src/sashimi_c/_itamae_components.py
+          src/sashimi_c/_itamae_migration.py
+          src/sashimi_c/_itamae_variance.py
           tests
           scripts
       - name: Run ITAMAE migration regression tests
@@ -70,7 +70,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: gomeshun/itamae
-          ref: dfa083d0d46181c376947ac7b2da829facaf2e8b
+          ref: 23d01e8758a88b061b87de9e488c38ec89fd8e4f
           path: .itamae
       - uses: astral-sh/setup-uv@v6
         with:
@@ -141,7 +141,7 @@ jobs:
           python3 scripts/prepare_family_manifest.py \
             --family-root .family --output family-validation/effective.toml \
             --candidate sashimi-c --candidate-ref "$(git rev-parse HEAD)" \
-            --override itamae=dfa083d0d46181c376947ac7b2da829facaf2e8b \
+            --override itamae=23d01e8758a88b061b87de9e488c38ec89fd8e4f \
             --override sashimi-si=aeecf2b80c6273818d3b12df15645b3db891f176 >> "$GITHUB_OUTPUT"
           cp .family/compatibility.toml family-validation/base.toml
           cat family-validation/effective.json >> "$GITHUB_STEP_SUMMARY"

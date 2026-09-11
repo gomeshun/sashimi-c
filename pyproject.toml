@@ -40,28 +40,28 @@ test = [
 Repository = "https://github.com/gomeshun/sashimi-c"
 
 [tool.setuptools]
+package-dir = {"" = "src"}
 py-modules = [
   "boost_iteration",
   "boost_iteration_prompt_cusps",
-  "prompt_cusps",
   "picard_tidal_stripping",
-  "sashimi_c",
-  "sashimi_c_physics",
-  "sashimi_c_data",
+  "prompt_cusps",
   "sashimi_c_boost",
+  "sashimi_c_data",
   "sashimi_c_itamae",
   "sashimi_c_itamae_catalog",
   "sashimi_c_itamae_components",
   "sashimi_c_itamae_migration",
   "sashimi_c_itamae_variance",
+  "sashimi_c_physics",
 ]
 
-[tool.setuptools.data-files]
-"share/sashimi-c" = ["notebooks/usage_walkthrough.ipynb"]
+[tool.setuptools.packages.find]
+where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-ra --strict-markers --strict-config"
 
 [tool.uv.sources]
-sashimi-itamae = {git = "https://github.com/gomeshun/itamae.git", rev = "dfa083d0d46181c376947ac7b2da829facaf2e8b"}
+sashimi-itamae = {git = "https://github.com/gomeshun/itamae.git", rev = "23d01e8758a88b061b87de9e488c38ec89fd8e4f"}

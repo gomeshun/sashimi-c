@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased — package layout and physical examples
+
+- Move runtime code into `src/sashimi_c` and keep previous import aliases.
+- Group archived notebooks separately and keep required spectra inside the package.
+- Replace the small API walkthrough with mass-function and weighted Vmax–rmax
+  figures, physical units, satellite examples and a joint numerical refinement.
+
+
 ## 2.0.0rc1 — migration review candidate
 
 The standard `sashimi_c` import now returns named weighted catalogs through

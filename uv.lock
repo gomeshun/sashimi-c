@@ -1486,7 +1486,7 @@ requires-dist = [
     { name = "nbconvert", marker = "extra == 'demo'", specifier = ">=7" },
     { name = "numpy", specifier = ">=1.26" },
     { name = "pytest", marker = "extra == 'test'", specifier = ">=8" },
-    { name = "sashimi-itamae", git = "https://github.com/gomeshun/itamae.git?rev=dfa083d0d46181c376947ac7b2da829facaf2e8b" },
+    { name = "sashimi-itamae", git = "https://github.com/gomeshun/itamae.git?rev=23d01e8758a88b061b87de9e488c38ec89fd8e4f" },
     { name = "scipy", specifier = ">=1.11" },
     { name = "setuptools", marker = "extra == 'test'", specifier = ">=77" },
     { name = "tqdm", specifier = ">=4.66" },
@@ -1496,7 +1496,7 @@ provides-extras = ["demo", "itamae", "test"]
 [[package]]
 name = "sashimi-itamae"
 version = "0.2.0rc1"
-source = { git = "https://github.com/gomeshun/itamae.git?rev=dfa083d0d46181c376947ac7b2da829facaf2e8b#dfa083d0d46181c376947ac7b2da829facaf2e8b" }
+source = { git = "https://github.com/gomeshun/itamae.git?rev=23d01e8758a88b061b87de9e488c38ec89fd8e4f#23d01e8758a88b061b87de9e488c38ec89fd8e4f" }
 dependencies = [
     { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
     { name = "numpy", version = "2.5.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },

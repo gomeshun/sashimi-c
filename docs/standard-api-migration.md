@@ -3,7 +3,7 @@
 The planned breaking release is 2.0.0rc1. `sashimi_c` owns explicit public
 classes; the old dynamic `migrate_class` factory and legacy catalog loop are
 removed. CDM formulas, tidal solvers and observable reductions are extracted
-into `sashimi_c_physics.py`. There is no dependence on a legacy class or hidden
+into `src/sashimi_c/_physics.py`. There is no dependence on a legacy class or hidden
 `super()` path. ITAMAE executes the already validated C-owned population stages.
 
 | Previous interface | Current interface and contract |

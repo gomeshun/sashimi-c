@@ -11,7 +11,7 @@ from typing import Any
 
 from itamae.variance import CallableVarianceModel
 
-from sashimi_c_itamae_migration import ItamaeHaloModel
+from ._itamae_migration import ItamaeHaloModel
 
 
 def make_variance_model(model: Any | None = None) -> CallableVarianceModel:

@@ -14,7 +14,7 @@ from pathlib import Path
 import numpy as np
 from scipy.interpolate import griddata
 
-from sashimi_c_data import data_directory, require_input
+from ._data import data_directory, require_input
 
 MODEL_KEYS = (
     "cosmology_backend",

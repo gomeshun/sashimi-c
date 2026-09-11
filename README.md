@@ -4,7 +4,7 @@
 
 ## Hands-on usage walkthrough
 
-Start with [the executable usage walkthrough](notebooks/usage_walkthrough.ipynb): a bounded CDM calculation through the standard API, catalogue inspection/export, weighted mass functions, and explicit checks. The **Usage walkthrough** CI executes every cell in a fresh kernel and uploads the executed artifact. This migration deliverable is tracked in [sashimi-family #28](https://github.com/gomeshun/sashimi-family/issues/28).
+Start with [the physical usage walkthrough](notebooks/usage_walkthrough.ipynb): a Milky Way scale population, subhalo mass functions, weighted Vmax–rmax distributions and a numerical refinement comparison. The **Usage walkthrough** CI executes every cell from an installed package and uploads the result. See [package layout and setup](docs/package-layout.md) for the `src/` structure and preserved historical examples.
 
 # Semi-Analytical SubHalo Inference ModelIng for CDM (SASHIMI-C)
 [![arXiv](https://img.shields.io/badge/arXiv-1803.07691%20-green.svg)](https://arxiv.org/abs/1803.07961)
@@ -129,7 +129,7 @@ The SASHIMI codes depend on results from various earlier papers. Listed below ar
 
 ## Examples
 
-The file 'sashimi_c.py' contains all the variables and functions that are used to compute various subhalo properties. Please read 'sample.ipyb' for more extensive examples.
+The `sashimi_c` package provides the variables and functions used to compute subhalo properties. See [the physical walkthrough](notebooks/usage_walkthrough.ipynb) for current examples; the original sample is retained in `notebooks/archive/`.
 
 Here, as a minimal example, is how you generate a semi-analytical catalog of subhalos:
 
@@ -202,7 +202,7 @@ weight:   Effective number of subhalos that are characterized by the same set of
 survive:  If that subhalo survive against tidal disruption or not.
 ```
 
-These outputs are adopted further in various functions of 'subhalo_observables' class. See 'sample.ipynb' for details. They can be used in https://github.com/shinichiroando/dwarf_params to discuss density profiles of dwarf galaxies, as discussed in a related paper: https://arxiv.org/abs/2002.11956
+These outputs are adopted further in various functions of 'subhalo_observables' class. See [the physical walkthrough](notebooks/usage_walkthrough.ipynb) for details. They can be used in https://github.com/shinichiroando/dwarf_params to discuss density profiles of dwarf galaxies, as discussed in a related paper: https://arxiv.org/abs/2002.11956
 
 ### Tidal-stripping solver compatibility
 

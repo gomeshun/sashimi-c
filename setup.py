@@ -25,7 +25,9 @@ def _valid_revision(value: str | None) -> str | None:
 
 def _existing_revision(root: Path) -> str | None:
     """Preserve a revision carried by an exported source archive."""
-    path = root / _TARGET
+    path = root / "src" / _TARGET
+    if not path.is_file():
+        path = root / _TARGET  # Archives produced before the src layout.
     if not path.is_file():
         return None
     match = re.search(
@@ -118,7 +120,7 @@ class _ProvenanceSdist(_sdist):
     def make_release_tree(self, base_dir: str, files: list[str]) -> None:
         """Copy normal files and add a durable provenance module."""
         super().make_release_tree(base_dir, files)
-        target = Path(base_dir) / _TARGET
+        target = Path(base_dir) / "src" / _TARGET
         if not target.is_file():
             target.write_text(
                 f"SOURCE_REVISION = {_resolve_revision(Path(__file__).parent)!r}\n",

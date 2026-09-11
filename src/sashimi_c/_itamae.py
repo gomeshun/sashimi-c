@@ -1,6 +1,6 @@
 """Transitional import aliases for the standard ITAMAE-backed SASHIMI-C API."""
 
-from sashimi_c_itamae_migration import (
+from ._itamae_migration import (
     ItamaeHaloModel,
     ItamaeSubhaloObservables,
     ItamaeSubhaloProperties,

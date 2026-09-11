@@ -22,14 +22,14 @@ from itamae.types import (
 from scipy import integrate, special
 from scipy.interpolate import interp1d
 
-from sashimi_c_itamae_components import (
+from ._itamae_components import (
     CDMAccretionSlices,
     CDMCatalogColumns,
     NFWInitialStructure,
     TidalProfileEvolution,
     TruncationThresholdSurvival,
 )
-from sashimi_c_physics import (
+from ._physics import (
     CDMObservableKernels,
     CDMPhysics,
     CDMTidalKernels,

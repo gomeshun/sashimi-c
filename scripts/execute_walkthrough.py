@@ -16,7 +16,7 @@ kernel_name = notebook.metadata.get("kernelspec", {}).get("name", "python3")
 with tempfile.TemporaryDirectory(prefix="walkthrough-execution-") as directory:
     NotebookClient(
         notebook,
-        timeout=900,
+        timeout=1800,
         kernel_name=kernel_name,
         allow_errors=False,
         resources={"metadata": {"path": directory}},
@@ -29,6 +29,13 @@ if any(cell.execution_count is None for cell in cells):
     raise RuntimeError("Walkthrough contains an unexecuted code cell")
 if any(output.output_type == "error" for cell in cells for output in cell.outputs):
     raise RuntimeError("Walkthrough contains an error output")
+
+figure_count = sum(
+    "image/png" in output.get("data", {})
+    for cell in cells for output in cell.outputs
+)
+if figure_count < 2:
+    raise RuntimeError("Physical walkthrough must save its mass-function and Vmax-rmax figures")
 
 output = source.parents[1] / "artifacts/usage_walkthrough.executed.ipynb"
 output.parent.mkdir(parents=True, exist_ok=True)

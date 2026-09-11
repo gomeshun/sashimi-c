@@ -24,7 +24,7 @@ from scipy.optimize import root
 from scipy.special import erf
 
 from sashimi_c import cosmology
-from sashimi_c_data import data_directory, require_input
+from ._data import data_directory, require_input
 
 
 def build_ps_interpolators(cosmo, k_fs, filter='Sharp-k', alpha=1.8,

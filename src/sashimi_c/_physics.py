@@ -18,9 +18,9 @@ from itamae.types import WeightedSubhaloCatalog
 from scipy import optimize
 from scipy.integrate import cumulative_trapezoid
 
-from picard_tidal_stripping import PicardTidalStrippingTable
-from sashimi_c_boost import interpolate_boost_tables, validate_order
-from sashimi_c_data import data_directory
+from ._boost import interpolate_boost_tables, validate_order
+from ._data import data_directory
+from .picard_tidal_stripping import PicardTidalStrippingTable
 
 _CALIBRATED_OMEGA_M = 0.315
 _CALIBRATED_H = 0.674
@@ -73,7 +73,7 @@ class CDMPhysics(CDMUnits):
         self.filter = filter
         self.alpha = alpha
         if prompt_cusps:
-            from prompt_cusps import build_ps_interpolators
+            from .prompt_cusps import build_ps_interpolators
 
             self.sigma_interp, self.dsdm_interp = build_ps_interpolators(
                 self, self.k_fs, filter=filter, alpha=alpha
@@ -1004,7 +1004,7 @@ class CDMObservableKernels:
         """
 
         validate_order(n)
-        from prompt_cusps import prompt_cusps as _prompt_cusps
+        from .prompt_cusps import prompt_cusps as _prompt_cusps
 
         prc = _prompt_cusps(k_fs=self.k_fs, data_dir=self.data_dir)
         _f_coll, J_cusps = prc.cusp_properties(f_surv=1.0, z=self.redshift)
