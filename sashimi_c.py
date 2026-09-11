@@ -1,4 +1,5 @@
 import numpy as np
+from picard_tidal_stripping import endpoint_mass, history_mass, direct_log_mass, cached_host_mass, cached_scalar_variance
 from scipy import integrate
 from scipy import interpolate
 from scipy import optimize
@@ -285,6 +286,8 @@ class TidalStrippingSolver(halo_model):
     @M0.setter
     def M0(self, value):
         self._M0 = value
+        self._picard_tables = {}
+        self._picard_coefficients = {}
         self.reset_interpolation(
             z_max=self.z_max, 
             z_min=self.z_min,
@@ -335,7 +338,11 @@ class TidalStrippingSolver(halo_model):
         self.eps_33 = lambda _za, _z: self._eps_33_interp(_z) - self._eps_33_interp(_za)
 
 
-    def Mzvir(self,z):
+    def Mzvir(self, z):
+        return cached_host_mass(self, z)
+
+
+    def _Mzvir_uncached(self, z):
         Mz200 = self.Mzzi(self.M0,z,0.)
         Mvir = self.Mvir_from_M200_fit(Mz200,z)
         return Mvir
@@ -608,6 +615,12 @@ class TidalStrippingSolver(halo_model):
         mcalc : array
             subhalo mass array.
         """
+        if method == "picard_table":
+            return endpoint_mass(self,ma,za,z,**kwargs)
+        if method == "dop853":
+            return direct_log_mass(self,ma,za,z,**kwargs)
+        if kwargs and method != "odeint":
+            raise TypeError(f"Solver options are not accepted by {method}: {sorted(kwargs)}")
         match method:
             case "odeint":
                 return self.subhalo_mass_stripped_odeint(ma,za,z,**kwargs)
@@ -821,38 +834,73 @@ class subhalo_properties(halo_model):
             z_max = zmax,
             n_z_interp=64
         )
+        self.stripping_solver = solver
 
-        for iz in range(len(zdist)):
-            ma           = self.Mvir_from_M200_fit(ma200,zdist[iz])
-            Oz           = self.OmegaM*(1.+zdist[iz])**3/self.g(zdist[iz])
-            m0           = solver.subhalo_mass_stripped(ma, zdist[iz], redshift, method=method, **kwargs)
-            c200sub      = self.conc200(ma200,zdist[iz])
-            rvirsub      = (3.*ma/(4.*np.pi*self.rhocrit0*self.g(zdist[iz]) \
-                               *self.Delc(Oz-1)))**(1./3.)
-            r200sub      = (3.*ma200/(4.*np.pi*self.rhocrit0*self.g(zdist[iz])*200.))**(1./3.)
-            c_mz         = c200sub*rvirsub/r200sub
-            x1,w1        = hermgauss(N_herm)
-            x1           = x1.reshape(len(x1),1)
-            w1           = w1.reshape(len(w1),1)
-            log10c_sub   = np.sqrt(2.)*sigmalogc*x1+np.log10(c_mz)
-            c_sub        = 10.0**log10c_sub
-            rs_acc[iz]   = rvirsub/c_sub
-            rhos_acc[iz] = ma/(4.*np.pi*rs_acc[iz]**3*self.fc(c_sub))
-            if(profile_change==True):
-                rmax_acc    = rs_acc[iz]*2.163
-                Vmax_acc    = np.sqrt(rhos_acc[iz]*4*np.pi*self.G/4.625)*rs_acc[iz]
-                Vmax_z0     = Vmax_acc*(2.**0.4*(m0/ma)**0.3*(1+m0/ma)**-0.4)
-                rmax_z0     = rmax_acc*(2.**-0.3*(m0/ma)**0.4*(1+m0/ma)**0.3)
-                rs_z0[iz]   = rmax_z0/2.163
-                rhos_z0[iz] = (4.625/(4.*np.pi*self.G))*(Vmax_z0/rs_z0[iz])**2
+        if method == "picard_table":
+            # The same endpoint structure equations, evaluated on the complete
+            # (redshift, concentration, mass) grid after one table lookup.
+            za_grid = zdist[:, None]
+            ma_grid = self.Mvir_from_M200_fit(ma200[None, :], za_grid)
+            m_grid = solver.subhalo_mass_stripped(ma_grid, za_grid, redshift,
+                                                 method=method, **kwargs)
+            c200_grid = self.conc200(ma200[None, :], za_grid)
+            omega_grid = self.OmegaM*(1+za_grid)**3/self.g(za_grid)
+            rvir_grid = (3*ma_grid/(4*np.pi*self.rhocrit0*self.g(za_grid)
+                                      *self.Delc(omega_grid-1)))**(1/3)
+            r200_grid = (3*ma200[None,:]/(4*np.pi*self.rhocrit0*self.g(za_grid)*200))**(1/3)
+            x1,w1 = hermgauss(N_herm)
+            concentration_grid = 10**(np.sqrt(2)*sigmalogc*x1[None,:,None]
+                + np.log10(c200_grid*rvir_grid/r200_grid)[:,None,:])
+            rs_acc = rvir_grid[:,None,:]/concentration_grid
+            rhos_acc = ma_grid[:,None,:]/(4*np.pi*rs_acc**3*self.fc(concentration_grid))
+            fraction = (m_grid/ma_grid)[:,None,:]
+            if profile_change:
+                rmax_acc = 2.163*rs_acc
+                vmax_acc = np.sqrt(rhos_acc*4*np.pi*self.G/4.625)*rs_acc
+                vmax_final = vmax_acc*(2**.4*fraction**.3*(1+fraction)**-.4)
+                rmax_final = rmax_acc*(2**-.3*fraction**.4*(1+fraction)**.3)
+                rs_z0 = rmax_final/2.163
+                rhos_z0 = (4.625/(4*np.pi*self.G))*(vmax_final/rs_z0)**2
             else:
-                rs_z0[iz]   = rs_acc[iz]
-                rhos_z0[iz] = rhos_acc[iz]
-            ctemp         = np.linspace(0,100,1000)
-            ftemp         = interp1d(self.fc(ctemp),ctemp,fill_value='extrapolate')
-            ct_z0[iz]     = ftemp(m0/(4.*np.pi*rhos_z0[iz]*rs_z0[iz]**3))
-            survive[iz]   = np.where(ct_z0[iz]>ct_th,1,0)
-            m0_matrix[iz] = m0*np.ones((N_herm,1))
+                rs_z0, rhos_z0 = rs_acc.copy(), rhos_acc.copy()
+            inverse = interp1d(self.fc(np.linspace(0,100,1000)), np.linspace(0,100,1000), fill_value='extrapolate')
+            ct_z0 = inverse(m_grid[:,None,:]/(4*np.pi*rhos_z0*rs_z0**3))
+            survive = (ct_z0>ct_th).astype(float)
+            m0_matrix = np.broadcast_to(m_grid[:,None,:],rs_acc.shape).copy()
+            w1 = w1.reshape(-1,1)
+            ma = ma200  # Only the mass-axis length is used after this block.
+        else:
+            for iz in range(len(zdist)):
+                ma           = self.Mvir_from_M200_fit(ma200,zdist[iz])
+                Oz           = self.OmegaM*(1.+zdist[iz])**3/self.g(zdist[iz])
+                m0           = solver.subhalo_mass_stripped(ma, zdist[iz], redshift, method=method, **kwargs)
+                c200sub      = self.conc200(ma200,zdist[iz])
+                rvirsub      = (3.*ma/(4.*np.pi*self.rhocrit0*self.g(zdist[iz]) \
+                                   *self.Delc(Oz-1)))**(1./3.)
+                r200sub      = (3.*ma200/(4.*np.pi*self.rhocrit0*self.g(zdist[iz])*200.))**(1./3.)
+                c_mz         = c200sub*rvirsub/r200sub
+                x1,w1        = hermgauss(N_herm)
+                x1           = x1.reshape(len(x1),1)
+                w1           = w1.reshape(len(w1),1)
+                log10c_sub   = np.sqrt(2.)*sigmalogc*x1+np.log10(c_mz)
+                c_sub        = 10.0**log10c_sub
+                rs_acc[iz]   = rvirsub/c_sub
+                rhos_acc[iz] = ma/(4.*np.pi*rs_acc[iz]**3*self.fc(c_sub))
+                if(profile_change==True):
+                    rmax_acc    = rs_acc[iz]*2.163
+                    Vmax_acc    = np.sqrt(rhos_acc[iz]*4*np.pi*self.G/4.625)*rs_acc[iz]
+                    Vmax_z0     = Vmax_acc*(2.**0.4*(m0/ma)**0.3*(1+m0/ma)**-0.4)
+                    rmax_z0     = rmax_acc*(2.**-0.3*(m0/ma)**0.4*(1+m0/ma)**0.3)
+                    rs_z0[iz]   = rmax_z0/2.163
+                    rhos_z0[iz] = (4.625/(4.*np.pi*self.G))*(Vmax_z0/rs_z0[iz])**2
+                else:
+                    rs_z0[iz]   = rs_acc[iz]
+                    rhos_z0[iz] = rhos_acc[iz]
+                ctemp         = np.linspace(0,100,1000)
+                ftemp         = interp1d(self.fc(ctemp),ctemp,fill_value='extrapolate')
+                ct_z0[iz]     = ftemp(m0/(4.*np.pi*rhos_z0[iz]*rs_z0[iz]**3))
+                survive[iz]   = np.where(ct_z0[iz]>ct_th,1,0)
+                m0_matrix[iz] = m0*np.ones((N_herm,1))
 
         Na           = self.Na_calc(ma200,zdist,M0,z0=0.,N_herm=N_hermNa,Nrand=1000,
                                     Na_model=Na_model)
