@@ -1,0 +1,236 @@
+{
+  "schema": "sashimi-family:independent-reference:v1",
+  "role": "A",
+  "repository": "gomeshun/sashimi-c",
+  "source_revision": "e09571be7a1daaef343e97887e34449faf21db7b",
+  "module_sha256": "ccb8554f98f896437da6bc0589ebbada07bcc4213f89c15081dfe473daebcf61",
+  "input_files": [],
+  "patches": [],
+  "calculation": {
+    "role": "A",
+    "constructor": {},
+    "method": "subhalo_properties_calc",
+    "repository": "gomeshun/sashimi-c",
+    "source_revision": "e09571be7a1daaef343e97887e34449faf21db7b",
+    "module": "sashimi_c",
+    "class": "subhalo_properties",
+    "parameters": {
+      "M0": 1000000000000.0,
+      "N_herm": 5,
+      "N_hermNa": 16,
+      "N_ma": 32,
+      "Na_model": 3,
+      "ct_th": 0.0,
+      "dz": 0.25,
+      "logmamax": 10.0,
+      "logmamin": 5.0,
+      "method": "pert2_shanks",
+      "profile_change": true,
+      "redshift": 0.0,
+      "sigmalogc": 0.128,
+      "zmax": 2.0
+    },
+    "input_files": [],
+    "probes": [
+      {
+        "name": "growth",
+        "method": "growthD",
+        "args": [
+          [
+            0.0,
+            0.5,
+            1.0,
+            2.0,
+            5.0
+          ]
+        ]
+      },
+      {
+        "name": "growth_derivative",
+        "method": "dDdz",
+        "args": [
+          [
+            0.0,
+            0.5,
+            1.0,
+            2.0,
+            5.0
+          ]
+        ]
+      },
+      {
+        "name": "variance",
+        "method": "sigmaMz",
+        "args": [
+          [
+            10000000.0,
+            100000000.0,
+            1000000000.0
+          ],
+          1.0
+        ]
+      },
+      {
+        "name": "variance_derivative",
+        "method": "dsdm",
+        "args": [
+          [
+            10000000.0,
+            100000000.0,
+            1000000000.0
+          ],
+          1.0
+        ]
+      }
+    ],
+    "environment": {
+      "python": "3.11.15",
+      "dependencies": {
+        "colossus": "1.4.0",
+        "contourpy": "1.3.3",
+        "cycler": "0.12.1",
+        "fonttools": "4.64.0",
+        "kiwisolver": "1.5.1",
+        "matplotlib": "3.8.4",
+        "numexpr": "2.14.2",
+        "numpy": "1.26.4",
+        "packaging": "26.3",
+        "pillow": "12.3.0",
+        "pyparsing": "3.3.2",
+        "python-dateutil": "2.9.0.post0",
+        "scipy": "1.13.1",
+        "six": "1.17.0",
+        "tqdm": "4.70.0",
+        "mpmath": "1.3.0"
+      }
+    }
+  },
+  "python": "3.11.15 (main, Mar  3 2026, 14:59:53) [Clang 21.1.4 ]",
+  "platform": "linux",
+  "dependencies": {
+    "colossus": "1.4.0",
+    "contourpy": "1.3.3",
+    "cycler": "0.12.1",
+    "fonttools": "4.64.0",
+    "kiwisolver": "1.5.1",
+    "matplotlib": "3.8.4",
+    "mpmath": "1.3.0",
+    "numexpr": "2.14.2",
+    "numpy": "1.26.4",
+    "packaging": "26.3",
+    "pillow": "12.3.0",
+    "pyparsing": "3.3.2",
+    "python-dateutil": "2.9.0.post0",
+    "scipy": "1.13.1",
+    "six": "1.17.0",
+    "tqdm": "4.70.0"
+  },
+  "worker_sha256": "f7f33a77b19117f17a5a6ca606c8507d8552e515cb325429c3961c235739798b",
+  "wall_seconds": 0.16318572498857975,
+  "warnings": [],
+  "arrays": {
+    "tuple_0": {
+      "shape": [
+        1280
+      ],
+      "dtype": "float64",
+      "nonfinite": 0
+    },
+    "tuple_1": {
+      "shape": [
+        1280
+      ],
+      "dtype": "float64",
+      "nonfinite": 0
+    },
+    "tuple_2": {
+      "shape": [
+        1280
+      ],
+      "dtype": "float64",
+      "nonfinite": 0
+    },
+    "tuple_3": {
+      "shape": [
+        1280
+      ],
+      "dtype": "float64",
+      "nonfinite": 0
+    },
+    "tuple_4": {
+      "shape": [
+        1280
+      ],
+      "dtype": "float64",
+      "nonfinite": 0
+    },
+    "tuple_5": {
+      "shape": [
+        1280
+      ],
+      "dtype": "float64",
+      "nonfinite": 0
+    },
+    "tuple_6": {
+      "shape": [
+        1280
+      ],
+      "dtype": "float64",
+      "nonfinite": 0
+    },
+    "tuple_7": {
+      "shape": [
+        1280
+      ],
+      "dtype": "float64",
+      "nonfinite": 0
+    },
+    "tuple_8": {
+      "shape": [
+        1280
+      ],
+      "dtype": "float64",
+      "nonfinite": 0
+    },
+    "tuple_9": {
+      "shape": [
+        1280
+      ],
+      "dtype": "bool",
+      "nonfinite": 0
+    },
+    "probe_growth": {
+      "shape": [
+        5
+      ],
+      "dtype": "float64",
+      "nonfinite": 0
+    },
+    "probe_growth_derivative": {
+      "shape": [
+        5
+      ],
+      "dtype": "float64",
+      "nonfinite": 0
+    },
+    "probe_variance": {
+      "shape": [
+        3
+      ],
+      "dtype": "float64",
+      "nonfinite": 0
+    },
+    "probe_variance_derivative": {
+      "shape": [
+        3
+      ],
+      "dtype": "float64",
+      "nonfinite": 0
+    }
+  },
+  "artifact_sha256": "7a9edae5fb9f45bf0c48230f2fd2c2be6f097e6ccf4c9ec04d6cd6309d5781e7",
+  "source_export_sha256": "8ae80de3f4a4b222fd423057fafd346c6455d0a3d48346452680b6795c9c2a34",
+  "config_sha256": "f3f16f48a2804ea9e802729156d8685d430282a90db67c544566273048e3700b",
+  "controller_sha256": "bb22d3196573c224f1cb811f211fbf81844737c3b625812addf90ede96b34b85",
+  "independent_process": true
+}
