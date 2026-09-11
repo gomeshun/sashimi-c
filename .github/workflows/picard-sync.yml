@@ -48,7 +48,8 @@ jobs:
       - name: Lint Picard synchronization files
         run: >-
           .venv-picard/bin/python -m ruff check
-          picard_tidal_stripping.py
+          src/sashimi_c/picard_tidal_stripping.py
+          src/picard_tidal_stripping.py
           tests/test_picard_tidal_stripping.py
           tests/test_picard_migration_sync.py
           scripts/picard_sync_comparison.py
