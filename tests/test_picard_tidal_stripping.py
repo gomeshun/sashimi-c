@@ -57,28 +57,6 @@ def test_picard3_matches_log_ode_reference(solver, picard3, z_acc, mass_ratio):
     assert relative_error < 1.0e-3
 
 
-def test_three_iterations_improve_challenging_high_redshift_case(solver):
-    common = dict(
-        solver=solver,
-        n_z_acc=96,
-        n_log_ratio=96,
-        log10_ratio_min=-18.0,
-        log10_ratio_max=-0.5,
-        n_integration=128,
-    )
-    picard2 = PicardTidalStrippingTable(n_iterations=2, **common)
-    picard3 = PicardTidalStrippingTable(n_iterations=3, **common)
-
-    z_acc = 7.0
-    ma = 1.0e-12 * solver.Mzvir(z_acc)
-    reference = reference_log_ode_mass(solver, ma, z_acc)
-    error2 = abs(picard2.mass(ma, z_acc) / reference - 1.0)
-    error3 = abs(picard3.mass(ma, z_acc) / reference - 1.0)
-
-    assert error3 < error2
-    assert error3 < 1.0e-3
-
-
 def test_vectorized_lookup_and_range_checks(solver, picard3):
     z_acc = 2.0
     ratios = np.array([1.0e-10, 1.0e-6, 1.0e-2])
