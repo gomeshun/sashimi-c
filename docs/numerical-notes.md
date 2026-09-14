@@ -38,8 +38,8 @@ The standalone helper retains the MIT notice from SASHIMI-C PR #5, commit
 
 ## Validation scope
 
-The direct DOP853 path controls local errors in log mass; its `rtol` is not
-a certified global relative-mass bound. Independent validation splits the
+The direct DOP853 path uses `rtol` and `atol` to control local errors in log
+mass. Neither tolerance is a certified global relative-mass bound. Independent validation splits the
 Correa concentration branch at `z=4` and checks the final mass separately.
 
 The checked domains met a `1e-3` relative mass-error gate against refined
