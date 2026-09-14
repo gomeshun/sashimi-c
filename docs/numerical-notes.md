@@ -28,12 +28,19 @@ check, `PicardFallbackWarning` and `solver._picard_events` record direct-ODE
 fallback. Queries do not silently extrapolate; invalid physical input raises.
 Caches include the host/background state, final redshift, numerical options and
 particle settings where applicable. Wrapper calls rebuild after state changes.
+The automatic table expands to include queries within the validated envelope,
+even when the solver was initialized with a smaller `z_max`; `z_max` is not an
+additional hard query boundary. Raw precomputed tables retain their fixed bounds.
 
 Each variant supplies its own host history, background and stripping coefficients.
 The standalone helper retains the MIT notice from SASHIMI-C PR #5, commit
 `88ae730762fb153be7a7433bb563b0b8ab3ec2c2`.
 
 ## Validation scope
+
+The direct DOP853 path controls local errors in log mass; its `rtol` is not
+a certified global relative-mass bound. Independent validation splits the
+Correa concentration branch at `z=4` and checks the final mass separately.
 
 The checked domains met a `1e-3` relative mass-error gate against refined
 independent ODE integrations. This is a finite-domain numerical check, not a
