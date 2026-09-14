@@ -17,6 +17,12 @@ integration. They require no stored catalog arrays. The optional
 `benchmarks/benchmark_picard_tidal_stripping.py` measures an explicitly configured
 table; it is not a timing of every default catalog setting.
 
+
+The default catalog path is checked against an independent reference; wrapper
+forwarding is checked on returned catalogs without repeating the same expensive
+calculation. Analytic mass histories, explicit legacy solvers, physical limits,
+and the existing frozen reference values remain separate checks.
+
 ## Repository contents
 
 Keep maintained tests, small required fixtures and user-facing numerical notes
