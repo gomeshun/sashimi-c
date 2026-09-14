@@ -113,7 +113,7 @@ def test_no_silent_extrapolation_and_counted_fallback():
 
 
 def test_public_dispatcher_candidate_and_legacy_paths():
-    variant=next(v for v in ('c','si','w','f') if Path(__file__).with_name('sashimi_'+v+'.py').exists())
+    variant=next(v for v in ('c','si','w','f') if (Path(__file__).resolve().parents[1]/('sashimi_'+v+'.py')).exists())
     module=importlib.import_module('sashimi_'+variant)
     if variant=='w':
         solver=module.TidalStrippingSolver(module.subhalos(2.),1e12,z_max=3.)
@@ -145,7 +145,7 @@ def test_long_solver_range_does_not_extend_an_in_domain_table():
 
 
 def test_public_default_matches_explicit_picard_and_observables():
-    variant=next(v for v in ('c','si','w','f') if Path(__file__).with_name('sashimi_'+v+'.py').exists())
+    variant=next(v for v in ('c','si','w','f') if (Path(__file__).resolve().parents[1]/('sashimi_'+v+'.py')).exists())
     module=importlib.import_module('sashimi_'+variant)
     cls={'c':'subhalo_properties','si':'subhalo_properties','w':'subhalos','f':'fdm_subhalo_properties'}[variant]
     model=getattr(module,cls)()

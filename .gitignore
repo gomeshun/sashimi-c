@@ -3,3 +3,7 @@ data/
 log/
 .pytest_cache/
 .ipynb_checkpoints/
+
+# Local experiments and generated validation reports
+/_scratch/
+/validation/maintenance/

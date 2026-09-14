@@ -153,4 +153,5 @@ survive:  If that subhalo survive against tidal disruption or not.
 These outputs are adopted further in various functions of 'subhalo_observables' class. See 'sample.ipynb' for details. They can be used in https://github.com/shinichiroando/dwarf_params to discuss density profiles of dwarf galaxies, as discussed in a related paper: https://arxiv.org/abs/2002.11956
 
 
-[Standalone maintenance and Picard validation](docs/standalone-maintenance.md) describes the `minor-updates` corrections, solver choices and numerical evidence.
+[Numerical notes](docs/numerical-notes.md) describe solver choices, corrections that affect results, and known limitations.
+[Tests](tests/README.md) explain how to check an installation and maintain regression fixtures.
