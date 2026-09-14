@@ -783,6 +783,8 @@ class subhalo_properties(halo_model):
                                    mass loss. (default: True)
         (Optional) M0_at_redshift: If True, M0 is regarded as the mass at a given redshift, instead of z=0.
         (Optional) method:         Method to calculate the subhalo mass stripping. (default: "picard_table")
+                                   - "picard_table" : interpolate the nonlinear Picard mass-loss solution.
+                                   - "dop853" : directly integrate the log-mass differential equation.
                                    - "odeint" : use odeint to solve the differential equation.
                                    - "pert0" : use perturbative method with zeroth-order correction.
                                    - "pert1" : use perturbative method with first-order correction.
@@ -970,6 +972,8 @@ class subhalo_observables(subhalo_properties):
                                    mass loss. (default: True)
         (Optional) M0_at_redshift: If True, M0 is regarded as the mass at a given redshift, instead of z=0.
         (Optional) method:         Method to calculate the subhalo mass stripping. (default: "picard_table")
+                                   - "picard_table" : interpolate the nonlinear Picard mass-loss solution.
+                                   - "dop853" : directly integrate the log-mass differential equation.
                                    - "odeint" : use odeint to solve the differential equation.
                                    - "pert0" : use perturbative method with zeroth-order correction.
                                    - "pert1" : use perturbative method with first-order correction.
