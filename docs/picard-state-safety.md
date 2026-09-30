@@ -22,3 +22,10 @@ external state is not automatically introspected. The default immutable
 This only protects Picard-table reuse. It does not change the mutation semantics
 of the separate perturbative epsilon interpolation caches. Construct a fresh
 solver when changing physical settings for those methods.
+
+The native C solver supplies this hook for its supported immutable concentration
+relation. Its content-addressed identifier participates in the fingerprint;
+replacing a relation with different data or switching to/from the standard
+Correa relation invalidates retained tables. An equivalent immutable payload
+keeps the same identity. Subclasses overriding the hook must include this base
+identity along with any additional hidden dependencies.

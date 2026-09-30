@@ -41,6 +41,9 @@ jobs:
         run: >-
           uv run --no-sync ruff check
           src/sashimi_c/__init__.py
+          src/sashimi_c/_api.py
+          src/sashimi_c/_settings.py
+          src/sashimi_c/_concentration.py
           src/sashimi_c/_physics.py
           src/sashimi_c/_data.py
           src/sashimi_c/_boost.py

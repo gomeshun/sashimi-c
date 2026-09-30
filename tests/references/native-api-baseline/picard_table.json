@@ -1,0 +1,16 @@
+{
+  "parameters": {
+    "M0": 10000000000.0,
+    "dz": 0.5,
+    "zmax": 1.0,
+    "N_ma": 4,
+    "N_herm": 2,
+    "N_hermNa": 3,
+    "logmamin": 6.0,
+    "logmamax": 8.0,
+    "method": "picard_table"
+  },
+  "sha256": "e3c7778053f1becfac848fa5f19c97bf9dab756e99178ba818d65b268e4e84b1",
+  "core": "23d01e8758a88b061b87de9e488c38ec89fd8e4f",
+  "variant": "0aa33a2a0935b3f0c4bf62072b36186ecc9f1047"
+}
