@@ -4,8 +4,9 @@ from dataclasses import FrozenInstanceError
 
 import numpy as np
 import pytest
-from sashimi_c import CDM, HaloModel, TabulatedConcentration, TidalStrippingSolver
 from scipy.optimize import brentq
+
+from sashimi_c import CDM, HaloModel, TabulatedConcentration, TidalStrippingSolver
 
 
 def analytic(mass, z):
@@ -189,6 +190,7 @@ def test_table_provenance_roundtrips_and_identifies_changed_physics(tmp_path):
 
 def test_legacy_custom_relation_route_preserves_full_physical_provenance(tmp_path):
     from itamae.types import WeightedSubhaloCatalog
+
     from sashimi_c import SubhaloProperties
 
     catalog = SubhaloProperties(concentration_relation=table()).subhalo_catalog_calc(

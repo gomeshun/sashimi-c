@@ -7,6 +7,7 @@ from pathlib import Path
 
 import numpy as np
 import pytest
+
 from sashimi_c import CDM, SubhaloProperties
 from sashimi_c._api import _host_mass_at_zero
 from sashimi_c._itamae_components import CDMAccretionSlices, NFWInitialStructure
