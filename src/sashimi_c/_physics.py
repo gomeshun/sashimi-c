@@ -21,7 +21,7 @@ from scipy.integrate import cumulative_trapezoid
 from ._boost import interpolate_boost_tables, validate_order
 from ._concentration import ConcentrationRelation, TabulatedConcentration
 from ._data import data_directory
-from .picard_tidal_stripping import PicardTidalStrippingTable
+from .picard_tidal_stripping import PicardTidalStrippingTable, physics_key
 
 _CALIBRATED_OMEGA_M = 0.315
 _CALIBRATED_H = 0.674
@@ -431,8 +431,17 @@ class CDMTidalKernels(CDMPhysics):
             * self.yr
         )
 
+    def picard_physics_key(self):
+        """Bind the supported immutable concentration relation to Picard reuse."""
+        relation = self.concentration_relation
+        return ("concentration_relation", None if relation is None else relation.identifier)
+
     def _get_picard_table(self, z_final):
         """Return a cached x3 Picard table for the requested final redshift."""
+        current_physics = physics_key(self)
+        if getattr(self, "_picard_physics_key", None) != current_physics:
+            self._picard_tables.clear()
+            self._picard_physics_key = current_physics
         key = float(z_final)
         table = self._picard_tables.get(key)
         if table is None:

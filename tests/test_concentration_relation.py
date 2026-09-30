@@ -291,3 +291,29 @@ def test_bounded_relation_ode_rejects_custom_jacobian_and_maps_h0():
         catalog.metadata["resolved_settings"]["stripping"]["solver_options"]["h0"]
         == -1e-6
     )
+
+
+def test_picard_reuse_tracks_immutable_concentration_relation_replacement():
+    def relation(value):
+        return TabulatedConcentration([1e-6, 1e18], [0.0, 8.0],
+                                      [[value, value], [value, value]])
+
+    host = TidalStrippingSolver(1e10, z_max=1.0, n_z_interp=16,
+                               concentration_relation=relation(10.0))
+    original = host._get_picard_table(0.0)
+    before = original.mass(1e6, 0.5)
+    assert host._get_picard_table(0.0) is original
+    # Equal immutable payloads represent the same physical relation.
+    host.concentration_relation = relation(10.0)
+    assert host._get_picard_table(0.0) is original
+    host.concentration_relation = relation(15.0)
+    with pytest.raises(ValueError, match="stale"):
+        original.mass(1e6, 0.5)
+    replacement = host._get_picard_table(0.0)
+    assert replacement is not original
+    assert replacement.mass(1e6, 0.5) != before
+    host.concentration_relation = None
+    with pytest.raises(ValueError, match="stale"):
+        replacement.mass(1e6, 0.5)
+    standard = host._get_picard_table(0.0)
+    assert host._get_picard_table(0.0) is standard

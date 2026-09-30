@@ -15,9 +15,45 @@ benchmarked and tested independently of the production default.
 
 from __future__ import annotations
 
+import hashlib
+
 import numpy as np
 from scipy.integrate import cumulative_trapezoid
 from scipy.interpolate import RegularGridInterpolator
+
+
+def physics_key(solver):
+    """Fingerprint mutable host inputs, following upstream C PR #22.
+
+    Numerical cache fields are excluded. Custom providers with hidden/nested
+    state must expose an immutable ``picard_physics_key()`` value covering it.
+    This key is process-local, not a serialization or scientific identity.
+    """
+    def inputs(owner):
+        result = []
+        for name, value in sorted(getattr(owner, "__dict__", {}).items()):
+            if name.startswith(("_picard", "_eps", "eps_")):
+                continue
+            if isinstance(value, (float, int, str, bool, np.number)):
+                result.append((name, repr(value)))
+            elif isinstance(value, np.ndarray) and value.dtype.kind in "biufc":
+                result.append((name, value.dtype.str, value.shape,
+                               hashlib.sha256(value.tobytes()).hexdigest()))
+            elif callable(value):
+                result.append((name, id(value)))
+        return tuple(result)
+
+    result = [inputs(solver)]
+    backend = getattr(solver, "itamae_cosmology", None)
+    if backend is not None:
+        # NativeFlatLCDM is immutable; adapters can also have mutable scalars.
+        result.append(("cosmology", id(backend), inputs(backend)))
+    if hasattr(solver, "picard_physics_key"):
+        result.append(("provider", solver.picard_physics_key()))
+    for name in ("Phi", "zetaMz", "Mzvir"):
+        value = getattr(solver, name)
+        result.append((name, id(getattr(value, "__func__", value))))
+    return tuple(result)
 
 
 class PicardTidalStrippingTable:
@@ -85,6 +121,7 @@ class PicardTidalStrippingTable:
         )
         self._ln_ratio_grid = np.log(10.0) * self.log_ratio_grid
 
+        self._physics_key = physics_key(solver)
         self.delta_ln_mass = self._build_table()
         self._interpolator = RegularGridInterpolator(
             (self.z_acc_grid, self._ln_ratio_grid),
@@ -126,6 +163,8 @@ class PicardTidalStrippingTable:
         return table
 
     def _points(self, ma, z_acc):
+        if getattr(self, "_physics_key", None) != physics_key(self.solver):
+            raise ValueError("Picard table is stale after host/background changes; rebuild it.")
         ma = np.asarray(ma, dtype=float)
         z_acc = np.asarray(z_acc, dtype=float)
         ma, z_acc = np.broadcast_arrays(ma, z_acc)
