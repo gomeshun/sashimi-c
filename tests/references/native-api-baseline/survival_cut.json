@@ -1,0 +1,23 @@
+{
+  "parameters": {
+    "M0": 10000000000.0,
+    "dz": 0.5,
+    "zmax": 1.0,
+    "N_ma": 4,
+    "N_herm": 2,
+    "N_hermNa": 3,
+    "logmamin": 6.0,
+    "logmamax": 8.0,
+    "ct_th": 10.0
+  },
+  "sha256": "13925de75dd64ced0f29fb63d78f88e60c5140493f16bbdc6ab8c0cdea64689c",
+  "core": "23d01e8758a88b061b87de9e488c38ec89fd8e4f",
+  "variant": "0aa33a2a0935b3f0c4bf62072b36186ecc9f1047",
+  "generated_on": "2026-10-07",
+  "purpose": "Supplemental nontrivial survival cut from the unchanged pre-API installed wheel. Original eleven references are retained.",
+  "environment": {
+    "python": "3.12.13",
+    "numpy": "2.3.5",
+    "scipy": "1.17.0"
+  }
+}

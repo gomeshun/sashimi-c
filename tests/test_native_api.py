@@ -241,6 +241,25 @@ def test_units_weight_factors_and_executed_provenance():
     assert catalog.metadata["solver_identifier"].endswith(":pert2_shanks:v1")
 
 
+def test_disruption_threshold_changes_survival_and_final_weights():
+    original = small().population(**inputs())
+    threshold = 10.0
+    selected = (
+        small().configure(disruption={"ct_threshold": threshold}).population(**inputs())
+    )
+    expected = original.columns["c_t"] > threshold
+    assert np.all(original.columns["survive"])
+    assert np.any(expected) and not np.all(expected)
+    np.testing.assert_array_equal(selected.columns["survive"], expected)
+    np.testing.assert_array_equal(selected.weights["weight_survival"], expected)
+    for key in ("weight_base", "weight_concentration"):
+        np.testing.assert_array_equal(selected.weights[key], original.weights[key])
+    np.testing.assert_array_equal(
+        selected.weight_final, original.weight_final * expected
+    )
+    assert selected.weight_final.sum() < original.weight_final.sum()
+
+
 def test_typed_cdm_context_rejects_mismatched_concentration_layout():
     model = SubhaloProperties()
     batch, context = CDMAccretionSlices(

@@ -22,3 +22,21 @@ Cross-platform frozen-reference comparisons use rtol=5e-12 and atol=0, matching
 the pre-existing B reference policy; boolean fields are exact. Old/new paths
 within one runtime must match exactly. The validation run that produced this
 change also observed exact agreement with these saved references.
+
+## Supplemental survival-cut case (2026-10-07)
+
+The original eleven records remain unchanged. The original `survival` case uses
+`ct_th=0.77`, for which all 16 nodes pass, so it does not detect an ignored
+threshold. `survival_cut` retains the same grid and uses `ct_th=10`: 6 nodes
+survive and 10 are excluded. This threshold is a test input, not a new default.
+
+The supplemental record was generated from the same unchanged pre-API C and
+ITAMAE revisions listed above. Both sources were independently exported with
+`git archive`, built with their exact source-revision overrides, and installed
+as wheels in a separate environment. The generator verified the embedded source
+identities and called only `SubhaloProperties().subhalo_catalog_calc` with the
+parameters in `survival_cut.json`; it saved the returned columns and factorized
+weights using `numpy.savez`. The JSON records the environment and NPZ hash.
+Both current entry points must match that independent result. The native API
+test also checks that the threshold changes survival and final weights while
+preserving the base and concentration weights.
