@@ -42,6 +42,7 @@ class TabulatedConcentration:
     _interpolator: RegularGridInterpolator = field(
         init=False, repr=False, compare=False
     )
+    _identifier: str = field(init=False, repr=False, compare=False)
 
     def __post_init__(self):
         arrays = []
@@ -79,6 +80,15 @@ class TabulatedConcentration:
                 bounds_error=True,
             ),
         )
+        encoded = json.dumps(
+            self._description(), sort_keys=True, separators=(",", ":"), allow_nan=False
+        ).encode()
+        object.__setattr__(
+            self,
+            "_identifier",
+            "sashimi-c:concentration-table:sha256:"
+            + hashlib.sha256(encoded).hexdigest(),
+        )
 
     def _description(self):
         return {
@@ -98,13 +108,7 @@ class TabulatedConcentration:
 
     @property
     def identifier(self):
-        encoded = json.dumps(
-            self._description(), sort_keys=True, separators=(",", ":"), allow_nan=False
-        ).encode()
-        return (
-            "sashimi-c:concentration-table:sha256:"
-            + hashlib.sha256(encoded).hexdigest()
-        )
+        return self._identifier
 
     def describe(self):
         return {

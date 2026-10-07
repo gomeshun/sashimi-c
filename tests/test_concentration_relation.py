@@ -39,6 +39,11 @@ def test_log_bilinear_interpolation_and_immutable_description():
     masses[0] = 999
     assert copied.c200[0][0] == 2 and copied.mass_msun[0] == 1
     np.testing.assert_allclose(copied.evaluate(1.0, 0.0), 2.0)
+    # Preserve the canonical content digest from the pre-cache implementation.
+    assert copied.identifier == (
+        "sashimi-c:concentration-table:sha256:"
+        "c4556bb86e1abfb10374d690af564492b2192f5093d948738b90503ffa50f8d0"
+    )
 
 
 @pytest.mark.parametrize(
