@@ -46,6 +46,24 @@ def test_log_bilinear_interpolation_and_immutable_description():
     )
 
 
+def test_signed_zero_redshift_has_canonical_identity_without_mutating_input():
+    masses = [1.0, 2.0]
+    values = [[2.0, 3.0], [4.0, 5.0]]
+    redshifts = np.array([-0.0, 1.0])
+    negative_zero = TabulatedConcentration(masses, redshifts, values)
+    positive_zero = TabulatedConcentration(masses, [0.0, 1.0], values)
+    assert np.signbit(redshifts[0])
+    assert not np.signbit(negative_zero.redshift[0])
+    assert negative_zero == positive_zero
+    assert hash(negative_zero) == hash(positive_zero)
+    assert negative_zero.identifier == positive_zero.identifier
+    assert negative_zero.describe() == positive_zero.describe()
+    np.testing.assert_array_equal(
+        negative_zero.evaluate([1.0, 1.5, 2.0], [0.0, 0.5, 1.0]),
+        positive_zero.evaluate([1.0, 1.5, 2.0], [0.0, 0.5, 1.0]),
+    )
+
+
 @pytest.mark.parametrize(
     "mass,z,c",
     [
@@ -301,9 +319,10 @@ def test_bounded_relation_ode_rejects_custom_jacobian_and_maps_h0():
     )
 
 
-def test_picard_reuse_tracks_immutable_concentration_relation_replacement():
-    def relation(value):
-        return TabulatedConcentration([1e-6, 1e18], [0.0, 8.0],
+@pytest.mark.parametrize("replacement_zero", [0.0, -0.0])
+def test_picard_reuse_tracks_immutable_concentration_relation_replacement(replacement_zero):
+    def relation(value, zero=0.0):
+        return TabulatedConcentration([1e-6, 1e18], [zero, 8.0],
                                       [[value, value], [value, value]])
 
     host = TidalStrippingSolver(1e10, z_max=1.0, n_z_interp=16,
@@ -312,8 +331,9 @@ def test_picard_reuse_tracks_immutable_concentration_relation_replacement():
     before = original.mass(1e6, 0.5)
     assert host._get_picard_table(0.0) is original
     # Equal immutable payloads represent the same physical relation.
-    host.concentration_relation = relation(10.0)
+    host.concentration_relation = relation(10.0, zero=replacement_zero)
     assert host._get_picard_table(0.0) is original
+    assert original.mass(1e6, 0.5) == before
     host.concentration_relation = relation(15.0)
     with pytest.raises(ValueError, match="stale"):
         original.mass(1e6, 0.5)

@@ -67,7 +67,10 @@ class TabulatedConcentration:
         if concentration.shape != (z.size, mass.size):
             raise ValueError("c200 must have shape (redshift nodes, mass nodes).")
         object.__setattr__(self, "mass_msun", tuple(map(float, mass)))
-        object.__setattr__(self, "redshift", tuple(map(float, z)))
+        # Signed zeros are equal coordinates and must share one content identity.
+        object.__setattr__(
+            self, "redshift", tuple(0.0 if value == 0 else float(value) for value in z)
+        )
         object.__setattr__(
             self, "c200", tuple(tuple(map(float, row)) for row in concentration)
         )
