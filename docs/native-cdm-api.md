@@ -159,8 +159,10 @@ it. An API refactor does not renormalize or discard disrupted population nodes.
 
 ## Family compatibility boundary
 
-The family migration parent is `gomeshun/sashimi-family` PR #34, head
-`7ce00a72f7da4b113261cd255eb85eda0fb6c453`. C's native interface is deliberately
+This guide uses the pinned family-context revision
+`7ce00a72f7da4b113261cd255eb85eda0fb6c453` from `gomeshun/sashimi-family` PR #34;
+it is not that PR's current head or a compatibility pin for this native API.
+C's native interface is deliberately
 variant-owned. It is not a claim that the same parameter names can be mapped
 mechanically to every legacy variant.
 
