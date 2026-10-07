@@ -2,7 +2,7 @@
 
 import hashlib
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Protocol
 
 import numpy as np
@@ -39,6 +39,9 @@ class TabulatedConcentration:
     mass_msun: tuple[float, ...]
     redshift: tuple[float, ...]
     c200: tuple[tuple[float, ...], ...]
+    _interpolator: RegularGridInterpolator = field(
+        init=False, repr=False, compare=False
+    )
 
     def __post_init__(self):
         arrays = []
@@ -66,6 +69,15 @@ class TabulatedConcentration:
         object.__setattr__(self, "redshift", tuple(map(float, z)))
         object.__setattr__(
             self, "c200", tuple(tuple(map(float, row)) for row in concentration)
+        )
+        object.__setattr__(
+            self,
+            "_interpolator",
+            RegularGridInterpolator(
+                (np.asarray(self.redshift), np.log10(self.mass_msun)),
+                np.log(self.c200),
+                bounds_error=True,
+            ),
         )
 
     def _description(self):
@@ -125,10 +137,5 @@ class TabulatedConcentration:
                 f"{component}: concentration table does not cover M200c={mass.flat[index]} Msun, z={z.flat[index]}; "
                 f"required domain is mass {self.mass_msun[0], self.mass_msun[-1]} Msun, z {self.redshift[0], self.redshift[-1]}."
             )
-        interpolation = RegularGridInterpolator(
-            (np.asarray(self.redshift), np.log10(self.mass_msun)),
-            np.log(self.c200),
-            bounds_error=True,
-        )
         points = np.column_stack((z.ravel(), np.log10(mass).ravel()))
-        return np.exp(interpolation(points)).reshape(mass.shape)
+        return np.exp(self._interpolator(points)).reshape(mass.shape)

@@ -26,6 +26,8 @@ def test_log_bilinear_interpolation_and_immutable_description():
         relation.evaluate(mass, z), analytic(mass, z), rtol=2e-15
     )
     assert table().identifier == relation.identifier
+    assert table() == relation
+    assert hash(table()) == hash(relation)
     description = relation.describe()
     description["c200"][0][0] = 1
     assert relation.describe()["c200"][0][0] != 1
@@ -36,6 +38,7 @@ def test_log_bilinear_interpolation_and_immutable_description():
     values[0][0] = 999
     masses[0] = 999
     assert copied.c200[0][0] == 2 and copied.mass_msun[0] == 1
+    np.testing.assert_allclose(copied.evaluate(1.0, 0.0), 2.0)
 
 
 @pytest.mark.parametrize(
