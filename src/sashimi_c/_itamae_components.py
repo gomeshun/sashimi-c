@@ -7,6 +7,7 @@ objects and stripping solvers are supplied by C, never selected by ITAMAE.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 
@@ -16,6 +17,58 @@ from itamae.measure import build_accretion_batch
 from itamae.numerics import gauss_hermite_lognormal
 from itamae.protocols.execution import PopulationState
 from itamae.types import AccretionBatch
+
+
+@dataclass(frozen=True, slots=True)
+class CDMSliceContext(Mapping):
+    """C's concentration-major, mass-minor layout for one redshift slice.
+
+    This is a variant-specific context, not a family-wide mass-grid contract.
+    The mapping access preserves existing component consumers.
+    """
+
+    redshift_index: int
+    mvir_acc: np.ndarray
+    z_acc: float
+    rvir_acc: np.ndarray
+    r200_acc: np.ndarray
+    concentration_nodes: int
+
+    def __post_init__(self):
+        shape = None
+        for name in ("mvir_acc", "rvir_acc", "r200_acc"):
+            value = np.asarray(getattr(self, name), dtype=float).copy()
+            if value.ndim != 1 or not value.size or not np.all(np.isfinite(value)) or np.any(value <= 0):
+                raise ValueError(f"{name} requires a finite positive mass-axis vector.")
+            if shape is not None and value.shape != shape:
+                raise ValueError("CDM slice context mass-axis arrays must align.")
+            shape = value.shape
+            value.setflags(write=False)
+            object.__setattr__(self, name, value)
+        if self.concentration_nodes < 1:
+            raise ValueError("concentration_nodes must be positive.")
+
+    def __iter__(self):
+        return iter(("redshift_index", "mvir_acc", "z_acc", "rvir_acc", "r200_acc"))
+
+    def __len__(self):
+        return 5
+
+    def __getitem__(self, key):
+        if key not in tuple(self):
+            raise KeyError(key)
+        return getattr(self, key)
+
+    def validate_batch(self, batch, concentration_nodes):
+        if concentration_nodes != self.concentration_nodes:
+            raise ValueError("Component concentration layout differs from its prepared slice.")
+        expected = self.concentration_nodes * self.mvir_acc.size
+        if batch.m200_acc.shape != (expected,):
+            raise ValueError("CDM batch does not match its prepared population layout.")
+        if not np.all(batch.z_acc == self.z_acc):
+            raise ValueError("CDM batch and context accretion redshifts differ.")
+        if not np.array_equal(batch.mvir_acc, np.tile(self.mvir_acc, self.concentration_nodes)):
+            raise ValueError("CDM batch and context virial-mass layouts differ.")
 
 
 @dataclass(frozen=True, slots=True)
@@ -66,13 +119,11 @@ class CDMAccretionSlices:
                 "calculation_specification": "sashimi-c:cdm:2026-09-10:v1",
             },
         )
-        context = {
-            "redshift_index": index,
-            "mvir_acc": ma,
-            "z_acc": z_acc_value,
-            "rvir_acc": rvirsub,
-            "r200_acc": r200sub,
-        }
+        context = CDMSliceContext(
+            redshift_index=index, mvir_acc=ma, z_acc=float(z_acc_value),
+            rvir_acc=rvirsub, r200_acc=r200sub, concentration_nodes=self.N_herm,
+        )
+        context.validate_batch(batch, self.N_herm)
         return batch, context
 
 
@@ -84,6 +135,8 @@ class NFWInitialStructure:
     N_herm: int
 
     def initialize(self, batch, context):
+        if isinstance(context, CDMSliceContext):
+            context.validate_batch(batch, self.N_herm)
         c_sub = batch.concentration_acc.reshape(self.N_herm, -1)
         rs_acc = context["rvir_acc"] / c_sub
         rhos_acc = context["mvir_acc"] / (
@@ -108,6 +161,8 @@ class TidalProfileEvolution:
     kwargs: dict[str, Any]
 
     def evolve(self, batch, initial, context):
+        if isinstance(context, CDMSliceContext):
+            context.validate_batch(batch, self.N_herm)
         n_mass = context["mvir_acc"].size
         m0 = self.solver.subhalo_mass_stripped(
             context["mvir_acc"],
@@ -187,6 +242,7 @@ class TruncationThresholdSurvival:
 __all__ = [
     "CDMAccretionSlices",
     "CDMCatalogColumns",
+    "CDMSliceContext",
     "NFWInitialStructure",
     "TidalProfileEvolution",
     "TruncationThresholdSurvival",

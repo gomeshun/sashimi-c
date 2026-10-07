@@ -1,0 +1,17 @@
+{
+  "parameters": {
+    "M0": 10000000000.0,
+    "dz": 0.5,
+    "zmax": 1.5,
+    "N_ma": 4,
+    "N_herm": 2,
+    "N_hermNa": 3,
+    "logmamin": 6.0,
+    "logmamax": 8.0,
+    "redshift": 0.5,
+    "M0_at_redshift": true
+  },
+  "sha256": "0014e55d8768c1f19319d4d29495dfb04935a7c07301f5fc046b6d126e509e84",
+  "core": "23d01e8758a88b061b87de9e488c38ec89fd8e4f",
+  "variant": "0aa33a2a0935b3f0c4bf62072b36186ecc9f1047"
+}

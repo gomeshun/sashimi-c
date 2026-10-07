@@ -152,7 +152,7 @@ jobs:
         assert source_revision('itamae') == os.environ['ITAMAE_REF']
         PY
     - name: Lint migration code
-      run: uv run --no-sync ruff check src/sashimi_c/__init__.py src/sashimi_c/_physics.py src/sashimi_c/_data.py
+      run: uv run --no-sync ruff check src/sashimi_c/__init__.py src/sashimi_c/_api.py src/sashimi_c/_settings.py src/sashimi_c/_concentration.py src/sashimi_c/_physics.py src/sashimi_c/_data.py
         src/sashimi_c/_boost.py src/sashimi_c/boost_iteration.py src/sashimi_c/boost_iteration_prompt_cusps.py src/sashimi_c/_itamae.py
         src/sashimi_c/_itamae_catalog.py src/sashimi_c/_itamae_components.py src/sashimi_c/_itamae_migration.py
         src/sashimi_c/_itamae_variance.py tests scripts

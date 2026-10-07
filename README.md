@@ -243,3 +243,11 @@ full saved-grid evidence, solver differences, finite EPS limits and remaining
 use limitations. The last dz refinement (.01 to .005) changes bound mass
 fractions by about 0.754% at fixed reduced settings. These are measured
 sensitivities, not universal error guarantees or a change of physical defaults.
+
+## Native configurable CDM API
+
+`CDM().configure(...)` separates reusable CDM settings from physical population
+inputs and returns the existing weighted catalog. See the [native API guide](docs/native-cdm-api.md)
+for immutable settings, explicit units and epochs, bounded domains, experimental
+concentration relations, and family compatibility limits. Historical imports
+and entry points remain available.

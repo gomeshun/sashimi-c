@@ -19,6 +19,7 @@ from scipy import optimize
 from scipy.integrate import cumulative_trapezoid
 
 from ._boost import interpolate_boost_tables, validate_order
+from ._concentration import ConcentrationRelation, TabulatedConcentration
 from ._data import data_directory
 from .picard_tidal_stripping import PicardTidalStrippingTable, physics_key
 
@@ -53,7 +54,11 @@ class CDMPhysics(CDMUnits):
         *,
         cosmology_backend=None,
         data_dir=None,
+        concentration_relation: ConcentrationRelation | None = None,
     ):
+        if concentration_relation is not None and type(concentration_relation) is not TabulatedConcentration:
+            raise TypeError("Only immutable TabulatedConcentration relations are currently supported.")
+        self.concentration_relation = concentration_relation
         backend = cosmology_backend or NativeFlatLCDM(
             omega_m0=_CALIBRATED_OMEGA_M, h=_CALIBRATED_H
         )
@@ -212,7 +217,10 @@ class CDMPhysics(CDMUnits):
         return 18.0 * np.pi**2 + 82.0 * x - 39.0 * x**2
 
     def conc200(self, M200, z):
-        """Correa et al. (2015)"""
+        """Correa et al. (2015), or the explicitly supplied bounded C relation."""
+        if self.concentration_relation is not None:
+            component = "host stripping/conversion" if isinstance(self, CDMTidalKernels) else "subhalo structure/conversion"
+            return self.concentration_relation.evaluate(M200 / self.Msun, z, component=component)
         alpha_cMz_1 = 1.7543 - 0.2766 * (1.0 + z) + 0.02039 * (1.0 + z) ** 2
         beta_cMz_1 = 0.2753 + 0.00351 * (1.0 + z) - 0.3038 * (1.0 + z) ** 0.0269
         gamma_cMz_1 = -0.01537 + 0.02102 * (1.0 + z) ** -0.1475
@@ -320,7 +328,8 @@ class CDMTidalKernels(CDMPhysics):
     """C-owned stripping laws, coefficient tables and solver choices."""
 
     def __init__(
-        self, M0, z_min=0.0, z_max=7.0, n_z_interp=64, *, cosmology_backend=None
+        self, M0, z_min=0.0, z_max=7.0, n_z_interp=64, *, cosmology_backend=None,
+        concentration_relation: ConcentrationRelation | None = None
     ):
         """Initial function of the class.
 
@@ -332,7 +341,7 @@ class CDMTidalKernels(CDMPhysics):
         (Optional) z_max:          Maximum redshift to start the calculation of evolution from. (default: 7.)
         (Optional) n_z_interp:     Number of redshifts to calculate epsilon functions. (default: 64)
         """
-        CDMPhysics.__init__(self, cosmology_backend=cosmology_backend)
+        CDMPhysics.__init__(self, cosmology_backend=cosmology_backend, concentration_relation=concentration_relation)
         self.z_min = z_min
         self.z_max = z_max
         self.n_z_interp = n_z_interp
@@ -422,6 +431,11 @@ class CDMTidalKernels(CDMPhysics):
             * self.yr
         )
 
+    def picard_physics_key(self):
+        """Bind the supported immutable concentration relation to Picard reuse."""
+        relation = self.concentration_relation
+        return ("concentration_relation", None if relation is None else relation.identifier)
+
     def _get_picard_table(self, z_final):
         """Return a cached x3 Picard table for the requested final redshift."""
         current_physics = physics_key(self)
@@ -456,15 +470,34 @@ class CDMTidalKernels(CDMPhysics):
         duplicate overrides. Repeated times and zero evolution are preserved.
         """
         options = dict(kwargs)
+        direction = -1.0 if self.concentration_relation is not None else 1.0
+        if self.concentration_relation is not None:
+            if "tcrit" in options:
+                raise ValueError("tcrit is controlled by the bounded concentration-relation integration.")
+            if "Dfun" in options:
+                raise ValueError("Dfun is unsupported with a bounded concentration relation.")
+            # LSODA may otherwise evaluate its RHS past the final output time.
+            # Only the newly supported bounded relation path sets this guard;
+            # historical/default odeint arithmetic remains untouched.
+            # SciPy odeint's tcrit handling does not reliably constrain a
+            # decreasing time axis. Use u=-z so bounded LSODA runs forward.
+            options["tcrit"] = [-float(z0)]
+            if "h0" in options:
+                options["h0"] = -options["h0"]
         rtol, atol = options.pop("rtol", None), options.pop("atol", None)
         jacobian = options.get("Dfun")
         if callable(jacobian):
             options["Dfun"] = lambda time, state: jacobian(state, time)
         zcalc = np.linspace(za, z0, 100)
+        rhs = (
+            (lambda time, state: -self.msolve(state, -time))
+            if self.concentration_relation is not None else
+            (lambda time, state: self.msolve(state, time))
+        )
         solution = solve_evolution(
-            lambda time, state: self.msolve(state, time),
+            rhs,
             ma,
-            zcalc,
+            direction * zcalc,
             method="odeint",
             rtol=rtol,
             atol=atol,

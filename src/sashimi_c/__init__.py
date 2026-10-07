@@ -22,6 +22,8 @@ from itamae.types import (
 from scipy import integrate, special
 from scipy.interpolate import interp1d
 
+from ._api import CDM
+from ._concentration import TabulatedConcentration
 from ._itamae_components import (
     CDMAccretionSlices,
     CDMCatalogColumns,
@@ -339,16 +341,35 @@ class SubhaloProperties(CDMPhysics):
         method="pert2_shanks",
         **kwargs,
     ) -> WeightedSubhaloCatalog:
-        """Generate an ITAMAE weighted catalog while preserving SASHIMI physics.
+        """Generate a catalog through the historical, unchanged input contract."""
+        return self._calculate_population(
+            M0, redshift, dz, zmax, N_ma, sigmalogc, N_herm, logmamin,
+            logmamax, N_hermNa, Na_model, ct_th, profile_change,
+            M0_at_redshift, method, **kwargs,
+        )
 
-        Returns
-        -------
-        itamae.types.WeightedSubhaloCatalog
-            Catalog with separate population, concentration, and survival
-            weights. The product of population and concentration weights equals
-            the historical tuple ``weight``; survival remains an independent
-            factor for diagnostics and reweighting.
-        """
+    def _calculate_population(
+        self,
+        M0,
+        redshift=0.0,
+        dz=0.01,
+        zmax=7.0,
+        N_ma=500,
+        sigmalogc=0.128,
+        N_herm=5,
+        logmamin=-6,
+        logmamax=None,
+        N_hermNa=200,
+        Na_model=3,
+        ct_th=0.0,
+        profile_change=True,
+        M0_at_redshift=False,
+        method="pert2_shanks",
+        *,
+        preparation=None,
+        **kwargs,
+    ) -> WeightedSubhaloCatalog:
+        """Run the C-owned preparation and the single ITAMAE pipeline."""
         if "physics_mode" in kwargs:
             raise TypeError(
                 "physics_mode was removed; use the independent A/B reference workflow."
@@ -382,7 +403,10 @@ class SubhaloProperties(CDMPhysics):
             M0 = float(fint(Mz))
         self.M0 = M0
         self.redshift = redshift
-        zdist = np.arange(redshift + dz, zmax + dz, dz)
+        zdist = (
+            np.arange(redshift + dz, zmax + dz, dz)
+            if preparation is None else preparation.redshift_nodes
+        )
         if logmamax is None:
             logmamax = np.log10(0.1 * M0 / self.Msun)
         if float(logmamin) >= float(logmamax):
@@ -392,7 +416,8 @@ class SubhaloProperties(CDMPhysics):
             M0=M0,
             z_min=redshift,
             z_max=zmax,
-            n_z_interp=64,
+            n_z_interp=64 if preparation is None else preparation.interpolation_nodes,
+            concentration_relation=self.concentration_relation,
             cosmology_backend=self.itamae_cosmology,
         )
         Na = self.Na_calc(
@@ -408,7 +433,14 @@ class SubhaloProperties(CDMPhysics):
             integrate.simpson(Na, x=np.log(ma200_grid)), x=np.log(1.0 + zdist)
         )
         population_2d = Na / (1.0 + zdist.reshape(-1, 1))
-        population_2d = population_2d / np.sum(population_2d) * Na_total
+        normalization = np.sum(population_2d)
+        if not np.isfinite(normalization) or normalization <= 0:
+            raise ValueError(
+                "Accretion grid has no positive finite normalization. "
+                "Choose mass/redshift bounds and host-history nodes with "
+                "supported accretion weight."
+            )
+        population_2d = population_2d / normalization * Na_total
         slice_builder = CDMAccretionSlices(
             model=self,
             ma200_grid=ma200_grid,
@@ -462,13 +494,43 @@ class SubhaloProperties(CDMPhysics):
             distribution_name="sashimi-c",
             module_file=__file__,
             calculation_specification=CALCULATION_SPECIFICATION,
-            model_identifier=CALCULATION_SPECIFICATION,
+            model_identifier=(
+                CALCULATION_SPECIFICATION if self.concentration_relation is None
+                else f"{CALCULATION_SPECIFICATION}:{self.concentration_relation.identifier}"
+            ),
             backend_identifier=backend_identifier,
             source_identifier="sashimi-c:standard-api:v1",
             variance_identifier="sashimi-c:analytic-cdm-fit:v1",
             power_identifier="sashimi-c:cdm-linear-power:v1",
             solver_identifier=f"sashimi-c:tidal-stripping:{method}:v1",
             extra={
+                "odeint_boundary_policy": (
+                    "increasing-minus-redshift-tcrit-for-bounded-concentration" if method == "odeint" and self.concentration_relation is not None
+                    else "legacy-unbounded-internal-steps" if method == "odeint" else None
+                ),
+                "odeint_integration_coordinate": (
+                    "minus-redshift" if method == "odeint" and self.concentration_relation is not None
+                    else "redshift" if method == "odeint" else None
+                ),
+                "odeint_effective_h0": (
+                    (-float(kwargs.get("h0", 0.0)) if self.concentration_relation is not None
+                     else float(kwargs.get("h0", 0.0))) if method == "odeint" else None
+                ),
+                "odeint_tcrit": (
+                    [-float(redshift)] if method == "odeint" and self.concentration_relation is not None else None
+                ),
+                "concentration_relation": (
+                    None if self.concentration_relation is None else self.concentration_relation.describe()
+                ),
+                "experimental_concentration": self.concentration_relation is not None,
+                "concentration_calibration_caveat": (
+                    "User-supplied concentration; CDM host-history, variance and tidal calibrations are unchanged, not refitted."
+                    if self.concentration_relation is not None else None
+                ),
+                "concentration_identifier": (
+                    "sashimi-c:correa2015:v1" if self.concentration_relation is None
+                    else self.concentration_relation.identifier
+                ),
                 "cosmology_backend": self.itamae_cosmology.identifier,
                 "cosmology_parameters": {
                     "omega_m0": float(np.asarray(self.itamae_cosmology.omega_m(0.0))),
@@ -514,6 +576,7 @@ class SubhaloProperties(CDMPhysics):
                     "weight_survival": "binary c_t threshold",
                 },
                 "nfw_inversion": "itamae.brentq",
+                **({} if preparation is None else preparation.metadata),
             },
         )
         catalog = execution.to_catalog(metadata)
@@ -865,10 +928,12 @@ units_and_constants = CDMUnits
 
 __all__ = [
     "CALCULATION_SPECIFICATION",
+    "CDM",
     "HaloModel",
     "StrippingDiagnostics",
     "SubhaloObservables",
     "SubhaloProperties",
+    "TabulatedConcentration",
     "TidalStrippingSolver",
     "cosmology",
     "diagnose_stripping_approximation",
