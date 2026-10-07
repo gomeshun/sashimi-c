@@ -167,6 +167,11 @@ class CDM:
             raise ValueError(
                 "The resolved accretion mass upper bound must exceed its lower bound."
             )
+        if mass_lo >= 0.5 * mass_zero:
+            raise ValueError(
+                "The accretion mass lower bound must be below half the resolved "
+                "host mass at z=0 to contain supported accretion masses."
+            )
         settings = thaw(self._settings)
         relation = c["relation"]
         if relation is not None:

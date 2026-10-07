@@ -70,6 +70,10 @@ Both native mass definitions currently support only `200c`. Values are plain
 numbers in Msun. The upper accretion mass bound may be `None`, meaning 0.1 times
 the resolved host M200c at z=0. Mass quadrature includes both endpoints and has
 at least two nodes. These physical limits are independent of `mass_nodes`.
+The lower mass bound must be below half the resolved host M200c at z=0,
+the global ceiling of the existing accretion prescriptions. This is necessary
+but does not guarantee support at the sampled redshifts: a grid with no positive
+finite accretion normalization is rejected before weight normalization.
 
 `host_mass_redshift` describes the supplied host mass; `redshift` describes the
 output epoch. Nonzero host reference epochs use the historical 1500-node,

@@ -433,7 +433,14 @@ class SubhaloProperties(CDMPhysics):
             integrate.simpson(Na, x=np.log(ma200_grid)), x=np.log(1.0 + zdist)
         )
         population_2d = Na / (1.0 + zdist.reshape(-1, 1))
-        population_2d = population_2d / np.sum(population_2d) * Na_total
+        normalization = np.sum(population_2d)
+        if not np.isfinite(normalization) or normalization <= 0:
+            raise ValueError(
+                "Accretion grid has no positive finite normalization. "
+                "Choose mass/redshift bounds and host-history nodes with "
+                "supported accretion weight."
+            )
+        population_2d = population_2d / normalization * Na_total
         slice_builder = CDMAccretionSlices(
             model=self,
             ma200_grid=ma200_grid,

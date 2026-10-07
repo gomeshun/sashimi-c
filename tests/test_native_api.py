@@ -187,6 +187,45 @@ def test_invalid_population_inputs_fail(override):
         small().population(**{**inputs(), **override})
 
 
+@pytest.mark.parametrize("accretion_model", [1, 2, 3])
+@pytest.mark.parametrize("host_epoch", [0.0, 0.7])
+@pytest.mark.parametrize("lower_fraction", [0.5, 0.6])
+def test_mass_range_without_host_support_fails_before_execution(
+    monkeypatch, accretion_model, host_epoch, lower_fraction
+):
+    mass_zero = _host_mass_at_zero(SubhaloProperties(), 1e10, host_epoch)
+
+    def cannot_execute(*args, **kwargs):
+        raise AssertionError("Unsupported mass range must fail before execution.")
+
+    monkeypatch.setattr(SubhaloProperties, "_calculate_population", cannot_execute)
+    with pytest.raises(ValueError, match="lower bound.*half.*host mass at z=0"):
+        small().configure(accretion={"model": accretion_model}).population(
+            **{
+                **inputs(),
+                "host_mass_redshift": host_epoch,
+                "accretion_mass_range_msun": (lower_fraction * mass_zero, 0.8 * mass_zero),
+            }
+        )
+
+
+@pytest.mark.parametrize("accretion_model", [1, 2, 3])
+def test_mass_grid_without_sampled_support_fails_before_normalization(accretion_model):
+    model = small().configure(accretion={"model": accretion_model, "host_history_nodes": 1})
+    # Below the global half-host ceiling, but above all sampled host masses at z=6.5,7.
+    with (
+        np.errstate(divide="raise", invalid="raise"),
+        pytest.raises(ValueError, match="Accretion grid.*positive finite normalization"),
+    ):
+        model.population(
+            **{
+                **inputs(),
+                "accretion_mass_range_msun": (4e9, 4.5e9),
+                "accretion_redshift_range": (6.0, 7.0),
+            }
+        )
+
+
 def test_host_reference_epoch_is_independent_of_target():
     at_epoch = small().population(
         **{
