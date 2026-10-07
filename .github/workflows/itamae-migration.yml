@@ -17,7 +17,7 @@ jobs:
     - uses: actions/checkout@v4
       with:
         ref: ${{ github.event.pull_request.head.sha || github.sha }}
-    - uses: gomeshun/sashimi-family/.github/actions/changed-paths@e915092597d074aaaf0489b74710b1e1e664667c
+    - uses: gomeshun/sashimi-family/.github/actions/changed-paths@42a964b21287f802ea323146144ee6784229bbf2
       id: changes
       with:
         paths: |
@@ -32,6 +32,7 @@ jobs:
           .github/workflows/itamae-migration.yml
           .github/actions/**
           tests/**
+          validation/**
           scripts/**
           README.md
           LICENSE*
@@ -194,7 +195,7 @@ permissions:
   actions: read
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.head.repo.full_name || github.repository }}-${{ github.event_name
-    == 'workflow_dispatch' && github.run_id || github.head_ref || github.ref_name }}
+    == 'workflow_dispatch' && github.run_id || github.ref }}
   cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' }}
 env:
   ITAMAE_REF: 23d01e8758a88b061b87de9e488c38ec89fd8e4f
