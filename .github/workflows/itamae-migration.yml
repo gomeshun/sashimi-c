@@ -17,7 +17,7 @@ jobs:
     - uses: actions/checkout@v4
       with:
         ref: ${{ github.event.pull_request.head.sha || github.sha }}
-    - uses: gomeshun/sashimi-family/.github/actions/changed-paths@f0e6d6fd1e626f2141b496a2adbe2c7280ae91ee
+    - uses: gomeshun/sashimi-family/.github/actions/changed-paths@e915092597d074aaaf0489b74710b1e1e664667c
       id: changes
       with:
         paths: |
