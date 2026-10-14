@@ -33,8 +33,8 @@ def test_unchanged_host_reuses_table_and_preserves_analytic_mass():
     table = host._get_picard_table(0.0)
     assert host._get_picard_table(0.0) is table
     np.testing.assert_allclose(table.mass(1e6, 0.5), 1e6 * np.exp(-0.25), rtol=3e-15)
-    assert table.n_z_acc == 96 and table.n_log_ratio == 128
-    assert table.n_integration == 128 and table.n_iterations == 3
+    assert table.n_z_acc == 48 and table.n_log_ratio == 32
+    assert table.n_integration == 129 and table.n_iterations == 3
 
 
 @pytest.mark.parametrize("change", ["mass", "rate", "array", "callable"])

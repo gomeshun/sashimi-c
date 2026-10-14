@@ -1,4 +1,4 @@
-"""SYNC-C regressions for the optional Picard tidal-stripping path."""
+"""SYNC-C regressions for the shared Picard tidal-stripping path."""
 
 import json
 from pathlib import Path
@@ -45,13 +45,13 @@ def test_historical_reference_remains_explicit_and_shanks_based() -> None:
     assert "legacy" in provenance["physics_modes"]
 
 
-def test_public_default_remains_historical_pert2_shanks() -> None:
-    """Mechanical Picard synchronization must not change the public solver default."""
+def test_public_default_uses_shared_picard() -> None:
+    """The public default delegates to the shared guarded Picard solver."""
     solver = TidalStrippingSolver(1.0e10, z_min=0.0, z_max=1.0, n_z_interp=32)
     masses = np.array([1.0e5, 1.0e6, 1.0e7])
 
     default = solver.subhalo_mass_stripped(masses, 1.0, 0.0)
-    explicit = solver.subhalo_mass_stripped(masses, 1.0, 0.0, method="pert2_shanks")
+    explicit = solver.subhalo_mass_stripped(masses, 1.0, 0.0, method="picard_table")
     np.testing.assert_array_equal(default, explicit)
 
 
@@ -60,7 +60,7 @@ def test_picard_table_is_explicit_cached_and_invalidated_with_host_mass() -> Non
     first = solver._get_picard_table(0.0)
     assert solver._get_picard_table(0.0) is first
     assert first.n_iterations == 3
-    assert first.n_log_ratio == 128
+    assert first.n_log_ratio == 32
     assert first.log10_ratio_min == -24.0
 
     solver.M0 = 2.0e10
@@ -92,16 +92,17 @@ def test_optional_picard_compares_at_full_catalog_level() -> None:
     metadata = picard.metadata
     assert "physics_mode" not in metadata
     assert metadata["stripping_method"] == "picard_table"
-    assert metadata["default_stripping_method"] == "pert2_shanks"
+    assert metadata["default_stripping_method"] == "picard_table"
     assert metadata["ct_threshold"] == 0.0
-    assert metadata["picard_table_settings"] == {
-        "n_iterations": 3,
-        "n_z_acc": 96,
-        "n_log_ratio": 128,
-        "log10_ratio_min": -24.0,
-        "log10_ratio_max": -0.5,
-        "n_integration": 128,
-    }
+    settings = metadata["picard_table_settings"]
+    assert settings["n_iterations"] == 3
+    assert settings["n_z_acc"] == 48 and settings["n_log_ratio"] == 32
+    assert settings["n_integration"] == 129
+    assert settings["interpolation"] == "cubic"
+    assert settings["convergence_tolerance"] == 8e-4
+    assert metadata["picard_diagnostics"]["backend"] == "itamae:picard-log-mass:v1"
+    assert metadata["picard_diagnostics"]["fallback_calls"] == 0
+
 
 
 def test_optional_picard_compares_at_observable_level() -> None:

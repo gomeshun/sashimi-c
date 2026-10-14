@@ -39,6 +39,7 @@ from ._physics import (
 CALCULATION_SPECIFICATION = "sashimi-c:cdm:2026-09-10:v1"
 _STRIPPING_METHODS = (
     "picard_table",
+    "dop853",
     "odeint",
     "pert0",
     "pert1",
@@ -46,7 +47,7 @@ _STRIPPING_METHODS = (
     "pert2_shanks",
     "pert3",
 )
-_DEFAULT_STRIPPING_METHOD = "pert2_shanks"
+_DEFAULT_STRIPPING_METHOD = "picard_table"
 _DEFAULT_CT_THRESHOLD = 0.0
 _SHANKS_SMALL_CORRECTION_THRESHOLD = 0.02
 
@@ -57,7 +58,7 @@ class StrippingDiagnostics:
 
     The diagnostic is intentionally separate from catalog generation. Running
     a direct ODE solve for every catalog node would change the established
-    performance characteristics of the default ``pert2_shanks`` calculation.
+    performance characteristics of the historical ``pert2_shanks`` calculation.
 
     Attributes
     ----------
@@ -336,7 +337,7 @@ class SubhaloProperties(CDMPhysics):
         ct_th=0.0,
         profile_change=True,
         M0_at_redshift=False,
-        method="pert2_shanks",
+        method="picard_table",
         **kwargs,
     ) -> WeightedSubhaloCatalog:
         """Generate an ITAMAE weighted catalog while preserving SASHIMI physics.
@@ -446,17 +447,13 @@ class SubhaloProperties(CDMPhysics):
             else 0.0
         )
         backend_identifier = f"array=numpy;cosmology={self.itamae_cosmology.identifier};units=canonical-Msun-Mpc-km-s"
+        picard_diagnostics = None
         picard_table_settings = None
         if method == "picard_table":
-            table = solver._get_picard_table(redshift)
-            picard_table_settings = {
-                "n_iterations": int(table.n_iterations),
-                "n_z_acc": int(table.n_z_acc),
-                "n_log_ratio": int(table.n_log_ratio),
-                "log10_ratio_min": float(table.log10_ratio_min),
-                "log10_ratio_max": float(table.log10_ratio_max),
-                "n_integration": int(table.n_integration),
-            }
+            from .picard_tidal_stripping import get_picard_solver
+            picard_diagnostics = get_picard_solver(solver).diagnostics()
+            if picard_diagnostics["tables"]:
+                picard_table_settings = picard_diagnostics["tables"][0]
         metadata = build_calculation_metadata(
             variant="sashimi-c",
             distribution_name="sashimi-c",
@@ -467,7 +464,7 @@ class SubhaloProperties(CDMPhysics):
             source_identifier="sashimi-c:standard-api:v1",
             variance_identifier="sashimi-c:analytic-cdm-fit:v1",
             power_identifier="sashimi-c:cdm-linear-power:v1",
-            solver_identifier=f"sashimi-c:tidal-stripping:{method}:v1",
+            solver_identifier=f"sashimi-c:tidal-stripping:{method}:itamae:v2",
             extra={
                 "cosmology_backend": self.itamae_cosmology.identifier,
                 "cosmology_parameters": {
@@ -500,6 +497,8 @@ class SubhaloProperties(CDMPhysics):
                 "stripping_method": method,
                 "default_stripping_method": _DEFAULT_STRIPPING_METHOD,
                 "picard_table_settings": picard_table_settings,
+                "picard_diagnostics": picard_diagnostics,
+                "solver_options": dict(kwargs),
                 "shanks_small_correction_threshold": _SHANKS_SMALL_CORRECTION_THRESHOLD,
                 "ct_threshold": float(ct_th),
                 "default_ct_threshold": _DEFAULT_CT_THRESHOLD,
@@ -632,7 +631,7 @@ class SubhaloObservables(SubhaloProperties, CDMObservableKernels):
         k_fs_Mpc=1.06e6,
         filter="Sharp-k",
         alpha=1.8,
-        method="pert2_shanks",
+        method="picard_table",
         cosmology_backend=None,
         data_dir=None,
         **kwargs,
@@ -671,7 +670,7 @@ class SubhaloObservables(SubhaloProperties, CDMObservableKernels):
         (Optional) profile_change: Whether we implement the evolution of subhalo density profile through tidal
                                    mass loss. (default: True)
         (Optional) M0_at_redshift: If True, M0 is regarded as the mass at a given redshift, instead of z=0.
-        (Optional) method:         Method to calculate the subhalo mass stripping. (default: "pert2_shanks")
+        (Optional) method:         Method to calculate the subhalo mass stripping. (default: "picard_table")
                                    - "odeint" : use odeint to solve the differential equation.
                                    - "pert0" : use perturbative method with zeroth-order correction.
                                    - "pert1" : use perturbative method with first-order correction.
@@ -790,7 +789,7 @@ def diagnose_stripping_approximation(
     -----
     This function does not select or modify the catalog stripping method. It is
     an explicit validation tool; catalog generation remains
-    ``method="pert2_shanks"`` by default.
+    ``method="picard_table"`` by default; this diagnostic explicitly compares Shanks and odeint.
     """
     masses = np.atleast_1d(np.asarray(mass_at_accretion, dtype=float))
     if masses.ndim > 1 or masses.size == 0:
@@ -831,7 +830,7 @@ def diagnose_stripping_approximation(
         masses,
         accretion_redshift_value,
         target_redshift_value,
-        method=_DEFAULT_STRIPPING_METHOD,
+        method="pert2_shanks",
     )
     ode_mass = solver.subhalo_mass_stripped(
         masses,

@@ -285,7 +285,7 @@ def test_catalog_metadata_records_mode_solver_weights_and_threshold(
     )
     assert metadata["variance_identifier"] == "sashimi-c:analytic-cdm-fit:v1"
     assert metadata["power_identifier"] == "sashimi-c:cdm-linear-power:v1"
-    assert metadata["solver_identifier"] == "sashimi-c:tidal-stripping:pert2_shanks:v1"
+    assert metadata["solver_identifier"] == "sashimi-c:tidal-stripping:picard_table:itamae:v2"
     assert metadata["cosmology_parameters"] == {
         "omega_m0": 0.315,
         "h": 0.674,
@@ -294,8 +294,8 @@ def test_catalog_metadata_records_mode_solver_weights_and_threshold(
     assert "physics_mode" not in metadata
     assert metadata["calculation_specification"] == sashimi_c.CALCULATION_SPECIFICATION
     assert metadata["model_identifier"] == sashimi_c.CALCULATION_SPECIFICATION
-    assert metadata["stripping_method"] == "pert2_shanks"
-    assert metadata["default_stripping_method"] == "pert2_shanks"
+    assert metadata["stripping_method"] == "picard_table"
+    assert metadata["default_stripping_method"] == "picard_table"
     assert metadata["shanks_small_correction_threshold"] == 0.02
     assert metadata["ct_threshold"] == 2.0
     assert metadata["default_ct_threshold"] == 0.0
@@ -373,7 +373,7 @@ def test_shanks_vs_ode_diagnostic_does_not_change_defaults() -> None:
         logmamax=7.0,
         N_hermNa=2,
     )
-    assert catalog.metadata["stripping_method"] == "pert2_shanks"
+    assert catalog.metadata["stripping_method"] == "picard_table"
     assert catalog.metadata["ct_threshold"] == 0.0
 
 

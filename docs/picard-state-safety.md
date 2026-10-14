@@ -3,7 +3,9 @@
 This narrow backport of [C PR #22](https://github.com/gomeshun/sashimi-c/pull/22)
 ([upstream 9f7559c](https://github.com/gomeshun/sashimi-c/commit/9f7559c0b192401620647f10e6383d2b4e7738cc))
 adds host/background identity checks to the migration branch's existing table.
-It does not adopt the upstream solver rewrite, interpolation, fallbacks or defaults.
+That initial backport did not change interpolation, fallbacks or defaults.
+The subsequent [shared Picard change](shared-picard.md) now adopts guarded
+Picard as the default while preserving these state-identity checks.
 
 An unchanged solver reuses its table. Changing tracked scalar settings, numeric
 arrays, instance callables, cosmology adapter identity/scalar state, or the

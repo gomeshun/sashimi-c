@@ -20,7 +20,11 @@ from scipy.integrate import cumulative_trapezoid
 
 from ._boost import interpolate_boost_tables, validate_order
 from ._data import data_directory
-from .picard_tidal_stripping import PicardTidalStrippingTable, physics_key
+from .picard_tidal_stripping import (
+    PicardTidalStrippingTable,
+    get_picard_solver,
+    physics_key,
+)
 
 _CALIBRATED_OMEGA_M = 0.315
 _CALIBRATED_H = 0.674
@@ -435,9 +439,9 @@ class CDMTidalKernels(CDMPhysics):
             self._picard_tables[key] = table
         return table
 
-    def subhalo_mass_stripped_picard_table(self, ma, za, z):
+    def subhalo_mass_stripped_picard_table(self, ma, za, z, **kwargs):
         """Calculate tidal mass loss with the precomputed Picard table."""
-        return self._get_picard_table(z).mass(ma, za)
+        return get_picard_solver(self).endpoint(ma, za, z, **kwargs)
 
     def msolve(self, m, z):
         return (
@@ -659,7 +663,7 @@ class CDMTidalKernels(CDMPhysics):
         )
         return ma * np.exp(eps)
 
-    def subhalo_mass_stripped(self, ma, za, z, method="pert2_shanks", **kwargs):
+    def subhalo_mass_stripped(self, ma, za, z, method="picard_table", **kwargs):
         """A wrapper function to calculate subhalo mass stripping.
 
         Parameters
@@ -691,7 +695,9 @@ class CDMTidalKernels(CDMPhysics):
         """
         match method:
             case "picard_table":
-                return self.subhalo_mass_stripped_picard_table(ma, za, z)
+                return self.subhalo_mass_stripped_picard_table(ma, za, z, **kwargs)
+            case "dop853":
+                return get_picard_solver(self).direct(ma, za, z, **kwargs)
             case "odeint":
                 return self.subhalo_mass_stripped_odeint(ma, za, z, **kwargs)
             case "pert0":

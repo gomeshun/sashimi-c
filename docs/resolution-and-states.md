@@ -1,5 +1,9 @@
 # Resolution and state validation — 2026-09-11
 
+These saved results used the previous `pert2_shanks` default. The current
+[shared Picard default](shared-picard.md) is validated separately; the solver
+shifts below must not be read as errors of the new default.
+
 One variable is refined at a time: M0=1e12 Msun, observation z=0, zmax=3,
 log accretion M200/Msun=6–10, baseline N_ma=16, dz=.25, concentration Hermite
 order 3, host Hermite order 8, ct_th=.77 and pert2_shanks. These reduced settings
