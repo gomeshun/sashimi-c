@@ -32,12 +32,47 @@ PARAMETERS = {
 
 
 def max_relative(left, right):
+    """Measure the largest pointwise fractional difference against a nonzero reference.
+
+    Parameters
+    ----------
+    left : array_like
+        Candidate mass outputs.
+    right : array_like
+        Positive reference masses with matching shape.
+
+    Returns
+    -------
+    float
+        max(abs(left/right-1)); the caller must use positive reference masses.
+
+    Notes
+    -----
+    Comparisons use identical model inputs for the named numerical solvers. Timing and
+    sampled mass differences are numerical diagnostics; they do not establish global
+    convergence or empirical accuracy of the tidal-loss prescription.
+    """
     left = np.asarray(left, dtype=float)
     right = np.asarray(right, dtype=float)
     return float(np.max(np.abs(left / right - 1.0)))
 
 
 def build_report():
+    """Compare explicit Shanks and Picard catalogue observables on one fixed small grid.
+
+    Returns
+    -------
+    dict
+        Numerical differences and current product metadata, with historical source labels
+        kept separate.
+
+    Notes
+    -----
+    The embedded historical reference revisions are labels and are not executed by this
+    function. Its legacy picard_source.default_adopted field describes the earlier
+    comparison template and does not state the current product default; the calls here
+    explicitly choose both methods.
+    """
     public = subhalo_properties().subhalo_properties_calc(
         **PARAMETERS, method="pert2_shanks"
     )
@@ -115,6 +150,14 @@ def build_report():
 
 
 def main():
+    """Write the explicitly selected solver comparison as JSON to stdout or the requested file.
+
+    Notes
+    -----
+    Comparisons use identical model inputs for the named numerical solvers. Timing and
+    sampled mass differences are numerical diagnostics; they do not establish global
+    convergence or empirical accuracy of the tidal-loss prescription.
+    """
     parser = argparse.ArgumentParser()
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()

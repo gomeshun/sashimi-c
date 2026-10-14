@@ -27,6 +27,12 @@ def make_variance_model(model: Any | None = None) -> CallableVarianceModel:
     -------
     itamae.variance.CallableVarianceModel
         Variance model returning ``sigmaMz`` and ``dsdm`` from SASHIMI-C.
+
+    Notes
+    -----
+    The wrapper returns the model-owned sigma(M,z) and dS/dM with S=sigma**2 in the same
+    mass/growth convention. It does not replace the CDM fit or independently validate its
+    small-mass extrapolation.
     """
 
     model = model or ItamaeHaloModel()

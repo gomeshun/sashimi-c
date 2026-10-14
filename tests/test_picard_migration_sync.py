@@ -33,7 +33,19 @@ SMALL_CATALOG = {
 
 
 def test_historical_reference_remains_explicit_and_shanks_based() -> None:
-    """SYNC-C must not silently regenerate the historical migration fixture."""
+    """Prevent the Picard migration from silently replacing the old solver reference.
+
+    Notes
+    -----
+    Pass criteria: The frozen source SHA, Shanks method, threshold and historical mode
+    remain unchanged.
+
+    Failure criteria: any mismatch with the stated value, shape or identity requirements
+    fails the test.
+
+    Scope: This controlled calculation does not calibrate a subhalo population against
+    simulations or observations.
+    """
     provenance = GOLDEN["provenance"]
     parameters = GOLDEN["parameters"]
 
@@ -46,7 +58,18 @@ def test_historical_reference_remains_explicit_and_shanks_based() -> None:
 
 
 def test_public_default_uses_shared_picard() -> None:
-    """The public default delegates to the shared guarded Picard solver."""
+    """Select Picard when callers omit the CDM stripping method.
+
+    Notes
+    -----
+    Pass criteria: Default and explicit picard_table mass arrays are exactly equal.
+
+    Failure criteria: any mismatch with the stated value, shape or identity requirements
+    fails the test.
+
+    Scope: This controlled calculation does not calibrate a subhalo population against
+    simulations or observations.
+    """
     solver = TidalStrippingSolver(1.0e10, z_min=0.0, z_max=1.0, n_z_interp=32)
     masses = np.array([1.0e5, 1.0e6, 1.0e7])
 
@@ -56,6 +79,19 @@ def test_public_default_uses_shared_picard() -> None:
 
 
 def test_picard_table_is_explicit_cached_and_invalidated_with_host_mass() -> None:
+    """Avoid reusing a CDM stripping table after host mass changes.
+
+    Notes
+    -----
+    Pass criteria: Unchanged queries reuse a table with documented default settings;
+    doubling M0 yields a different table.
+
+    Failure criteria: any mismatch with the stated value, shape or identity requirements
+    fails the test.
+
+    Scope: This controlled calculation does not calibrate a subhalo population against
+    simulations or observations.
+    """
     solver = TidalStrippingSolver(1.0e10, z_min=0.0, z_max=1.0, n_z_interp=32)
     first = solver._get_picard_table(0.0)
     assert solver._get_picard_table(0.0) is first
@@ -69,7 +105,20 @@ def test_picard_table_is_explicit_cached_and_invalidated_with_host_mass() -> Non
 
 
 def test_optional_picard_compares_at_full_catalog_level() -> None:
-    """Picard uses identical accretion population and a bounded evolved-mass shift."""
+    """Isolate the stripping-solver change from the accretion population.
+
+    Notes
+    -----
+    Pass criteria: Picard and Shanks keep initial states and base/concentration weights
+    within 5e-11; evolved masses are finite, positive and within 25 percent; metadata expose
+    actual Picard settings.
+
+    Failure criteria: any mismatch with the stated value, shape or identity requirements
+    fails the test.
+
+    Scope: This controlled calculation does not calibrate a subhalo population against
+    simulations or observations.
+    """
     shanks_model = ItamaeSubhaloProperties()
     picard_model = ItamaeSubhaloProperties()
     shanks = shanks_model.subhalo_catalog_calc(**SMALL_CATALOG, method="pert2_shanks")
@@ -104,9 +153,20 @@ def test_optional_picard_compares_at_full_catalog_level() -> None:
     assert metadata["picard_diagnostics"]["fallback_calls"] == 0
 
 
-
 def test_optional_picard_compares_at_observable_level() -> None:
-    """Record a bounded solver-only effect on evolved public observables."""
+    """Measure the solver-only effect on the total bound-mass fraction.
+
+    Notes
+    -----
+    Pass criteria: Unevolved mass fractions agree to 5e-11 and evolved fractions remain
+    finite and within 25 percent between Picard and Shanks.
+
+    Failure criteria: any mismatch with the stated value, shape or identity requirements
+    fails the test.
+
+    Scope: This controlled calculation does not calibrate a subhalo population against
+    simulations or observations.
+    """
     observable_parameters = {
         ("M0_per_Msun" if key == "M0" else key): value
         for key, value in SMALL_CATALOG.items()

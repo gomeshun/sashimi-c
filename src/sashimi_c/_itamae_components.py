@@ -20,7 +20,33 @@ from itamae.types import AccretionBatch
 
 @dataclass(frozen=True, slots=True)
 class CDMAccretionSlices:
-    """Prepare C-owned virial conversion and concentration quadrature slices."""
+    """Prepare C-owned virial conversion and concentration quadrature slices.
+
+    Parameters
+    ----------
+    model : object
+        Variant halo/population object supplying its own background, units, structure and
+        accretion prescriptions.
+    ma200_grid : numpy.ndarray
+        One-dimensional accretion M200 grid in the variant internal mass unit.
+    zdist : numpy.ndarray
+        One-dimensional dimensionless accretion-redshift grid, paired with the population
+        grid first axis.
+    population_2d : numpy.ndarray
+        Expected accretion abundance per redshift/mass node, shape (n_redshift,n_mass),
+        before concentration scatter.
+    sigmalogc : float
+        Nonnegative standard deviation of log10 concentration, in dex.
+    N_herm : int
+        Positive Gauss-Hermite quadrature order for the scatter integrated by this routine:
+        concentration in catalogue stages or host history in Na_calc.
+
+    Notes
+    -----
+    Each accretion slice is flattened in concentration-major, then mass order. Stages retain
+    C internal Msun/Mpc/second units and explicit independent weights; the model owns virial
+    conversion, NFW structure, tidal response and disruption.
+    """
 
     model: Any
     ma200_grid: np.ndarray
@@ -30,6 +56,26 @@ class CDMAccretionSlices:
     N_herm: int
 
     def build(self, index: int):
+        """Construct one EPS accretion slice with concentration quadrature and explicit virial
+        conversion.
+
+        Parameters
+        ----------
+        index : int
+            Index of the selected accretion-redshift slice in zdist and population_2d.
+
+        Returns
+        -------
+        tuple
+            Flattened AccretionBatch and context holding the unflattened virial mass/radius
+            arrays at this redshift.
+
+        Notes
+        -----
+        Each accretion slice is flattened in concentration-major, then mass order. Stages retain
+        C internal Msun/Mpc/second units and explicit independent weights; the model owns virial
+        conversion, NFW structure, tidal response and disruption.
+        """
         z_acc_value = self.zdist[index]
         ma = self.model.Mvir_from_M200_fit(self.ma200_grid, z_acc_value)
         Oz = self.model.OmegaM * (1.0 + z_acc_value) ** 3 / self.model.g(z_acc_value)
@@ -78,12 +124,50 @@ class CDMAccretionSlices:
 
 @dataclass(frozen=True, slots=True)
 class NFWInitialStructure:
-    """Create the unstripped NFW structure at each accretion node."""
+    """Create the unstripped NFW structure at each accretion node.
+
+    Parameters
+    ----------
+    model : object
+        Variant halo/population object supplying its own background, units, structure and
+        accretion prescriptions.
+    N_herm : int
+        Positive Gauss-Hermite quadrature order for the scatter integrated by this routine:
+        concentration in catalogue stages or host history in Na_calc.
+
+    Notes
+    -----
+    Each accretion slice is flattened in concentration-major, then mass order. Stages retain
+    C internal Msun/Mpc/second units and explicit independent weights; the model owns virial
+    conversion, NFW structure, tidal response and disruption.
+    """
 
     model: Any
     N_herm: int
 
     def initialize(self, batch, context):
+        """Normalize the accreted NFW profile to the virial mass for every concentration node.
+
+        Parameters
+        ----------
+        batch : AccretionBatch
+            Aligned accretion nodes with separate population, concentration and optional
+            host/orbit factors.
+        context : object
+            Variant-owned state for this batch, for example host history, epoch or numerical
+            settings; it is not interpreted by the generic executor.
+
+        Returns
+        -------
+        dict
+            Flattened r_s_acc and rho_s_acc arrays in Mpc and Msun/Mpc^3.
+
+        Notes
+        -----
+        Each accretion slice is flattened in concentration-major, then mass order. Stages retain
+        C internal Msun/Mpc/second units and explicit independent weights; the model owns virial
+        conversion, NFW structure, tidal response and disruption.
+        """
         c_sub = batch.concentration_acc.reshape(self.N_herm, -1)
         rs_acc = context["rvir_acc"] / c_sub
         rhos_acc = context["mvir_acc"] / (
@@ -97,7 +181,37 @@ class NFWInitialStructure:
 
 @dataclass(frozen=True, slots=True)
 class TidalProfileEvolution:
-    """Apply the supplied C mass-loss solver and C profile-response formulae."""
+    """Apply the supplied C mass-loss solver and C profile-response formulae.
+
+    Parameters
+    ----------
+    model : object
+        Variant halo/population object supplying its own background, units, structure and
+        accretion prescriptions.
+    solver : TidalStrippingSolver or object
+        C-owned tidal coefficient provider exposing Phi(z), zetaMz(z), Mzvir(z) and its
+        mutable physical state.
+    redshift : float
+        Nonnegative target redshift of the subhalo population.
+    method : str
+        Explicit tidal integration method: picard_table, dop853, odeint or a retained
+        perturbative approximation.
+    N_herm : int
+        Positive Gauss-Hermite quadrature order for the scatter integrated by this routine:
+        concentration in catalogue stages or host history in Na_calc.
+    profile_change : bool
+        Apply the variant tidal response of scale radius and density in addition to
+        bound-mass loss.
+    kwargs : dict
+        Additional keyword options forwarded to the called routine; reserved scientific
+        controls remain owned by that routine.
+
+    Notes
+    -----
+    Each accretion slice is flattened in concentration-major, then mass order. Stages retain
+    C internal Msun/Mpc/second units and explicit independent weights; the model owns virial
+    conversion, NFW structure, tidal response and disruption.
+    """
 
     model: Any
     solver: Any
@@ -108,6 +222,32 @@ class TidalProfileEvolution:
     kwargs: dict[str, Any]
 
     def evolve(self, batch, initial, context):
+        """Strip the accreted mass and apply the C NFW structural response when selected.
+
+        Parameters
+        ----------
+        batch : AccretionBatch
+            Aligned accretion nodes with separate population, concentration and optional
+            host/orbit factors.
+        initial : Mapping or array_like
+            Per-node physical state for the indicated evolution stage; its fields and units are
+            owned by the supplied physical model.
+        context : object
+            Variant-owned state for this batch, for example host history, epoch or numerical
+            settings; it is not interpreted by the generic executor.
+
+        Returns
+        -------
+        dict
+            Flattened bound mass, scale radius/density and tidal concentration; the NFW inverse
+            enforces the enclosed bound mass.
+
+        Notes
+        -----
+        Each accretion slice is flattened in concentration-major, then mass order. Stages retain
+        C internal Msun/Mpc/second units and explicit independent weights; the model owns virial
+        conversion, NFW structure, tidal response and disruption.
+        """
         n_mass = context["mvir_acc"].size
         m0 = self.solver.subhalo_mass_stripped(
             context["mvir_acc"],
@@ -144,9 +284,47 @@ class TidalProfileEvolution:
 
 @dataclass(frozen=True, slots=True)
 class CDMCatalogColumns:
-    """Name accreted/evolved columns without modifying units or node order."""
+    """Name accreted/evolved columns without modifying units or node order.
+
+    Notes
+    -----
+    Each accretion slice is flattened in concentration-major, then mass order. Stages retain
+    C internal Msun/Mpc/second units and explicit independent weights; the model owns virial
+    conversion, NFW structure, tidal response and disruption.
+    """
 
     def build(self, batch, initial, evolved, survival_masks, context):
+        """Name aligned accretion and evolved fields without multiplying their statistical weights.
+
+        Parameters
+        ----------
+        batch : AccretionBatch
+            Aligned accretion nodes with separate population, concentration and optional
+            host/orbit factors.
+        initial : Mapping or array_like
+            Per-node physical state for the indicated evolution stage; its fields and units are
+            owned by the supplied physical model.
+        evolved : bool
+            Use present bound masses/profiles when true or accretion masses/profiles when false,
+            under the observable population selection.
+        survival_masks : Mapping[str, numpy.ndarray]
+            Named boolean survival decisions aligned with the physical state; kept separate from
+            population and concentration weights.
+        context : object
+            Variant-owned state for this batch, for example host history, epoch or numerical
+            settings; it is not interpreted by the generic executor.
+
+        Returns
+        -------
+        dict
+            Physical columns and the default survival mask in original node order.
+
+        Notes
+        -----
+        Each accretion slice is flattened in concentration-major, then mass order. Stages retain
+        C internal Msun/Mpc/second units and explicit independent weights; the model owns virial
+        conversion, NFW structure, tidal response and disruption.
+        """
         return {
             "m200_acc": batch.m200_acc,
             "z_acc": batch.z_acc,
@@ -168,6 +346,18 @@ class TruncationThresholdSurvival:
     catalog rule. Keeping it in the variant package makes the scientific
     disruption prescription explicit while ITAMAE remains responsible only
     for transporting and validating the resulting survival mask.
+
+    Parameters
+    ----------
+    ct_threshold : float
+        Dimensionless tidal truncation threshold r_t/r_s; the specified strict survival rule
+        is applied once through its mask.
+
+    Notes
+    -----
+    Each accretion slice is flattened in concentration-major, then mass order. Stages retain
+    C internal Msun/Mpc/second units and explicit independent weights; the model owns virial
+    conversion, NFW structure, tidal response and disruption.
     """
 
     ct_threshold: float
@@ -179,7 +369,34 @@ class TruncationThresholdSurvival:
         evolved: PopulationState,
         context: Any,
     ) -> np.ndarray:
-        """Return the historical boolean survival mask for one batch."""
+        """Return the historical boolean survival mask for one batch.
+
+        Parameters
+        ----------
+        batch : AccretionBatch
+            Aligned accretion nodes with separate population, concentration and optional
+            host/orbit factors.
+        initial : Mapping or array_like
+            Per-node physical state for the indicated evolution stage; its fields and units are
+            owned by the supplied physical model.
+        evolved : bool
+            Use present bound masses/profiles when true or accretion masses/profiles when false,
+            under the observable population selection.
+        context : object
+            Variant-owned state for this batch, for example host history, epoch or numerical
+            settings; it is not interpreted by the generic executor.
+
+        Returns
+        -------
+        numpy.ndarray of bool
+            True exactly when evolved c_t exceeds ct_threshold.
+
+        Notes
+        -----
+        Each accretion slice is flattened in concentration-major, then mass order. Stages retain
+        C internal Msun/Mpc/second units and explicit independent weights; the model owns virial
+        conversion, NFW structure, tidal response and disruption.
+        """
         del batch, initial, context
         return evolved["c_t"] > self.ct_threshold
 

@@ -4,7 +4,14 @@ from ._boost import generate_boost_tables, generation_cli
 
 
 def main():
-    """Read the requested grid and compute the existing observable formulas."""
+    """Generate the explicitly configured prompt-cusp annihilation hierarchy tables.
+
+    Notes
+    -----
+    This entry point generates recursive annihilation tables from an explicit JSON
+    grid/configuration and records their physical assumptions, source identity and file
+    hashes. Existing result directories are not overwritten.
+    """
     generation_cli(prompt_cusps=True)
 
 

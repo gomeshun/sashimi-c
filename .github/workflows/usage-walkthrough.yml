@@ -41,7 +41,7 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         export SASHIMI_C_SOURCE_REVISION="$(git rev-parse HEAD)"
-        python -m pip install 'sashimi-itamae @ git+https://github.com/gomeshun/itamae.git@40aa3bd225e0de614650e04c21d92f49b1999436'
+        python -m pip install 'sashimi-itamae @ git+https://github.com/gomeshun/itamae.git@c452c5bbbbf8276870a8ff1f61f77d8bff0d8d7c'
         python -m pip install '.[demo]' nbformat nbclient
       if: steps.changes.outputs.changed == 'true'
     - name: Execute all cells in a fresh kernel

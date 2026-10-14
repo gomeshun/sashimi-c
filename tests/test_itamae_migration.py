@@ -33,7 +33,19 @@ GOLDEN = json.loads(
 
 
 def test_golden_fixture_provenance_is_complete() -> None:
-    """The full C golden identifies its source and comparison policy."""
+    """Keep the historical CDM reference tied to its source, cosmology and comparison policy.
+
+    Notes
+    -----
+    Pass criteria: The reference records source revisions, physical modes, constructor
+    parameters and its original 5e-10 relative comparison tolerance.
+
+    Failure criteria: any mismatch with the stated value, shape or identity requirements
+    fails the test.
+
+    Scope: This controlled calculation does not calibrate a subhalo population against
+    simulations or observations.
+    """
     provenance = GOLDEN["provenance"]
     assert provenance["fixture_schema"] == "sashimi-family:golden-provenance:v1"
     assert provenance["fixture_category"] == "full_small_catalog_golden"
@@ -55,7 +67,19 @@ def test_golden_fixture_provenance_is_complete() -> None:
 
 
 def test_itamae_concentration_quadrature_is_normalized() -> None:
-    """ITAMAE concentration nodes should reproduce log-normal moments."""
+    """Preserve the abundance and log-concentration mean when averaging concentration scatter.
+
+    Notes
+    -----
+    Pass criteria: Five-node quadrature sums to one and recovers log10 of medians 5,10,20 to
+    about 1e-15 absolute accuracy.
+
+    Failure criteria: any mismatch with the stated value, shape or identity requirements
+    fails the test.
+
+    Scope: This controlled calculation does not calibrate a subhalo population against
+    simulations or observations.
+    """
 
     median = np.array([5.0, 10.0, 20.0])
     nodes, weights = gauss_hermite_lognormal(median, 0.128, order=5)
@@ -70,7 +94,19 @@ def test_itamae_concentration_quadrature_is_normalized() -> None:
 
 
 def test_catalog_satisfies_mass_profile_and_weight_invariants() -> None:
-    """Migrated catalogs must preserve basic physical consistency."""
+    """Produce a physical CDM catalogue whose mass agrees with its truncated NFW profile.
+
+    Notes
+    -----
+    Pass criteria: All fields and nonnegative weights are finite; bound mass does not exceed
+    accretion mass; NFW reconstruction agrees at rtol=3e-13.
+
+    Failure criteria: any mismatch with the stated value, shape or identity requirements
+    fails the test.
+
+    Scope: This controlled calculation does not calibrate a subhalo population against
+    simulations or observations.
+    """
 
     migrated = ItamaeSubhaloProperties()
     catalog = migrated.subhalo_catalog_calc(
@@ -112,7 +148,19 @@ def test_catalog_satisfies_mass_profile_and_weight_invariants() -> None:
 
 
 def test_migration_rejects_mixed_cosmology() -> None:
-    """A partial migration must not combine incompatible cosmologies."""
+    """Prevent combining the fixed CDM variance fit with an incompatible background.
+
+    Notes
+    -----
+    Pass criteria: Backends with Omega_m0=0.30 or h=0.70 are rejected against the supported
+    0.315/0.674 model.
+
+    Failure criteria: a stated numerical/identity mismatch, a missing required exception or
+    warning, or an unexpected calculation failure fails the test.
+
+    Scope: This controlled calculation does not calibrate a subhalo population against
+    simulations or observations.
+    """
 
     with pytest.raises(ValueError, match=r"requires OmegaM=0\.315"):
         ItamaeHaloModel(cosmology_backend=NativeFlatLCDM(omega_m0=0.30, h=0.674))
@@ -136,7 +184,28 @@ def test_migration_rejects_mixed_cosmology() -> None:
     ],
 )
 def test_catalog_rejects_unphysical_inputs(overrides, message) -> None:
-    """Invalid physical domains should fail before numerical propagation."""
+    """Reject unsupported physical domains and integration grids before building a CDM
+    population.
+
+    Parameters
+    ----------
+    overrides : dict
+        Changes to the otherwise valid physical catalogue configuration.
+    message : object
+        Controlled input supplied by the parametrization or fixture for the specific
+        physical/reference case described below.
+
+    Notes
+    -----
+    Pass criteria: Invalid mass, epoch, step, support, scatter, quadrature, EPS
+    prescription, disruption threshold or solver selection raises the expected error.
+
+    Failure criteria: a stated numerical/identity mismatch, a missing required exception or
+    warning, or an unexpected calculation failure fails the test.
+
+    Scope: This controlled calculation does not calibrate a subhalo population against
+    simulations or observations.
+    """
 
     parameters = {
         "M0": 1.0e10,
@@ -155,7 +224,24 @@ def test_catalog_rejects_unphysical_inputs(overrides, message) -> None:
 
 
 def _catalog_summary(catalog):
-    """Return the frozen catalog diagnostics stored in the golden fixture."""
+    """Return the frozen catalog diagnostics stored in the golden fixture.
+
+    Parameters
+    ----------
+    catalog : WeightedSubhaloCatalog
+        Controlled CDM population under the saved reference settings.
+
+    Returns
+    -------
+    dict
+        Node counts, factorized weight sums, weighted masses and tidal-concentration extrema
+        for the recorded small fixture.
+
+    Notes
+    -----
+    This fixture/helper supports the controlled checks in this test module; its synthetic
+    values are not a calibrated halo model.
+    """
     legacy_weight = (
         catalog.weights["weight_base"] * catalog.weights["weight_concentration"]
     )
@@ -173,7 +259,25 @@ def _catalog_summary(catalog):
 
 
 def _observable_summary(observable):
-    """Return frozen public-observable diagnostics."""
+    """Return frozen public-observable diagnostics.
+
+    Parameters
+    ----------
+    observable : SubhaloObservables
+        Controlled CDM object whose public reductions are compared with the preserved
+        fixture.
+
+    Returns
+    -------
+    dict
+        Mass fractions, boost factors and selected mass/velocity-count summaries under fixed
+        reference settings.
+
+    Notes
+    -----
+    This fixture/helper supports the controlled checks in this test module; its synthetic
+    values are not a calibrated halo model.
+    """
     mass_function_evolved = observable.mass_function(evolved=True)
     mass_function_unevolved = observable.mass_function(evolved=False)
     nsat_mpeak = observable.Nsat_Mpeak(1.0e8 * observable.Msun)
@@ -217,7 +321,20 @@ def _observable_summary(observable):
 
 
 def test_full_catalog_and_observables_match_preserved_consistent_golden() -> None:
-    """Exercise all catalog nodes and public CDM observables against goldens."""
+    """Reproduce the historical Shanks calculation for catalogue summaries and public
+    observables.
+
+    Notes
+    -----
+    Pass criteria: Node/survivor counts match exactly and saved mass, boost and count
+    summaries agree with the frozen consistent reference to rtol=5e-10.
+
+    Failure criteria: any mismatch with the stated value, shape or identity requirements
+    fails the test.
+
+    Scope: This controlled calculation does not calibrate a subhalo population against
+    simulations or observations.
+    """
     parameters = dict(GOLDEN["parameters"])
     model = ItamaeSubhaloProperties()
     catalog = model.subhalo_catalog_calc(**parameters)
@@ -250,7 +367,24 @@ def test_full_catalog_and_observables_match_preserved_consistent_golden() -> Non
 def test_catalog_metadata_records_mode_solver_weights_and_threshold(
     tmp_path: Path,
 ) -> None:
-    """Reproducibility metadata must expose every migration choice."""
+    """Save the physical and numerical choices needed to reproduce the CDM population.
+
+    Parameters
+    ----------
+    tmp_path : pathlib.Path
+        Isolated directory for the test catalogue, cache or provenance files.
+
+    Notes
+    -----
+    Pass criteria: Metadata record source, cosmology, units, solver, threshold and weight
+    rules; saved catalogue metadata and arrays round-trip unchanged.
+
+    Failure criteria: any mismatch with the stated value, shape or identity requirements
+    fails the test.
+
+    Scope: This controlled calculation does not calibrate a subhalo population against
+    simulations or observations.
+    """
     parameters = {
         "M0": 1.0e10,
         "redshift": 0.0,
@@ -285,7 +419,10 @@ def test_catalog_metadata_records_mode_solver_weights_and_threshold(
     )
     assert metadata["variance_identifier"] == "sashimi-c:analytic-cdm-fit:v1"
     assert metadata["power_identifier"] == "sashimi-c:cdm-linear-power:v1"
-    assert metadata["solver_identifier"] == "sashimi-c:tidal-stripping:picard_table:itamae:v2"
+    assert (
+        metadata["solver_identifier"]
+        == "sashimi-c:tidal-stripping:picard_table:itamae:v2"
+    )
     assert metadata["cosmology_parameters"] == {
         "omega_m0": 0.315,
         "h": 0.674,
@@ -338,7 +475,20 @@ def test_catalog_metadata_records_mode_solver_weights_and_threshold(
 
 
 def test_shanks_vs_ode_diagnostic_does_not_change_defaults() -> None:
-    """Expose the known approximation difference without selecting a new solver."""
+    """Compare historical stripping approximations without changing later production
+    calculations.
+
+    Notes
+    -----
+    Pass criteria: The diagnostic supplies finite Shanks-versus-ODE differences, and a
+    subsequent default catalogue still records Picard with the declared threshold.
+
+    Failure criteria: any mismatch with the stated value, shape or identity requirements
+    fails the test.
+
+    Scope: This controlled calculation does not calibrate a subhalo population against
+    simulations or observations.
+    """
     masses = np.logspace(6.0, 10.0, 9)
     diagnostic = diagnose_stripping_approximation(
         host_mass=1.0e12,
@@ -378,7 +528,19 @@ def test_shanks_vs_ode_diagnostic_does_not_change_defaults() -> None:
 
 
 def test_migration_imports_do_not_monkeypatch_legacy_globals() -> None:
-    """Compatibility modules are side-effect-free aliases."""
+    """Keep compatibility imports bound to the canonical CDM classes.
+
+    Notes
+    -----
+    Pass criteria: All tested migration and standard names are identical class objects after
+    imports.
+
+    Failure criteria: any mismatch with the stated value, shape or identity requirements
+    fails the test.
+
+    Scope: This controlled calculation does not calibrate a subhalo population against
+    simulations or observations.
+    """
     assert sashimi_c.TidalStrippingSolver is TidalStrippingSolver
     assert sashimi_c.subhalo_properties is subhalo_properties
     assert sashimi_c.subhalo_observables is subhalo_observables

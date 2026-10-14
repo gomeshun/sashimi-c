@@ -64,4 +64,4 @@ testpaths = ["tests"]
 addopts = "-ra --strict-markers --strict-config"
 
 [tool.uv.sources]
-sashimi-itamae = {git = "https://github.com/gomeshun/itamae.git", rev = "40aa3bd225e0de614650e04c21d92f49b1999436"}
+sashimi-itamae = {git = "https://github.com/gomeshun/itamae.git", rev = "c452c5bbbbf8276870a8ff1f61f77d8bff0d8d7c"}
