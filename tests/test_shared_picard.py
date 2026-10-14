@@ -3,6 +3,7 @@
 import numpy as np
 import pytest
 from itamae.evolution import PicardFallbackWarning, PicardMassLossSolver
+
 from sashimi_c import SubhaloProperties, TidalStrippingSolver
 from sashimi_c.picard_tidal_stripping import get_picard_solver
 
