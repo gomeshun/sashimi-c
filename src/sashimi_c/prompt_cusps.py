@@ -51,7 +51,7 @@ def build_ps_interpolators(cosmo, k_fs, filter='Sharp-k', alpha=1.8,
 
     Notes
     -----
-    The prompt-cusp prescription is Ando et al., Sections 2.1-2.3. Its sharp-k mapping
+    The prompt-cusp prescription is Ando et al., Sections 2.1-2.3 and 3.1. Its sharp-k mapping
     alpha=1.8 is a large-mass top-hat matching choice, explicitly not a direct microhalo-
     simulation calibration.
 
@@ -60,7 +60,7 @@ def build_ps_interpolators(cosmo, k_fs, filter='Sharp-k', alpha=1.8,
     References
     ----------
 
-    .. [cite-prompt] Ando, Moro-Gonzalez & Li (2026), Prompt cusps in hierarchical dark matter halos: Implications for annihilation boost, Sections 2.1-2.3.
+    .. [cite-prompt] Ando, Moro-Gonzalez & Li (2026), Prompt cusps in hierarchical dark matter halos: Implications for annihilation boost, Sections 2.1-2.3 and 3.1.
         https://arxiv.org/abs/2601.19863
     """
     source = require_input(datafile if datafile is not None else data_directory(cosmo.data_dir)/"Planck2018_CAMB_extrap.dat")
@@ -84,7 +84,7 @@ def build_ps_interpolators(cosmo, k_fs, filter='Sharp-k', alpha=1.8,
 
         Notes
         -----
-        The prompt-cusp prescription is Ando et al., Sections 2.1-2.3. Its sharp-k mapping
+        The prompt-cusp prescription is Ando et al., Sections 2.1-2.3 and 3.1. Its sharp-k mapping
         alpha=1.8 is a large-mass top-hat matching choice, explicitly not a direct microhalo-
         simulation calibration.
 
@@ -93,7 +93,7 @@ def build_ps_interpolators(cosmo, k_fs, filter='Sharp-k', alpha=1.8,
         References
         ----------
 
-        .. [cite-prompt] Ando, Moro-Gonzalez & Li (2026), Prompt cusps in hierarchical dark matter halos: Implications for annihilation boost, Sections 2.1-2.3.
+        .. [cite-prompt] Ando, Moro-Gonzalez & Li (2026), Prompt cusps in hierarchical dark matter halos: Implications for annihilation boost, Sections 2.1-2.3 and 3.1.
             https://arxiv.org/abs/2601.19863
         """
         R = np.cbrt(3. * M / (4. * np.pi * cosmo.OmegaM * cosmo.rhocrit0))
@@ -127,7 +127,7 @@ def build_ps_interpolators(cosmo, k_fs, filter='Sharp-k', alpha=1.8,
 
         Notes
         -----
-        The prompt-cusp prescription is Ando et al., Sections 2.1-2.3. Its sharp-k mapping
+        The prompt-cusp prescription is Ando et al., Sections 2.1-2.3 and 3.1. Its sharp-k mapping
         alpha=1.8 is a large-mass top-hat matching choice, explicitly not a direct microhalo-
         simulation calibration.
 
@@ -136,7 +136,7 @@ def build_ps_interpolators(cosmo, k_fs, filter='Sharp-k', alpha=1.8,
         References
         ----------
 
-        .. [cite-prompt] Ando, Moro-Gonzalez & Li (2026), Prompt cusps in hierarchical dark matter halos: Implications for annihilation boost, Sections 2.1-2.3.
+        .. [cite-prompt] Ando, Moro-Gonzalez & Li (2026), Prompt cusps in hierarchical dark matter halos: Implications for annihilation boost, Sections 2.1-2.3 and 3.1.
             https://arxiv.org/abs/2601.19863
         """
         if filter == 'TopHat':
@@ -186,7 +186,7 @@ class prompt_cusps(cosmology):
 
     Notes
     -----
-    The prompt-cusp prescription is Ando et al., Sections 2.1-2.3. Its sharp-k mapping
+    The prompt-cusp prescription is Ando et al., Sections 2.1-2.3 and 3.1. Its sharp-k mapping
     alpha=1.8 is a large-mass top-hat matching choice, explicitly not a direct microhalo-
     simulation calibration.
 
@@ -197,10 +197,14 @@ class prompt_cusps(cosmology):
 
     The state fixes a 100 GeV particle, 30 MeV kinetic-decoupling benchmark and a_kd=5.3e-12. The latter is a retained upstream benchmark value; its exact numerical provenance has not been independently recovered from the cited paper. Use powerspectrum and sigma_function before sampling or evaluating cusp_properties. This is the small-scale cusp prescription, not a new calibration.
 
+    Stucker et al. Eq. (14) gives the 0.531 luminosity approximation for r > 10*r_core.
+    The retained implementation evaluates it at r_cusp without enforcing that separation;
+    the citation does not validate results outside the stated large-radius regime.
+
     References
     ----------
 
-    .. [cite-prompt] Ando, Moro-Gonzalez & Li (2026), Prompt cusps in hierarchical dark matter halos: Implications for annihilation boost, Sections 2.1-2.3.
+    .. [cite-prompt] Ando, Moro-Gonzalez & Li (2026), Prompt cusps in hierarchical dark matter halos: Implications for annihilation boost, Sections 2.1-2.3 and 3.1.
         https://arxiv.org/abs/2601.19863
 
     .. [cite-delos] Delos & White (2023), Prompt cusps and the dark matter annihilation signal.
@@ -221,7 +225,7 @@ class prompt_cusps(cosmology):
 
         Notes
         -----
-        The prompt-cusp prescription is Ando et al., Sections 2.1-2.3. Its sharp-k mapping
+        The prompt-cusp prescription is Ando et al., Sections 2.1-2.3 and 3.1. Its sharp-k mapping
         alpha=1.8 is a large-mass top-hat matching choice, explicitly not a direct microhalo-
         simulation calibration.
 
@@ -232,10 +236,14 @@ class prompt_cusps(cosmology):
 
         The benchmark fixes m_chi=100 GeV, T_kd=0.03 GeV and a_kd=5.3e-12. The precise source of a_kd has not been independently recovered; it is preserved as an upstream input, not newly attributed to a paper.
 
+        Stucker et al. Eq. (14) gives the 0.531 luminosity approximation for r > 10*r_core.
+        The retained implementation evaluates it at r_cusp without enforcing that separation;
+        the citation does not validate results outside the stated large-radius regime.
+
         References
         ----------
 
-        .. [cite-prompt] Ando, Moro-Gonzalez & Li (2026), Prompt cusps in hierarchical dark matter halos: Implications for annihilation boost, Sections 2.1-2.3.
+        .. [cite-prompt] Ando, Moro-Gonzalez & Li (2026), Prompt cusps in hierarchical dark matter halos: Implications for annihilation boost, Sections 2.1-2.3 and 3.1.
             https://arxiv.org/abs/2601.19863
 
         .. [cite-delos] Delos & White (2023), Prompt cusps and the dark matter annihilation signal.
@@ -270,7 +278,7 @@ class prompt_cusps(cosmology):
 
         Notes
         -----
-        The prompt-cusp prescription is Ando et al., Sections 2.1-2.3. Its sharp-k mapping
+        The prompt-cusp prescription is Ando et al., Sections 2.1-2.3 and 3.1. Its sharp-k mapping
         alpha=1.8 is a large-mass top-hat matching choice, explicitly not a direct microhalo-
         simulation calibration.
 
@@ -279,7 +287,7 @@ class prompt_cusps(cosmology):
         References
         ----------
 
-        .. [cite-prompt] Ando, Moro-Gonzalez & Li (2026), Prompt cusps in hierarchical dark matter halos: Implications for annihilation boost, Sections 2.1-2.3.
+        .. [cite-prompt] Ando, Moro-Gonzalez & Li (2026), Prompt cusps in hierarchical dark matter halos: Implications for annihilation boost, Sections 2.1-2.3 and 3.1.
             https://arxiv.org/abs/2601.19863
         """
         _z         = 31.
@@ -316,7 +324,7 @@ class prompt_cusps(cosmology):
 
         Notes
         -----
-        The prompt-cusp prescription is Ando et al., Sections 2.1-2.3. Its sharp-k mapping
+        The prompt-cusp prescription is Ando et al., Sections 2.1-2.3 and 3.1. Its sharp-k mapping
         alpha=1.8 is a large-mass top-hat matching choice, explicitly not a direct microhalo-
         simulation calibration.
 
@@ -328,11 +336,12 @@ class prompt_cusps(cosmology):
         References
         ----------
 
-        .. [cite-prompt] Ando, Moro-Gonzalez & Li (2026), Prompt cusps in hierarchical dark matter halos: Implications for annihilation boost, Sections 2.1-2.3.
+        .. [cite-prompt] Ando, Moro-Gonzalez & Li (2026), Prompt cusps in hierarchical dark matter halos: Implications for annihilation boost, Sections 2.1-2.3 and 3.1.
             https://arxiv.org/abs/2601.19863
 
-        .. [cite-bbks] Bardeen, Bond, Kaiser & Szalay (1986), The Statistics of Peaks of Gaussian Random Fields, Appendix A.
+        .. [cite-bbks] Bardeen, Bond, Kaiser & Szalay (1986), The Statistics of Peaks of Gaussian Random Fields, Appendix A, Eqs. (A14)-(A15).
             https://doi.org/10.1086/164143
+            Full text: https://articles.adsabs.harvard.edu/pdf/1986ApJ...304...15B
         """
         k     = k/self.Mpc
         sigma = np.empty(3)
@@ -375,7 +384,7 @@ class prompt_cusps(cosmology):
 
         Notes
         -----
-        The prompt-cusp prescription is Ando et al., Sections 2.1-2.3. Its sharp-k mapping
+        The prompt-cusp prescription is Ando et al., Sections 2.1-2.3 and 3.1. Its sharp-k mapping
         alpha=1.8 is a large-mass top-hat matching choice, explicitly not a direct microhalo-
         simulation calibration.
 
@@ -391,11 +400,12 @@ class prompt_cusps(cosmology):
         References
         ----------
 
-        .. [cite-prompt] Ando, Moro-Gonzalez & Li (2026), Prompt cusps in hierarchical dark matter halos: Implications for annihilation boost, Sections 2.1-2.3.
+        .. [cite-prompt] Ando, Moro-Gonzalez & Li (2026), Prompt cusps in hierarchical dark matter halos: Implications for annihilation boost, Sections 2.1-2.3 and 3.1.
             https://arxiv.org/abs/2601.19863
 
-        .. [cite-bbks] Bardeen, Bond, Kaiser & Szalay (1986), The Statistics of Peaks of Gaussian Random Fields, Appendix A.
+        .. [cite-bbks] Bardeen, Bond, Kaiser & Szalay (1986), The Statistics of Peaks of Gaussian Random Fields, Appendix A, Eqs. (A14)-(A15).
             https://doi.org/10.1086/164143
+            Full text: https://articles.adsabs.harvard.edu/pdf/1986ApJ...304...15B
 
         .. [cite-ellipsoid] Sheth, Mo & Tormen (2001), Ellipsoidal collapse and an improved model for the number and spatial distribution of dark matter haloes, Eq. (3), Appendix A.
             https://arxiv.org/abs/astro-ph/9907024
@@ -422,7 +432,7 @@ class prompt_cusps(cosmology):
 
             Notes
             -----
-            The prompt-cusp prescription is Ando et al., Sections 2.1-2.3. Its sharp-k mapping
+            The prompt-cusp prescription is Ando et al., Sections 2.1-2.3 and 3.1. Its sharp-k mapping
             alpha=1.8 is a large-mass top-hat matching choice, explicitly not a direct microhalo-
             simulation calibration.
 
@@ -434,11 +444,12 @@ class prompt_cusps(cosmology):
             References
             ----------
 
-            .. [cite-prompt] Ando, Moro-Gonzalez & Li (2026), Prompt cusps in hierarchical dark matter halos: Implications for annihilation boost, Sections 2.1-2.3.
+            .. [cite-prompt] Ando, Moro-Gonzalez & Li (2026), Prompt cusps in hierarchical dark matter halos: Implications for annihilation boost, Sections 2.1-2.3 and 3.1.
                 https://arxiv.org/abs/2601.19863
 
-            .. [cite-bbks] Bardeen, Bond, Kaiser & Szalay (1986), The Statistics of Peaks of Gaussian Random Fields, Appendix A.
+            .. [cite-bbks] Bardeen, Bond, Kaiser & Szalay (1986), The Statistics of Peaks of Gaussian Random Fields, Appendix A, Eqs. (A14)-(A15).
                 https://doi.org/10.1086/164143
+                Full text: https://articles.adsabs.harvard.edu/pdf/1986ApJ...304...15B
             """
             return ((x**3 - 3.0 * x) / 2.0) * (
                 erf(np.sqrt(5.0 / 2.0) * x) + erf(np.sqrt(5.0 / 8.0) * x)
@@ -465,7 +476,7 @@ class prompt_cusps(cosmology):
 
             Notes
             -----
-            The prompt-cusp prescription is Ando et al., Sections 2.1-2.3. Its sharp-k mapping
+            The prompt-cusp prescription is Ando et al., Sections 2.1-2.3 and 3.1. Its sharp-k mapping
             alpha=1.8 is a large-mass top-hat matching choice, explicitly not a direct microhalo-
             simulation calibration.
 
@@ -477,11 +488,12 @@ class prompt_cusps(cosmology):
             References
             ----------
 
-            .. [cite-prompt] Ando, Moro-Gonzalez & Li (2026), Prompt cusps in hierarchical dark matter halos: Implications for annihilation boost, Sections 2.1-2.3.
+            .. [cite-prompt] Ando, Moro-Gonzalez & Li (2026), Prompt cusps in hierarchical dark matter halos: Implications for annihilation boost, Sections 2.1-2.3 and 3.1.
                 https://arxiv.org/abs/2601.19863
 
-            .. [cite-bbks] Bardeen, Bond, Kaiser & Szalay (1986), The Statistics of Peaks of Gaussian Random Fields, Appendix A.
+            .. [cite-bbks] Bardeen, Bond, Kaiser & Szalay (1986), The Statistics of Peaks of Gaussian Random Fields, Appendix A, Eqs. (A14)-(A15).
                 https://doi.org/10.1086/164143
+                Full text: https://articles.adsabs.harvard.edu/pdf/1986ApJ...304...15B
             """
             return (
                 np.exp(-0.5 * nu**2)
@@ -538,7 +550,7 @@ class prompt_cusps(cosmology):
 
             Notes
             -----
-            The prompt-cusp prescription is Ando et al., Sections 2.1-2.3. Its sharp-k mapping
+            The prompt-cusp prescription is Ando et al., Sections 2.1-2.3 and 3.1. Its sharp-k mapping
             alpha=1.8 is a large-mass top-hat matching choice, explicitly not a direct microhalo-
             simulation calibration.
 
@@ -548,10 +560,13 @@ class prompt_cusps(cosmology):
 
             The two rejection steps sample density proportional to (1-u**2)*(3+u**2)**(-5/2), obtained by integrating the adopted conditional ellipticity law. Oversampling sizes only affect execution.
 
+            The u=p/e variable and conditional inversion sampler are derived transformations of
+            Sheth et al. Eq. (A3), not a sampling algorithm printed in that paper.
+
             References
             ----------
 
-            .. [cite-prompt] Ando, Moro-Gonzalez & Li (2026), Prompt cusps in hierarchical dark matter halos: Implications for annihilation boost, Sections 2.1-2.3.
+            .. [cite-prompt] Ando, Moro-Gonzalez & Li (2026), Prompt cusps in hierarchical dark matter halos: Implications for annihilation boost, Sections 2.1-2.3 and 3.1.
                 https://arxiv.org/abs/2601.19863
 
             .. [cite-ellipsoid] Sheth, Mo & Tormen (2001), Ellipsoidal collapse and an improved model for the number and spatial distribution of dark matter haloes, Eq. (3), Appendix A.
@@ -613,7 +628,7 @@ class prompt_cusps(cosmology):
 
             Notes
             -----
-            The prompt-cusp prescription is Ando et al., Sections 2.1-2.3. Its sharp-k mapping
+            The prompt-cusp prescription is Ando et al., Sections 2.1-2.3 and 3.1. Its sharp-k mapping
             alpha=1.8 is a large-mass top-hat matching choice, explicitly not a direct microhalo-
             simulation calibration.
 
@@ -626,7 +641,7 @@ class prompt_cusps(cosmology):
             References
             ----------
 
-            .. [cite-prompt] Ando, Moro-Gonzalez & Li (2026), Prompt cusps in hierarchical dark matter halos: Implications for annihilation boost, Sections 2.1-2.3.
+            .. [cite-prompt] Ando, Moro-Gonzalez & Li (2026), Prompt cusps in hierarchical dark matter halos: Implications for annihilation boost, Sections 2.1-2.3 and 3.1.
                 https://arxiv.org/abs/2601.19863
 
             .. [cite-ellipsoid] Sheth, Mo & Tormen (2001), Ellipsoidal collapse and an improved model for the number and spatial distribution of dark matter haloes, Eq. (3), Appendix A.
@@ -689,14 +704,14 @@ class prompt_cusps(cosmology):
 
         Notes
         -----
-        The prompt-cusp prescription is Ando et al., Sections 2.1-2.3. Its sharp-k mapping
+        The prompt-cusp prescription is Ando et al., Sections 2.1-2.3 and 3.1. Its sharp-k mapping
         alpha=1.8 is a large-mass top-hat matching choice, explicitly not a direct microhalo-
         simulation calibration.
 
         References
         ----------
 
-        .. [cite-prompt] Ando, Moro-Gonzalez & Li (2026), Prompt cusps in hierarchical dark matter halos: Implications for annihilation boost, Sections 2.1-2.3.
+        .. [cite-prompt] Ando, Moro-Gonzalez & Li (2026), Prompt cusps in hierarchical dark matter halos: Implications for annihilation boost, Sections 2.1-2.3 and 3.1.
             https://arxiv.org/abs/2601.19863
         """
 
@@ -777,7 +792,7 @@ class prompt_cusps(cosmology):
 
         Notes
         -----
-        The prompt-cusp prescription is Ando et al., Sections 2.1-2.3. Its sharp-k mapping
+        The prompt-cusp prescription is Ando et al., Sections 2.1-2.3 and 3.1. Its sharp-k mapping
         alpha=1.8 is a large-mass top-hat matching choice, explicitly not a direct microhalo-
         simulation calibration.
 
@@ -791,14 +806,19 @@ class prompt_cusps(cosmology):
 
         The cusp normalization is A=24*rho_dm0*a_coll**(-3/2)*R**(3/2), the outer radius is 0.11*a_coll*R, and the phase-space core uses the coefficient 3e-5. The luminosity uses 4*pi*A**2*[0.531+ln(rcusp/rcore)]. Internal population-average and 0.08 fit diagnostics are not return values. The historical implementation assumes a nonempty collapsed sample; its empty-sample path is not repaired by this documentation change.
 
+        Stucker et al. Eq. (14) gives the 0.531 luminosity approximation for r > 10*r_core.
+        The retained implementation evaluates it at r_cusp without enforcing that separation;
+        the citation does not validate results outside the stated large-radius regime.
+
         References
         ----------
 
-        .. [cite-prompt] Ando, Moro-Gonzalez & Li (2026), Prompt cusps in hierarchical dark matter halos: Implications for annihilation boost, Sections 2.1-2.3.
+        .. [cite-prompt] Ando, Moro-Gonzalez & Li (2026), Prompt cusps in hierarchical dark matter halos: Implications for annihilation boost, Sections 2.1-2.3 and 3.1.
             https://arxiv.org/abs/2601.19863
 
-        .. [cite-bbks] Bardeen, Bond, Kaiser & Szalay (1986), The Statistics of Peaks of Gaussian Random Fields, Appendix A.
+        .. [cite-bbks] Bardeen, Bond, Kaiser & Szalay (1986), The Statistics of Peaks of Gaussian Random Fields, Appendix A, Eqs. (A14)-(A15).
             https://doi.org/10.1086/164143
+            Full text: https://articles.adsabs.harvard.edu/pdf/1986ApJ...304...15B
 
         .. [cite-delos] Delos & White (2023), Prompt cusps and the dark matter annihilation signal.
             https://arxiv.org/abs/2209.11237
@@ -833,7 +853,7 @@ class prompt_cusps(cosmology):
 
             Notes
             -----
-            The prompt-cusp prescription is Ando et al., Sections 2.1-2.3. Its sharp-k mapping
+            The prompt-cusp prescription is Ando et al., Sections 2.1-2.3 and 3.1. Its sharp-k mapping
             alpha=1.8 is a large-mass top-hat matching choice, explicitly not a direct microhalo-
             simulation calibration.
 
@@ -845,11 +865,12 @@ class prompt_cusps(cosmology):
             References
             ----------
 
-            .. [cite-prompt] Ando, Moro-Gonzalez & Li (2026), Prompt cusps in hierarchical dark matter halos: Implications for annihilation boost, Sections 2.1-2.3.
+            .. [cite-prompt] Ando, Moro-Gonzalez & Li (2026), Prompt cusps in hierarchical dark matter halos: Implications for annihilation boost, Sections 2.1-2.3 and 3.1.
                 https://arxiv.org/abs/2601.19863
 
-            .. [cite-bbks] Bardeen, Bond, Kaiser & Szalay (1986), The Statistics of Peaks of Gaussian Random Fields, Appendix A.
+            .. [cite-bbks] Bardeen, Bond, Kaiser & Szalay (1986), The Statistics of Peaks of Gaussian Random Fields, Appendix A, Eqs. (A14)-(A15).
                 https://doi.org/10.1086/164143
+                Full text: https://articles.adsabs.harvard.edu/pdf/1986ApJ...304...15B
             """
             return (x**3-3.*x)/2.*(erf(np.sqrt(5./2.)*x)+erf(np.sqrt(5./8.)*x)) \
                     +np.sqrt(2./(5.*np.pi))*((31./4.*x**2+8./5.)*np.exp(-(5./8.*x**2)) \
@@ -872,7 +893,7 @@ class prompt_cusps(cosmology):
 
             Notes
             -----
-            The prompt-cusp prescription is Ando et al., Sections 2.1-2.3. Its sharp-k mapping
+            The prompt-cusp prescription is Ando et al., Sections 2.1-2.3 and 3.1. Its sharp-k mapping
             alpha=1.8 is a large-mass top-hat matching choice, explicitly not a direct microhalo-
             simulation calibration.
 
@@ -884,11 +905,12 @@ class prompt_cusps(cosmology):
             References
             ----------
 
-            .. [cite-prompt] Ando, Moro-Gonzalez & Li (2026), Prompt cusps in hierarchical dark matter halos: Implications for annihilation boost, Sections 2.1-2.3.
+            .. [cite-prompt] Ando, Moro-Gonzalez & Li (2026), Prompt cusps in hierarchical dark matter halos: Implications for annihilation boost, Sections 2.1-2.3 and 3.1.
                 https://arxiv.org/abs/2601.19863
 
-            .. [cite-bbks] Bardeen, Bond, Kaiser & Szalay (1986), The Statistics of Peaks of Gaussian Random Fields, Appendix A.
+            .. [cite-bbks] Bardeen, Bond, Kaiser & Szalay (1986), The Statistics of Peaks of Gaussian Random Fields, Appendix A, Eqs. (A14)-(A15).
                 https://doi.org/10.1086/164143
+                Full text: https://articles.adsabs.harvard.edu/pdf/1986ApJ...304...15B
             """
             return np.exp(-nu**2/2.)/((2.*np.pi)**2*R_s**3)*f_x(x) \
                     *np.exp(-0.5*(x-gamma*nu)**2/(1.-gamma**2)) \
@@ -910,7 +932,7 @@ class prompt_cusps(cosmology):
 
             Notes
             -----
-            The prompt-cusp prescription is Ando et al., Sections 2.1-2.3. Its sharp-k mapping
+            The prompt-cusp prescription is Ando et al., Sections 2.1-2.3 and 3.1. Its sharp-k mapping
             alpha=1.8 is a large-mass top-hat matching choice, explicitly not a direct microhalo-
             simulation calibration.
 
@@ -922,11 +944,12 @@ class prompt_cusps(cosmology):
             References
             ----------
 
-            .. [cite-prompt] Ando, Moro-Gonzalez & Li (2026), Prompt cusps in hierarchical dark matter halos: Implications for annihilation boost, Sections 2.1-2.3.
+            .. [cite-prompt] Ando, Moro-Gonzalez & Li (2026), Prompt cusps in hierarchical dark matter halos: Implications for annihilation boost, Sections 2.1-2.3 and 3.1.
                 https://arxiv.org/abs/2601.19863
 
-            .. [cite-bbks] Bardeen, Bond, Kaiser & Szalay (1986), The Statistics of Peaks of Gaussian Random Fields, Appendix A.
+            .. [cite-bbks] Bardeen, Bond, Kaiser & Szalay (1986), The Statistics of Peaks of Gaussian Random Fields, Appendix A, Eqs. (A14)-(A15).
                 https://doi.org/10.1086/164143
+                Full text: https://articles.adsabs.harvard.edu/pdf/1986ApJ...304...15B
             """
             dndnudx_ = ddn(nu,x.reshape(-1,1))
             n_peaks  = simpson(simpson(dndnudx_,nu,axis=-1),x)

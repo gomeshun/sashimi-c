@@ -198,4 +198,4 @@ concurrency:
     == 'workflow_dispatch' && github.run_id || github.ref }}
   cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' }}
 env:
-  ITAMAE_REF: 4aeb13ed4e3e3e87171fe800e08f74b95c1244a2
+  ITAMAE_REF: b7a9fde9d6d8b380c94512337c806851ac5c78f7

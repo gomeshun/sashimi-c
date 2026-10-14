@@ -8,7 +8,7 @@ def main():
 
     Notes
     -----
-    The prompt-cusp prescription is Ando et al., Sections 2.1-2.3. Its sharp-k mapping
+    The prompt-cusp prescription is Ando et al., Sections 2.1-2.3 and 3.1. Its sharp-k mapping
     alpha=1.8 is a large-mass top-hat matching choice, explicitly not a direct microhalo-
     simulation calibration.
 
@@ -19,7 +19,7 @@ def main():
     References
     ----------
 
-    .. [cite-prompt] Ando, Moro-Gonzalez & Li (2026), Prompt cusps in hierarchical dark matter halos: Implications for annihilation boost, Sections 2.1-2.3.
+    .. [cite-prompt] Ando, Moro-Gonzalez & Li (2026), Prompt cusps in hierarchical dark matter halos: Implications for annihilation boost, Sections 2.1-2.3 and 3.1.
         https://arxiv.org/abs/2601.19863
     """
     generation_cli(prompt_cusps=True)

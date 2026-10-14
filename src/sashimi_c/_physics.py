@@ -108,7 +108,7 @@ class CDMPhysics(CDMUnits):
     .. [cite-planck] Planck Collaboration (2020), Planck 2018 results. VI. Cosmological parameters, Table 2.
         https://arxiv.org/abs/1807.06209
 
-    .. [cite-prompt] Ando, Moro-Gonzalez & Li (2026), Prompt cusps in hierarchical dark matter halos: Implications for annihilation boost, Sections 2.1-2.3.
+    .. [cite-prompt] Ando, Moro-Gonzalez & Li (2026), Prompt cusps in hierarchical dark matter halos: Implications for annihilation boost, Sections 2.1-2.3 and 3.1.
         https://arxiv.org/abs/2601.19863
     """
 
@@ -166,7 +166,7 @@ class CDMPhysics(CDMUnits):
         .. [cite-planck] Planck Collaboration (2020), Planck 2018 results. VI. Cosmological parameters, Table 2.
             https://arxiv.org/abs/1807.06209
 
-        .. [cite-prompt] Ando, Moro-Gonzalez & Li (2026), Prompt cusps in hierarchical dark matter halos: Implications for annihilation boost, Sections 2.1-2.3.
+        .. [cite-prompt] Ando, Moro-Gonzalez & Li (2026), Prompt cusps in hierarchical dark matter halos: Implications for annihilation boost, Sections 2.1-2.3 and 3.1.
             https://arxiv.org/abs/2601.19863
         """
         backend = cosmology_backend or NativeFlatLCDM(
@@ -344,8 +344,9 @@ class CDMPhysics(CDMUnits):
         References
         ----------
 
-        .. [cite-growth] Carroll, Press & Turner (1992), The Cosmological Constant, Section 3.5.
+        .. [cite-growth] Carroll, Press & Turner (1992), The Cosmological Constant, Section 3.5, Eq. (29).
             https://doi.org/10.1146/annurev.aa.30.090192.002435
+            Full text: https://ned.ipac.caltech.edu/level5/Carroll/Carroll3_5.html
         """
         return np.asarray(self.itamae_cosmology.growth_factor(z))
 
@@ -400,8 +401,9 @@ class CDMPhysics(CDMUnits):
         References
         ----------
 
-        .. [cite-growth] Carroll, Press & Turner (1992), The Cosmological Constant, Section 3.5.
+        .. [cite-growth] Carroll, Press & Turner (1992), The Cosmological Constant, Section 3.5, Eq. (29).
             https://doi.org/10.1146/annurev.aa.30.090192.002435
+            Full text: https://ned.ipac.caltech.edu/level5/Carroll/Carroll3_5.html
         """
 
         def dOdz(z):
@@ -542,7 +544,7 @@ class CDMPhysics(CDMUnits):
         References
         ----------
 
-        .. [cite-ludlow] Ludlow et al. (2016), The mass-concentration-redshift relation of cold and warm dark matter haloes, Appendix C.
+        .. [cite-ludlow] Ludlow et al. (2016), The mass-concentration-redshift relation of cold and warm dark matter haloes, Eq. (3) and Appendix C, Eqs. (C8)-(C12).
             https://arxiv.org/abs/1601.02624
         """
 
@@ -574,7 +576,7 @@ class CDMPhysics(CDMUnits):
             References
             ----------
 
-            .. [cite-ludlow] Ludlow et al. (2016), The mass-concentration-redshift relation of cold and warm dark matter haloes, Appendix C.
+            .. [cite-ludlow] Ludlow et al. (2016), The mass-concentration-redshift relation of cold and warm dark matter haloes, Eq. (3) and Appendix C, Eqs. (C8)-(C12).
                 https://arxiv.org/abs/1601.02624
             """
             return (M / ((1.0e10 * self.Msun) / self.h)) ** -1
@@ -613,7 +615,7 @@ class CDMPhysics(CDMUnits):
         References
         ----------
 
-        .. [cite-ludlow] Ludlow et al. (2016), The mass-concentration-redshift relation of cold and warm dark matter haloes, Appendix C.
+        .. [cite-ludlow] Ludlow et al. (2016), The mass-concentration-redshift relation of cold and warm dark matter haloes, Eq. (3) and Appendix C, Eqs. (C8)-(C12).
             https://arxiv.org/abs/1601.02624
         """
 
@@ -645,7 +647,7 @@ class CDMPhysics(CDMUnits):
             References
             ----------
 
-            .. [cite-ludlow] Ludlow et al. (2016), The mass-concentration-redshift relation of cold and warm dark matter haloes, Appendix C.
+            .. [cite-ludlow] Ludlow et al. (2016), The mass-concentration-redshift relation of cold and warm dark matter haloes, Eq. (3) and Appendix C, Eqs. (C8)-(C12).
                 https://arxiv.org/abs/1601.02624
             """
             return (M / ((1.0e10 * self.Msun) / self.h)) ** -1
@@ -687,7 +689,7 @@ class CDMPhysics(CDMUnits):
         References
         ----------
 
-        .. [cite-ludlow] Ludlow et al. (2016), The mass-concentration-redshift relation of cold and warm dark matter haloes, Appendix C.
+        .. [cite-ludlow] Ludlow et al. (2016), The mass-concentration-redshift relation of cold and warm dark matter haloes, Eq. (3) and Appendix C, Eqs. (C8)-(C12).
             https://arxiv.org/abs/1601.02624
         """
         return 1.686 / self.growthD(z)
@@ -1029,7 +1031,7 @@ class CDMPhysics(CDMUnits):
         .. [cite-correa] Correa et al. (2015), The accretion history of dark matter haloes - III. A physical model for the concentration-mass relation, Section 3 and Appendix B.
             https://arxiv.org/abs/1502.00391
 
-        .. [cite-ludlow] Ludlow et al. (2016), The mass-concentration-redshift relation of cold and warm dark matter haloes, Appendix C.
+        .. [cite-ludlow] Ludlow et al. (2016), The mass-concentration-redshift relation of cold and warm dark matter haloes, Eq. (3) and Appendix C, Eqs. (C8)-(C12).
             https://arxiv.org/abs/1601.02624
         """
         a = 1.686 * np.sqrt(2.0 / np.pi) * self.dDdz(0) + 1.0
@@ -1079,7 +1081,7 @@ class CDMPhysics(CDMUnits):
         .. [cite-correa] Correa et al. (2015), The accretion history of dark matter haloes - III. A physical model for the concentration-mass relation, Section 3 and Appendix B.
             https://arxiv.org/abs/1502.00391
 
-        .. [cite-ludlow] Ludlow et al. (2016), The mass-concentration-redshift relation of cold and warm dark matter haloes, Appendix C.
+        .. [cite-ludlow] Ludlow et al. (2016), The mass-concentration-redshift relation of cold and warm dark matter haloes, Eq. (3) and Appendix C, Eqs. (C8)-(C12).
             https://arxiv.org/abs/1601.02624
         """
         Mzi0 = self.Mzi(M0, zi)
@@ -1134,7 +1136,7 @@ class CDMPhysics(CDMUnits):
         .. [cite-correa] Correa et al. (2015), The accretion history of dark matter haloes - III. A physical model for the concentration-mass relation, Section 3 and Appendix B.
             https://arxiv.org/abs/1502.00391
 
-        .. [cite-ludlow] Ludlow et al. (2016), The mass-concentration-redshift relation of cold and warm dark matter haloes, Appendix C.
+        .. [cite-ludlow] Ludlow et al. (2016), The mass-concentration-redshift relation of cold and warm dark matter haloes, Eq. (3) and Appendix C, Eqs. (C8)-(C12).
             https://arxiv.org/abs/1601.02624
         """
         Mzi0 = self.Mzi(M0, zi)

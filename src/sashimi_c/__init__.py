@@ -305,7 +305,7 @@ class SubhaloProperties(CDMPhysics):
         References
         ----------
 
-        .. [cite-yang] Yang et al. (2011), An Analytical Model for the Accretion of Dark Matter Subhalos, Eqs. (12)-(14), (21).
+        .. [cite-yang] Yang et al. (2011), An Analytical Model for the Accretion of Dark Matter Subhalos, Eqs. (7)-(16), (21).
             https://arxiv.org/abs/1104.1757
         """
         return 1 / np.sqrt(2.0 * np.pi) * dela / (s2 - s1) ** 1.5
@@ -346,7 +346,7 @@ class SubhaloProperties(CDMPhysics):
         .. [cite-parkinson] Parkinson, Cole & Helly (2008), Generating Dark Matter Halo Merger Trees, Section 3.1.
             https://arxiv.org/abs/0708.1382
 
-        .. [cite-yang] Yang et al. (2011), An Analytical Model for the Accretion of Dark Matter Subhalos, Eqs. (12)-(14), (21).
+        .. [cite-yang] Yang et al. (2011), An Analytical Model for the Accretion of Dark Matter Subhalos, Eqs. (7)-(16), (21).
             https://arxiv.org/abs/1104.1757
         """
         G0 = 0.57
@@ -393,7 +393,7 @@ class SubhaloProperties(CDMPhysics):
         References
         ----------
 
-        .. [cite-yang] Yang et al. (2011), An Analytical Model for the Accretion of Dark Matter Subhalos, Eqs. (12)-(14), (21).
+        .. [cite-yang] Yang et al. (2011), An Analytical Model for the Accretion of Dark Matter Subhalos, Eqs. (7)-(16), (21).
             https://arxiv.org/abs/1104.1757
         """
         return (
@@ -446,10 +446,14 @@ class SubhaloProperties(CDMPhysics):
         concentration and survival as separate factors; changing a numerical solver does not by
         itself recalibrate any fitted physical relation.
 
+        Yang et al. Eqs. (8)-(9) specify support normalization, and Eqs. (12)-(14) give the
+        kernels. The incomplete-gamma evaluation and continuous zero-barrier-gap limit used
+        here are derived evaluations, not additional closed formulas printed in that paper.
+
         References
         ----------
 
-        .. [cite-yang] Yang et al. (2011), An Analytical Model for the Accretion of Dark Matter Subhalos, Eqs. (12)-(14), (21).
+        .. [cite-yang] Yang et al. (2011), An Analytical Model for the Accretion of Dark Matter Subhalos, Eqs. (7)-(16), (21).
             https://arxiv.org/abs/1104.1757
         """
         d1, d2, a, b, minimum = np.broadcast_arrays(delc1, delc2, s1, s2, smin)
@@ -517,7 +521,7 @@ class SubhaloProperties(CDMPhysics):
         References
         ----------
 
-        .. [cite-yang] Yang et al. (2011), An Analytical Model for the Accretion of Dark Matter Subhalos, Eqs. (12)-(14), (21).
+        .. [cite-yang] Yang et al. (2011), An Analytical Model for the Accretion of Dark Matter Subhalos, Eqs. (7)-(16), (21).
             https://arxiv.org/abs/1104.1757
         """
 
@@ -724,10 +728,10 @@ class SubhaloProperties(CDMPhysics):
         .. [cite-scatter] Ishiyama et al. (2013), The Cosmogrid Simulation: Statistical Properties of Small Dark Matter Halos, Eq. (7), Fig. 10.
             https://arxiv.org/abs/1101.2020
 
-        .. [cite-structure] Hiroshima, Ando & Ishiyama (2018), Modeling evolution of dark matter substructure and annihilation boost, Section II, Eqs. (5)-(9).
+        .. [cite-structure] Hiroshima, Ando & Ishiyama (2018), Modeling evolution of dark matter substructure and annihilation boost, Section II, Eqs. (4)-(9), (28), (34).
             https://arxiv.org/abs/1803.07691
 
-        .. [cite-survival] Hayashi et al. (2003), The Structural Evolution of Substructure.
+        .. [cite-survival] Hayashi et al. (2003), The Structural Evolution of Substructure, Section 2.1.
             https://arxiv.org/abs/astro-ph/0203004
         """
         if "physics_mode" in kwargs:
@@ -1052,10 +1056,10 @@ class SubhaloProperties(CDMPhysics):
         .. [cite-scatter] Ishiyama et al. (2013), The Cosmogrid Simulation: Statistical Properties of Small Dark Matter Halos, Eq. (7), Fig. 10.
             https://arxiv.org/abs/1101.2020
 
-        .. [cite-structure] Hiroshima, Ando & Ishiyama (2018), Modeling evolution of dark matter substructure and annihilation boost, Section II, Eqs. (5)-(9).
+        .. [cite-structure] Hiroshima, Ando & Ishiyama (2018), Modeling evolution of dark matter substructure and annihilation boost, Section II, Eqs. (4)-(9), (28), (34).
             https://arxiv.org/abs/1803.07691
 
-        .. [cite-survival] Hayashi et al. (2003), The Structural Evolution of Substructure.
+        .. [cite-survival] Hayashi et al. (2003), The Structural Evolution of Substructure, Section 2.1.
             https://arxiv.org/abs/astro-ph/0203004
         """
         catalog = self.subhalo_catalog_calc(*args, **kwargs)
@@ -1273,16 +1277,16 @@ class SubhaloObservables(SubhaloProperties, CDMObservableKernels):
         .. [cite-nfw] Navarro, Frenk & White (1997), A Universal Density Profile from Hierarchical Clustering.
             https://arxiv.org/abs/astro-ph/9611107
 
-        .. [cite-structure] Hiroshima, Ando & Ishiyama (2018), Modeling evolution of dark matter substructure and annihilation boost, Section II, Eqs. (5)-(9).
+        .. [cite-structure] Hiroshima, Ando & Ishiyama (2018), Modeling evolution of dark matter substructure and annihilation boost, Section II, Eqs. (4)-(9), (28), (34).
             https://arxiv.org/abs/1803.07691
 
         .. [cite-scatter] Ishiyama et al. (2013), The Cosmogrid Simulation: Statistical Properties of Small Dark Matter Halos, Eq. (7), Fig. 10.
             https://arxiv.org/abs/1101.2020
 
-        .. [cite-survival] Hayashi et al. (2003), The Structural Evolution of Substructure.
+        .. [cite-survival] Hayashi et al. (2003), The Structural Evolution of Substructure, Section 2.1.
             https://arxiv.org/abs/astro-ph/0203004
 
-        .. [cite-prompt] Ando, Moro-Gonzalez & Li (2026), Prompt cusps in hierarchical dark matter halos: Implications for annihilation boost, Sections 2.1-2.3.
+        .. [cite-prompt] Ando, Moro-Gonzalez & Li (2026), Prompt cusps in hierarchical dark matter halos: Implications for annihilation boost, Sections 2.1-2.3 and 3.1.
             https://arxiv.org/abs/2601.19863
         """
 

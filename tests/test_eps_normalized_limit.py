@@ -30,10 +30,14 @@ def test_normalized_yang_kernel_against_independent_definite_integral(gap):
     Scope: This controlled calculation does not calibrate a subhalo population against
     simulations or observations.
 
+    Yang et al. Eqs. (8)-(9) specify support normalization, and Eqs. (12)-(14) give the
+    kernels. The incomplete-gamma evaluation and continuous zero-barrier-gap limit used
+    here are derived evaluations, not additional closed formulas printed in that paper.
+
     References
     ----------
 
-    .. [cite-yang] Yang et al. (2011), An Analytical Model for the Accretion of Dark Matter Subhalos, Eqs. (12)-(14), (21).
+    .. [cite-yang] Yang et al. (2011), An Analytical Model for the Accretion of Dark Matter Subhalos, Eqs. (7)-(16), (21).
         https://arxiv.org/abs/1104.1757
     """
     model = SubhaloProperties()

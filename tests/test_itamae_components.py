@@ -65,7 +65,7 @@ def test_cdm_stages_preserve_node_identity_and_initial_enclosed_mass():
     .. [cite-scatter] Ishiyama et al. (2013), The Cosmogrid Simulation: Statistical Properties of Small Dark Matter Halos, Eq. (7), Fig. 10.
         https://arxiv.org/abs/1101.2020
 
-    .. [cite-structure] Hiroshima, Ando & Ishiyama (2018), Modeling evolution of dark matter substructure and annihilation boost, Section II, Eqs. (5)-(9).
+    .. [cite-structure] Hiroshima, Ando & Ishiyama (2018), Modeling evolution of dark matter substructure and annihilation boost, Section II, Eqs. (4)-(9), (28), (34).
         https://arxiv.org/abs/1803.07691
     """
     model = subhalo_properties()
