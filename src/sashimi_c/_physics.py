@@ -31,22 +31,22 @@ _CALIBRATED_H = 0.674
 
 
 class CDMUnits:
-    """Define internal dimensional scales used by the retained CDM halo equations.
+    r"""Define internal dimensional scales used by the retained CDM halo equations.
 
     Notes
     -----
-    These are the retained CDM prescriptions fitted for Omega_m0=0.315 and h=0.674. Internal
+    These retained CDM prescriptions are evaluated with Omega_m0=0.315 and h=0.674; their original fit calibrations are not changed. Internal
     base units are Msun, Mpc and seconds; internal velocities are Mpc/s, converted at
     observable boundaries. The fitted relations and mass definitions remain model choices,
     not consequences of the shared numerical executor.
     """
 
     def __init__(self):
-        """Initialize Msun, Mpc and second base scales and their conversion factors.
+        r"""Initialize Msun, Mpc and second base scales and their conversion factors.
 
         Notes
         -----
-        These are the retained CDM prescriptions fitted for Omega_m0=0.315 and h=0.674. Internal
+        These retained CDM prescriptions are evaluated with Omega_m0=0.315 and h=0.674; their original fit calibrations are not changed. Internal
         base units are Msun, Mpc and seconds; internal velocities are Mpc/s, converted at
         observable boundaries. The fitted relations and mass definitions remain model choices,
         not consequences of the shared numerical executor.
@@ -65,7 +65,7 @@ class CDMUnits:
 
 
 class CDMPhysics(CDMUnits):
-    """Planck-calibrated host history, concentration, EPS and structure relations.
+    r"""Literature host history, concentration, EPS and structure relations.
 
     Parameters
     ----------
@@ -89,10 +89,27 @@ class CDMPhysics(CDMUnits):
 
     Notes
     -----
-    These are the retained CDM prescriptions fitted for Omega_m0=0.315 and h=0.674. Internal
+    The adopted background Omega_m0=0.315 and h=0.674 (and Omega_b0=0.049 where used) is a
+    rounded Planck-2018 parameter choice. It is not evidence that every retained halo fit
+    was calibrated in this background.
+
+    If prompt cusps are enabled, the benchmark cutoff k_fs=1.06e6 Mpc**(-1) and sharp-k
+    multiplier alpha=1.8 follow the prompt-cusp model of Ando et al.; these are separate
+    from the CDM variance fit used by default.
+
+    These retained CDM prescriptions are evaluated with Omega_m0=0.315 and h=0.674; their original fit calibrations are not changed. Internal
     base units are Msun, Mpc and seconds; internal velocities are Mpc/s, converted at
     observable boundaries. The fitted relations and mass definitions remain model choices,
     not consequences of the shared numerical executor.
+
+    References
+    ----------
+
+    .. [cite-planck] Planck Collaboration (2020), Planck 2018 results. VI. Cosmological parameters, Table 2.
+        https://arxiv.org/abs/1807.06209
+
+    .. [cite-prompt] Ando, Moro-Gonzalez & Li (2026), Prompt cusps in hierarchical dark matter halos: Implications for annihilation boost, Sections 2.1-2.3.
+        https://arxiv.org/abs/2601.19863
     """
 
     def __init__(
@@ -105,7 +122,7 @@ class CDMPhysics(CDMUnits):
         cosmology_backend=None,
         data_dir=None,
     ):
-        """Bind the calibrated CDM halo relations to a compatible background and optional cusp
+        r"""Bind the calibrated CDM halo relations to a compatible background and optional cusp
         spectrum.
 
         Parameters
@@ -130,10 +147,27 @@ class CDMPhysics(CDMUnits):
 
         Notes
         -----
-        These are the retained CDM prescriptions fitted for Omega_m0=0.315 and h=0.674. Internal
+        The adopted background Omega_m0=0.315 and h=0.674 (and Omega_b0=0.049 where used) is a
+        rounded Planck-2018 parameter choice. It is not evidence that every retained halo fit
+        was calibrated in this background.
+
+        If prompt cusps are enabled, the benchmark cutoff k_fs=1.06e6 Mpc**(-1) and sharp-k
+        multiplier alpha=1.8 follow the prompt-cusp model of Ando et al.; these are separate
+        from the CDM variance fit used by default.
+
+        These retained CDM prescriptions are evaluated with Omega_m0=0.315 and h=0.674; their original fit calibrations are not changed. Internal
         base units are Msun, Mpc and seconds; internal velocities are Mpc/s, converted at
         observable boundaries. The fitted relations and mass definitions remain model choices,
         not consequences of the shared numerical executor.
+
+        References
+        ----------
+
+        .. [cite-planck] Planck Collaboration (2020), Planck 2018 results. VI. Cosmological parameters, Table 2.
+            https://arxiv.org/abs/1807.06209
+
+        .. [cite-prompt] Ando, Moro-Gonzalez & Li (2026), Prompt cusps in hierarchical dark matter halos: Implications for annihilation boost, Sections 2.1-2.3.
+            https://arxiv.org/abs/2601.19863
         """
         backend = cosmology_backend or NativeFlatLCDM(
             omega_m0=_CALIBRATED_OMEGA_M, h=_CALIBRATED_H
@@ -161,14 +195,24 @@ class CDMPhysics(CDMUnits):
             )
 
     def _synchronize_physics_constants(self) -> None:
-        """Align SASHIMI-C constants with the selected backend.
+        r"""Align SASHIMI-C constants with the selected backend.
 
         Notes
         -----
-        These are the retained CDM prescriptions fitted for Omega_m0=0.315 and h=0.674. Internal
+        The adopted background Omega_m0=0.315 and h=0.674 (and Omega_b0=0.049 where used) is a
+        rounded Planck-2018 parameter choice. It is not evidence that every retained halo fit
+        was calibrated in this background.
+
+        These retained CDM prescriptions are evaluated with Omega_m0=0.315 and h=0.674; their original fit calibrations are not changed. Internal
         base units are Msun, Mpc and seconds; internal velocities are Mpc/s, converted at
         observable boundaries. The fitted relations and mass definitions remain model choices,
         not consequences of the shared numerical executor.
+
+        References
+        ----------
+
+        .. [cite-planck] Planck Collaboration (2020), Planck 2018 results. VI. Cosmological parameters, Table 2.
+            https://arxiv.org/abs/1807.06209
         """
         backend = self.itamae_cosmology
         self.H0 = float(np.asarray(backend.H(0.0))) * self.km / self.s / self.Mpc
@@ -181,7 +225,7 @@ class CDMPhysics(CDMUnits):
 
     @staticmethod
     def _validate_migration_cosmology(backend: Any) -> None:
-        """Require a complete backend matching the calibrated CDM physical model.
+        r"""Require a complete backend matching the calibrated CDM physical model.
 
         Parameters
         ----------
@@ -191,10 +235,20 @@ class CDMPhysics(CDMUnits):
 
         Notes
         -----
-        These are the retained CDM prescriptions fitted for Omega_m0=0.315 and h=0.674. Internal
+        The adopted background Omega_m0=0.315 and h=0.674 (and Omega_b0=0.049 where used) is a
+        rounded Planck-2018 parameter choice. It is not evidence that every retained halo fit
+        was calibrated in this background.
+
+        These retained CDM prescriptions are evaluated with Omega_m0=0.315 and h=0.674; their original fit calibrations are not changed. Internal
         base units are Msun, Mpc and seconds; internal velocities are Mpc/s, converted at
         observable boundaries. The fitted relations and mass definitions remain model choices,
         not consequences of the shared numerical executor.
+
+        References
+        ----------
+
+        .. [cite-planck] Planck Collaboration (2020), Planck 2018 results. VI. Cosmological parameters, Table 2.
+            https://arxiv.org/abs/1807.06209
         """
         if not isinstance(backend, CosmologyBackend):
             raise TypeError(
@@ -215,7 +269,7 @@ class CDMPhysics(CDMUnits):
             )
 
     def Hubble(self, z: Any) -> np.ndarray:
-        """Return the Hubble rate in the internal inverse-second unit.
+        r"""Return the Hubble rate in the internal inverse-second unit.
 
         Parameters
         ----------
@@ -230,7 +284,7 @@ class CDMPhysics(CDMUnits):
 
         Notes
         -----
-        These are the retained CDM prescriptions fitted for Omega_m0=0.315 and h=0.674. Internal
+        These retained CDM prescriptions are evaluated with Omega_m0=0.315 and h=0.674; their original fit calibrations are not changed. Internal
         base units are Msun, Mpc and seconds; internal velocities are Mpc/s, converted at
         observable boundaries. The fitted relations and mass definitions remain model choices,
         not consequences of the shared numerical executor.
@@ -238,7 +292,7 @@ class CDMPhysics(CDMUnits):
         return np.asarray(self.itamae_cosmology.H(z)) * self.km / self.s / self.Mpc
 
     def rhocrit(self, z: Any) -> np.ndarray:
-        """Return critical density in the canonical solar masses per cubic megaparsec.
+        r"""Return critical density in the canonical solar masses per cubic megaparsec.
 
         Parameters
         ----------
@@ -254,7 +308,7 @@ class CDMPhysics(CDMUnits):
 
         Notes
         -----
-        These are the retained CDM prescriptions fitted for Omega_m0=0.315 and h=0.674. Internal
+        These retained CDM prescriptions are evaluated with Omega_m0=0.315 and h=0.674; their original fit calibrations are not changed. Internal
         base units are Msun, Mpc and seconds; internal velocities are Mpc/s, converted at
         observable boundaries. The fitted relations and mass definitions remain model choices,
         not consequences of the shared numerical executor.
@@ -263,7 +317,7 @@ class CDMPhysics(CDMUnits):
         return density * self.Msun / self.Mpc**3 * self._rho_crit_scale
 
     def growthD(self, z: Any) -> np.ndarray:
-        """Return the normalized linear growth factor.
+        r"""Return the normalized linear growth factor.
 
         Parameters
         ----------
@@ -278,15 +332,25 @@ class CDMPhysics(CDMUnits):
 
         Notes
         -----
-        These are the retained CDM prescriptions fitted for Omega_m0=0.315 and h=0.674. Internal
+        The factors 5/2, 4/7 and 1/70 belong to the Carroll--Press--Turner growth approximation.
+        Redshift derivatives differentiate that approximation; they are not a separate growth
+        calibration.
+
+        These retained CDM prescriptions are evaluated with Omega_m0=0.315 and h=0.674; their original fit calibrations are not changed. Internal
         base units are Msun, Mpc and seconds; internal velocities are Mpc/s, converted at
         observable boundaries. The fitted relations and mass definitions remain model choices,
         not consequences of the shared numerical executor.
+
+        References
+        ----------
+
+        .. [cite-growth] Carroll, Press & Turner (1992), The Cosmological Constant, Section 3.5.
+            https://doi.org/10.1146/annurev.aa.30.090192.002435
         """
         return np.asarray(self.itamae_cosmology.growth_factor(z))
 
     def g(self, z):
-        """Evaluate the flat matter-plus-Lambda squared expansion factor.
+        r"""Evaluate the flat matter-plus-Lambda squared expansion factor.
 
         Parameters
         ----------
@@ -301,7 +365,7 @@ class CDMPhysics(CDMUnits):
 
         Notes
         -----
-        These are the retained CDM prescriptions fitted for Omega_m0=0.315 and h=0.674. Internal
+        These retained CDM prescriptions are evaluated with Omega_m0=0.315 and h=0.674; their original fit calibrations are not changed. Internal
         base units are Msun, Mpc and seconds; internal velocities are Mpc/s, converted at
         observable boundaries. The fitted relations and mass definitions remain model choices,
         not consequences of the shared numerical executor.
@@ -309,7 +373,7 @@ class CDMPhysics(CDMUnits):
         return self.OmegaM * (1.0 + z) ** 3 + self.OmegaL
 
     def dDdz(self, z):
-        """Differentiate the retained Carroll-Press-Turner growth approximation with redshift.
+        r"""Differentiate the retained Carroll-Press-Turner growth approximation with redshift.
 
         Parameters
         ----------
@@ -320,18 +384,28 @@ class CDMPhysics(CDMUnits):
         Returns
         -------
         array_like
-            Dimensionless derivative dD/dz, in the calibrated CDM background.
+            Dimensionless derivative dD/dz, in the adopted CDM background.
 
         Notes
         -----
-        These are the retained CDM prescriptions fitted for Omega_m0=0.315 and h=0.674. Internal
+        The factors 5/2, 4/7 and 1/70 belong to the Carroll--Press--Turner growth approximation.
+        Redshift derivatives differentiate that approximation; they are not a separate growth
+        calibration.
+
+        These retained CDM prescriptions are evaluated with Omega_m0=0.315 and h=0.674; their original fit calibrations are not changed. Internal
         base units are Msun, Mpc and seconds; internal velocities are Mpc/s, converted at
         observable boundaries. The fitted relations and mass definitions remain model choices,
         not consequences of the shared numerical executor.
+
+        References
+        ----------
+
+        .. [cite-growth] Carroll, Press & Turner (1992), The Cosmological Constant, Section 3.5.
+            https://doi.org/10.1146/annurev.aa.30.090192.002435
         """
 
         def dOdz(z):
-            """Evaluate d Omega_Lambda(z)/dz for the analytic growth derivative.
+            r"""Evaluate d Omega_Lambda(z)/dz for the analytic growth derivative.
 
             Parameters
             ----------
@@ -346,7 +420,7 @@ class CDMPhysics(CDMUnits):
 
             Notes
             -----
-            These are the retained CDM prescriptions fitted for Omega_m0=0.315 and h=0.674. Internal
+            These retained CDM prescriptions are evaluated with Omega_m0=0.315 and h=0.674; their original fit calibrations are not changed. Internal
             base units are Msun, Mpc and seconds; internal velocities are Mpc/s, converted at
             observable boundaries. The fitted relations and mass definitions remain model choices,
             not consequences of the shared numerical executor.
@@ -383,7 +457,7 @@ class CDMPhysics(CDMUnits):
         )
 
     def sigmaMz(self, M, z):
-        """Evaluate the linear rms density fluctuation at halo mass and redshift.
+        r"""Evaluate the linear rms density fluctuation at halo mass and redshift.
 
         Parameters
         ----------
@@ -401,7 +475,7 @@ class CDMPhysics(CDMUnits):
 
         Notes
         -----
-        These are the retained CDM prescriptions fitted for Omega_m0=0.315 and h=0.674. Internal
+        These retained CDM prescriptions are evaluated with Omega_m0=0.315 and h=0.674; their original fit calibrations are not changed. Internal
         base units are Msun, Mpc and seconds; internal velocities are Mpc/s, converted at
         observable boundaries. The fitted relations and mass definitions remain model choices,
         not consequences of the shared numerical executor.
@@ -412,7 +486,7 @@ class CDMPhysics(CDMUnits):
             return self.sigma_interp(np.log10(M / self.Msun)) * self.growthD(z)
 
     def dsdm(self, M, z):
-        """Evaluate the mass derivative of linear variance, including growth squared.
+        r"""Evaluate the mass derivative of linear variance, including growth squared.
 
         Parameters
         ----------
@@ -430,7 +504,7 @@ class CDMPhysics(CDMUnits):
 
         Notes
         -----
-        These are the retained CDM prescriptions fitted for Omega_m0=0.315 and h=0.674. Internal
+        These retained CDM prescriptions are evaluated with Omega_m0=0.315 and h=0.674; their original fit calibrations are not changed. Internal
         base units are Msun, Mpc and seconds; internal velocities are Mpc/s, converted at
         observable boundaries. The fitted relations and mass definitions remain model choices,
         not consequences of the shared numerical executor.
@@ -441,7 +515,7 @@ class CDMPhysics(CDMUnits):
             return self.dsdm_interp(np.log10(M / self.Msun)) * self.growthD(z) ** 2
 
     def sigma_Ludlow(self, M):
-        """Evaluate the retained Ludlow et al. (2016) CDM rms-fluctuation fit.
+        r"""Evaluate the retained Ludlow et al. (2016) CDM rms-fluctuation fit.
 
         Parameters
         ----------
@@ -456,14 +530,24 @@ class CDMPhysics(CDMUnits):
 
         Notes
         -----
-        These are the retained CDM prescriptions fitted for Omega_m0=0.315 and h=0.674. Internal
+        The coefficients 22.26, 1.53, 3.36 and exponents 0.292, 0.275, 0.198 are the variance
+        fit in Ludlow et al., Appendix C. Its argument uses M in solar masses divided by h.
+        Derivatives are analytic derivatives of this retained fit.
+
+        These retained CDM prescriptions are evaluated with Omega_m0=0.315 and h=0.674; their original fit calibrations are not changed. Internal
         base units are Msun, Mpc and seconds; internal velocities are Mpc/s, converted at
         observable boundaries. The fitted relations and mass definitions remain model choices,
         not consequences of the shared numerical executor.
+
+        References
+        ----------
+
+        .. [cite-ludlow] Ludlow et al. (2016), The mass-concentration-redshift relation of cold and warm dark matter haloes, Appendix C.
+            https://arxiv.org/abs/1601.02624
         """
 
         def xi(M):
-            """Form the dimensionless inverse mass used by the Ludlow variance fit.
+            r"""Form the dimensionless inverse mass used by the Ludlow variance fit.
 
             Parameters
             ----------
@@ -478,10 +562,20 @@ class CDMPhysics(CDMUnits):
 
             Notes
             -----
-            These are the retained CDM prescriptions fitted for Omega_m0=0.315 and h=0.674. Internal
+            The coefficients 22.26, 1.53, 3.36 and exponents 0.292, 0.275, 0.198 are the variance
+            fit in Ludlow et al., Appendix C. Its argument uses M in solar masses divided by h.
+            Derivatives are analytic derivatives of this retained fit.
+
+            These retained CDM prescriptions are evaluated with Omega_m0=0.315 and h=0.674; their original fit calibrations are not changed. Internal
             base units are Msun, Mpc and seconds; internal velocities are Mpc/s, converted at
             observable boundaries. The fitted relations and mass definitions remain model choices,
             not consequences of the shared numerical executor.
+
+            References
+            ----------
+
+            .. [cite-ludlow] Ludlow et al. (2016), The mass-concentration-redshift relation of cold and warm dark matter haloes, Appendix C.
+                https://arxiv.org/abs/1601.02624
             """
             return (M / ((1.0e10 * self.Msun) / self.h)) ** -1
 
@@ -492,7 +586,7 @@ class CDMPhysics(CDMUnits):
         )
 
     def dsdm_Ludlow(self, M):
-        """Differentiate the squared Ludlow rms-fluctuation fit with respect to mass.
+        r"""Differentiate the squared Ludlow rms-fluctuation fit with respect to mass.
 
         Parameters
         ----------
@@ -507,14 +601,24 @@ class CDMPhysics(CDMUnits):
 
         Notes
         -----
-        These are the retained CDM prescriptions fitted for Omega_m0=0.315 and h=0.674. Internal
+        The coefficients 22.26, 1.53, 3.36 and exponents 0.292, 0.275, 0.198 are the variance
+        fit in Ludlow et al., Appendix C. Its argument uses M in solar masses divided by h.
+        Derivatives are analytic derivatives of this retained fit.
+
+        These retained CDM prescriptions are evaluated with Omega_m0=0.315 and h=0.674; their original fit calibrations are not changed. Internal
         base units are Msun, Mpc and seconds; internal velocities are Mpc/s, converted at
         observable boundaries. The fitted relations and mass definitions remain model choices,
         not consequences of the shared numerical executor.
+
+        References
+        ----------
+
+        .. [cite-ludlow] Ludlow et al. (2016), The mass-concentration-redshift relation of cold and warm dark matter haloes, Appendix C.
+            https://arxiv.org/abs/1601.02624
         """
 
         def xi(M):
-            """Form the dimensionless inverse mass used by the analytic variance derivative.
+            r"""Form the dimensionless inverse mass used by the analytic variance derivative.
 
             Parameters
             ----------
@@ -529,10 +633,20 @@ class CDMPhysics(CDMUnits):
 
             Notes
             -----
-            These are the retained CDM prescriptions fitted for Omega_m0=0.315 and h=0.674. Internal
+            The coefficients 22.26, 1.53, 3.36 and exponents 0.292, 0.275, 0.198 are the variance
+            fit in Ludlow et al., Appendix C. Its argument uses M in solar masses divided by h.
+            Derivatives are analytic derivatives of this retained fit.
+
+            These retained CDM prescriptions are evaluated with Omega_m0=0.315 and h=0.674; their original fit calibrations are not changed. Internal
             base units are Msun, Mpc and seconds; internal velocities are Mpc/s, converted at
             observable boundaries. The fitted relations and mass definitions remain model choices,
             not consequences of the shared numerical executor.
+
+            References
+            ----------
+
+            .. [cite-ludlow] Ludlow et al. (2016), The mass-concentration-redshift relation of cold and warm dark matter haloes, Appendix C.
+                https://arxiv.org/abs/1601.02624
             """
             return (M / ((1.0e10 * self.Msun) / self.h)) ** -1
 
@@ -546,7 +660,7 @@ class CDMPhysics(CDMUnits):
         return dsdsigma * dsigmadxi * dxidm
 
     def deltac_func(self, z):
-        """Evaluate the linearly extrapolated spherical-collapse barrier for EPS.
+        r"""Evaluate the linearly extrapolated spherical-collapse barrier for EPS.
 
         Parameters
         ----------
@@ -561,15 +675,25 @@ class CDMPhysics(CDMUnits):
 
         Notes
         -----
-        These are the retained CDM prescriptions fitted for Omega_m0=0.315 and h=0.674. Internal
+        The adopted spherical-collapse barrier is delta_c(z)=1.686/D(z), as used in Ludlow et
+        al., Appendix C. This approximation is separate from any mass-dependent WDM collapse
+        correction.
+
+        These retained CDM prescriptions are evaluated with Omega_m0=0.315 and h=0.674; their original fit calibrations are not changed. Internal
         base units are Msun, Mpc and seconds; internal velocities are Mpc/s, converted at
         observable boundaries. The fitted relations and mass definitions remain model choices,
         not consequences of the shared numerical executor.
+
+        References
+        ----------
+
+        .. [cite-ludlow] Ludlow et al. (2016), The mass-concentration-redshift relation of cold and warm dark matter haloes, Appendix C.
+            https://arxiv.org/abs/1601.02624
         """
         return 1.686 / self.growthD(z)
 
     def s_func(self, M):
-        """Evaluate the present-day linear variance used throughout the EPS kernel.
+        r"""Evaluate the present-day linear variance used throughout the EPS kernel.
 
         Parameters
         ----------
@@ -584,7 +708,7 @@ class CDMPhysics(CDMUnits):
 
         Notes
         -----
-        These are the retained CDM prescriptions fitted for Omega_m0=0.315 and h=0.674. Internal
+        These retained CDM prescriptions are evaluated with Omega_m0=0.315 and h=0.674; their original fit calibrations are not changed. Internal
         base units are Msun, Mpc and seconds; internal velocities are Mpc/s, converted at
         observable boundaries. The fitted relations and mass definitions remain model choices,
         not consequences of the shared numerical executor.
@@ -592,7 +716,7 @@ class CDMPhysics(CDMUnits):
         return self.sigmaMz(M, 0) ** 2
 
     def fc(self, x):
-        """Evaluate the dimensionless NFW enclosed-mass normalization.
+        r"""Evaluate the dimensionless NFW enclosed-mass normalization.
 
         Parameters
         ----------
@@ -606,15 +730,24 @@ class CDMPhysics(CDMUnits):
 
         Notes
         -----
-        These are the retained CDM prescriptions fitted for Omega_m0=0.315 and h=0.674. Internal
+        The enclosed-mass factor ln(1+c)-c/(1+c) follows the NFW density profile. Algebraic
+        inversion tolerances concern this profile identity, not agreement with simulated halos.
+
+        These retained CDM prescriptions are evaluated with Omega_m0=0.315 and h=0.674; their original fit calibrations are not changed. Internal
         base units are Msun, Mpc and seconds; internal velocities are Mpc/s, converted at
         observable boundaries. The fitted relations and mass definitions remain model choices,
         not consequences of the shared numerical executor.
+
+        References
+        ----------
+
+        .. [cite-nfw] Navarro, Frenk & White (1997), A Universal Density Profile from Hierarchical Clustering.
+            https://arxiv.org/abs/astro-ph/9611107
         """
         return np.log(1 + x) - x * pow(1 + x, -1)
 
     def Delc(self, x):
-        """Evaluate the retained virial overdensity relative to critical density.
+        r"""Evaluate the retained virial overdensity relative to critical density.
 
         Parameters
         ----------
@@ -628,15 +761,24 @@ class CDMPhysics(CDMUnits):
 
         Notes
         -----
-        These are the retained CDM prescriptions fitted for Omega_m0=0.315 and h=0.674. Internal
+        The flat-universe expression 18*pi**2+82*x-39*x**2, x=Omega_m(z)-1, is Bryan & Norman,
+        Eq. (6); it defines overdensity relative to the critical density.
+
+        These retained CDM prescriptions are evaluated with Omega_m0=0.315 and h=0.674; their original fit calibrations are not changed. Internal
         base units are Msun, Mpc and seconds; internal velocities are Mpc/s, converted at
         observable boundaries. The fitted relations and mass definitions remain model choices,
         not consequences of the shared numerical executor.
+
+        References
+        ----------
+
+        .. [cite-virial] Bryan & Norman (1998), Statistical Properties of X-ray Clusters: Analytic and Numerical Comparisons, Eq. (6).
+            https://arxiv.org/abs/astro-ph/9710107
         """
         return 18.0 * np.pi**2 + 82.0 * x - 39.0 * x**2
 
     def conc200(self, M200, z):
-        """Evaluate the retained Correa et al. (2015) median concentration relation.
+        r"""Evaluate the retained Correa et al. (2015) median concentration relation.
 
         Parameters
         ----------
@@ -655,10 +797,20 @@ class CDMPhysics(CDMUnits):
 
         Notes
         -----
-        These are the retained CDM prescriptions fitted for Omega_m0=0.315 and h=0.674. Internal
+        The low/high-redshift concentration coefficients, with the branch at z=4, are the
+        Planck-fit formulae in Correa et al., Appendix B1. Evaluation in the adopted
+        Planck-2018-like background does not refit these earlier coefficients.
+
+        These retained CDM prescriptions are evaluated with Omega_m0=0.315 and h=0.674; their original fit calibrations are not changed. Internal
         base units are Msun, Mpc and seconds; internal velocities are Mpc/s, converted at
         observable boundaries. The fitted relations and mass definitions remain model choices,
         not consequences of the shared numerical executor.
+
+        References
+        ----------
+
+        .. [cite-correa] Correa et al. (2015), The accretion history of dark matter haloes - III. A physical model for the concentration-mass relation, Section 3 and Appendix B.
+            https://arxiv.org/abs/1502.00391
         """
         alpha_cMz_1 = 1.7543 - 0.2766 * (1.0 + z) + 0.02039 * (1.0 + z) ** 2
         beta_cMz_1 = 0.2753 + 0.00351 * (1.0 + z) - 0.3038 * (1.0 + z) ** 0.0269
@@ -676,7 +828,7 @@ class CDMPhysics(CDMUnits):
         return np.where(z <= 4.0, c_Mz_1, c_Mz_2)
 
     def Mvir_from_M200(self, M200, z):
-        """Convert M200 to virial mass by solving the same NFW enclosed-density equation.
+        r"""Convert M200 to virial mass by solving the same NFW enclosed-density equation.
 
         Parameters
         ----------
@@ -695,10 +847,19 @@ class CDMPhysics(CDMUnits):
 
         Notes
         -----
-        These are the retained CDM prescriptions fitted for Omega_m0=0.315 and h=0.674. Internal
+        The enclosed-mass factor ln(1+c)-c/(1+c) follows the NFW density profile. Algebraic
+        inversion tolerances concern this profile identity, not agreement with simulated halos.
+
+        These retained CDM prescriptions are evaluated with Omega_m0=0.315 and h=0.674; their original fit calibrations are not changed. Internal
         base units are Msun, Mpc and seconds; internal velocities are Mpc/s, converted at
         observable boundaries. The fitted relations and mass definitions remain model choices,
         not consequences of the shared numerical executor.
+
+        References
+        ----------
+
+        .. [cite-nfw] Navarro, Frenk & White (1997), A Universal Density Profile from Hierarchical Clustering.
+            https://arxiv.org/abs/astro-ph/9611107
         """
         gz = self.g(z)
         c200 = self.conc200(M200, z)
@@ -717,7 +878,7 @@ class CDMPhysics(CDMUnits):
         return Mvir
 
     def Mvir_from_M200_fit(self, M200, z):
-        """Convert M200 to virial mass with the retained fitted NFW inversion.
+        r"""Convert M200 to virial mass with the retained fitted NFW inversion.
 
         Parameters
         ----------
@@ -735,10 +896,20 @@ class CDMPhysics(CDMUnits):
 
         Notes
         -----
-        These are the retained CDM prescriptions fitted for Omega_m0=0.315 and h=0.674. Internal
+        The inverse mass-conversion approximation, including coefficients 0.5116, -0.4283,
+        -3.13e-3 and -3.52e-5 where used, is Hu & Kravtsov, Appendix C. It is an approximate NFW
+        inversion, not the exact root-solved conversion.
+
+        These retained CDM prescriptions are evaluated with Omega_m0=0.315 and h=0.674; their original fit calibrations are not changed. Internal
         base units are Msun, Mpc and seconds; internal velocities are Mpc/s, converted at
         observable boundaries. The fitted relations and mass definitions remain model choices,
         not consequences of the shared numerical executor.
+
+        References
+        ----------
+
+        .. [cite-conversion] Hu & Kravtsov (2003), Sample Variance Considerations for Cluster Surveys, Appendix C.
+            https://arxiv.org/abs/astro-ph/0203169
         """
         a1 = 0.5116
         a2 = -0.4283
@@ -747,7 +918,7 @@ class CDMPhysics(CDMUnits):
         Oz = self.OmegaM * (1.0 + z) ** 3 / self.g(z)
 
         def ffunc(x):
-            """Express NFW mean enclosed density as a function of inverse concentration.
+            r"""Express NFW mean enclosed density as a function of inverse concentration.
 
             Parameters
             ----------
@@ -761,15 +932,25 @@ class CDMPhysics(CDMUnits):
 
             Notes
             -----
-            These are the retained CDM prescriptions fitted for Omega_m0=0.315 and h=0.674. Internal
+            The inverse mass-conversion approximation, including coefficients 0.5116, -0.4283,
+            -3.13e-3 and -3.52e-5 where used, is Hu & Kravtsov, Appendix C. It is an approximate NFW
+            inversion, not the exact root-solved conversion.
+
+            These retained CDM prescriptions are evaluated with Omega_m0=0.315 and h=0.674; their original fit calibrations are not changed. Internal
             base units are Msun, Mpc and seconds; internal velocities are Mpc/s, converted at
             observable boundaries. The fitted relations and mass definitions remain model choices,
             not consequences of the shared numerical executor.
+
+            References
+            ----------
+
+            .. [cite-conversion] Hu & Kravtsov (2003), Sample Variance Considerations for Cluster Surveys, Appendix C.
+                https://arxiv.org/abs/astro-ph/0203169
             """
             return np.power(x, 3.0) * (np.log(1.0 + 1.0 / x) - 1.0 / (1.0 + x))
 
         def xfunc(f):
-            """Invert the dimensionless NFW mean-density mapping with the retained fit.
+            r"""Invert the dimensionless NFW mean-density mapping with the retained fit.
 
             Parameters
             ----------
@@ -783,10 +964,20 @@ class CDMPhysics(CDMUnits):
 
             Notes
             -----
-            These are the retained CDM prescriptions fitted for Omega_m0=0.315 and h=0.674. Internal
+            The inverse mass-conversion approximation, including coefficients 0.5116, -0.4283,
+            -3.13e-3 and -3.52e-5 where used, is Hu & Kravtsov, Appendix C. It is an approximate NFW
+            inversion, not the exact root-solved conversion.
+
+            These retained CDM prescriptions are evaluated with Omega_m0=0.315 and h=0.674; their original fit calibrations are not changed. Internal
             base units are Msun, Mpc and seconds; internal velocities are Mpc/s, converted at
             observable boundaries. The fitted relations and mass definitions remain model choices,
             not consequences of the shared numerical executor.
+
+            References
+            ----------
+
+            .. [cite-conversion] Hu & Kravtsov (2003), Sample Variance Considerations for Cluster Surveys, Appendix C.
+                https://arxiv.org/abs/astro-ph/0203169
             """
             p = a2 + a3 * np.log(f) + a4 * np.power(np.log(f), 2.0)
             return (
@@ -805,7 +996,7 @@ class CDMPhysics(CDMUnits):
         )
 
     def Mzi(self, M0, z):
-        """Evaluate the median M200 host history anchored by its z=0 mass.
+        r"""Evaluate the median M200 host history anchored by its z=0 mass.
 
         Parameters
         ----------
@@ -823,10 +1014,23 @@ class CDMPhysics(CDMUnits):
 
         Notes
         -----
-        These are the retained CDM prescriptions fitted for Omega_m0=0.315 and h=0.674. Internal
+        The mass-history coefficients, including q = 4.137 / zf**0.9476 and the polynomial for
+        zf, follow Correa et al., Section 3. Their original calibration is retained while the
+        configured background is used; changing the background does not recalibrate the fit.
+
+        These retained CDM prescriptions are evaluated with Omega_m0=0.315 and h=0.674; their original fit calibrations are not changed. Internal
         base units are Msun, Mpc and seconds; internal velocities are Mpc/s, converted at
         observable boundaries. The fitted relations and mass definitions remain model choices,
         not consequences of the shared numerical executor.
+
+        References
+        ----------
+
+        .. [cite-correa] Correa et al. (2015), The accretion history of dark matter haloes - III. A physical model for the concentration-mass relation, Section 3 and Appendix B.
+            https://arxiv.org/abs/1502.00391
+
+        .. [cite-ludlow] Ludlow et al. (2016), The mass-concentration-redshift relation of cold and warm dark matter haloes, Appendix C.
+            https://arxiv.org/abs/1601.02624
         """
         a = 1.686 * np.sqrt(2.0 / np.pi) * self.dDdz(0) + 1.0
         zf = (
@@ -839,7 +1043,7 @@ class CDMPhysics(CDMUnits):
         return M0 * np.power(1.0 + z, a * fM0) * np.exp(-fM0 * z)
 
     def Mzzi(self, M0, z, zi):
-        """Evaluate the re-anchored host history from the reference epoch zi.
+        r"""Evaluate the re-anchored host history from the reference epoch zi.
 
         Parameters
         ----------
@@ -860,10 +1064,23 @@ class CDMPhysics(CDMUnits):
 
         Notes
         -----
-        These are the retained CDM prescriptions fitted for Omega_m0=0.315 and h=0.674. Internal
+        The mass-history coefficients, including q = 4.137 / zf**0.9476 and the polynomial for
+        zf, follow Correa et al., Section 3. Their original calibration is retained while the
+        configured background is used; changing the background does not recalibrate the fit.
+
+        These retained CDM prescriptions are evaluated with Omega_m0=0.315 and h=0.674; their original fit calibrations are not changed. Internal
         base units are Msun, Mpc and seconds; internal velocities are Mpc/s, converted at
         observable boundaries. The fitted relations and mass definitions remain model choices,
         not consequences of the shared numerical executor.
+
+        References
+        ----------
+
+        .. [cite-correa] Correa et al. (2015), The accretion history of dark matter haloes - III. A physical model for the concentration-mass relation, Section 3 and Appendix B.
+            https://arxiv.org/abs/1502.00391
+
+        .. [cite-ludlow] Ludlow et al. (2016), The mass-concentration-redshift relation of cold and warm dark matter haloes, Appendix C.
+            https://arxiv.org/abs/1601.02624
         """
         Mzi0 = self.Mzi(M0, zi)
         zf = (
@@ -880,7 +1097,7 @@ class CDMPhysics(CDMUnits):
         return Mzi0 * np.power(1.0 + z - zi, alpha) * np.exp(beta * (z - zi))
 
     def dMdz(self, M0, z, zi):
-        """Evaluate the retained virial host-growth factor used by the EPS abundance.
+        r"""Evaluate the retained virial host-growth factor used by the EPS abundance.
 
         Parameters
         ----------
@@ -902,10 +1119,23 @@ class CDMPhysics(CDMUnits):
 
         Notes
         -----
-        These are the retained CDM prescriptions fitted for Omega_m0=0.315 and h=0.674. Internal
+        The mass-history coefficients, including q = 4.137 / zf**0.9476 and the polynomial for
+        zf, follow Correa et al., Section 3. Their original calibration is retained while the
+        configured background is used; changing the background does not recalibrate the fit.
+
+        These retained CDM prescriptions are evaluated with Omega_m0=0.315 and h=0.674; their original fit calibrations are not changed. Internal
         base units are Msun, Mpc and seconds; internal velocities are Mpc/s, converted at
         observable boundaries. The fitted relations and mass definitions remain model choices,
         not consequences of the shared numerical executor.
+
+        References
+        ----------
+
+        .. [cite-correa] Correa et al. (2015), The accretion history of dark matter haloes - III. A physical model for the concentration-mass relation, Section 3 and Appendix B.
+            https://arxiv.org/abs/1502.00391
+
+        .. [cite-ludlow] Ludlow et al. (2016), The mass-concentration-redshift relation of cold and warm dark matter haloes, Appendix C.
+            https://arxiv.org/abs/1601.02624
         """
         Mzi0 = self.Mzi(M0, zi)
         zf = (
@@ -925,7 +1155,7 @@ class CDMPhysics(CDMUnits):
 
 
 class CDMTidalKernels(CDMPhysics):
-    """C-owned stripping laws, coefficient tables and solver choices.
+    r"""C-owned stripping laws, coefficient tables and solver choices.
 
     Parameters
     ----------
@@ -945,7 +1175,7 @@ class CDMTidalKernels(CDMPhysics):
 
     Notes
     -----
-    These are the retained CDM prescriptions fitted for Omega_m0=0.315 and h=0.674. Internal
+    These retained CDM prescriptions are evaluated with Omega_m0=0.315 and h=0.674; their original fit calibrations are not changed. Internal
     base units are Msun, Mpc and seconds; internal velocities are Mpc/s, converted at
     observable boundaries. The fitted relations and mass definitions remain model choices,
     not consequences of the shared numerical executor.
@@ -954,7 +1184,7 @@ class CDMTidalKernels(CDMPhysics):
     def __init__(
         self, M0, z_min=0.0, z_max=7.0, n_z_interp=64, *, cosmology_backend=None
     ):
-        """Initialize the C tidal law and its host-dependent perturbative coefficient tables.
+        r"""Initialize the C tidal law and its host-dependent perturbative coefficient tables.
 
         Parameters
         ----------
@@ -974,7 +1204,7 @@ class CDMTidalKernels(CDMPhysics):
 
         Notes
         -----
-        These are the retained CDM prescriptions fitted for Omega_m0=0.315 and h=0.674. Internal
+        These retained CDM prescriptions are evaluated with Omega_m0=0.315 and h=0.674; their original fit calibrations are not changed. Internal
         base units are Msun, Mpc and seconds; internal velocities are Mpc/s, converted at
         observable boundaries. The fitted relations and mass definitions remain model choices,
         not consequences of the shared numerical executor.
@@ -988,7 +1218,7 @@ class CDMTidalKernels(CDMPhysics):
 
     @property
     def M0(self):
-        """Return the z=0 host M200 anchoring the current tidal history.
+        r"""Return the z=0 host M200 anchoring the current tidal history.
 
         Returns
         -------
@@ -997,7 +1227,7 @@ class CDMTidalKernels(CDMPhysics):
 
         Notes
         -----
-        These are the retained CDM prescriptions fitted for Omega_m0=0.315 and h=0.674. Internal
+        These retained CDM prescriptions are evaluated with Omega_m0=0.315 and h=0.674; their original fit calibrations are not changed. Internal
         base units are Msun, Mpc and seconds; internal velocities are Mpc/s, converted at
         observable boundaries. The fitted relations and mass definitions remain model choices,
         not consequences of the shared numerical executor.
@@ -1027,7 +1257,7 @@ class CDMTidalKernels(CDMPhysics):
         )
 
     def reset_interpolation(self, z_max, z_min, n_z):
-        """Rebuild the retained epsilon integrals and interpolation functions for the current host.
+        r"""Rebuild the retained epsilon integrals and interpolation functions for the current host.
 
         This function is called when the mass of the host
         halo is changed.
@@ -1044,7 +1274,7 @@ class CDMTidalKernels(CDMPhysics):
 
         Notes
         -----
-        These are the retained CDM prescriptions fitted for Omega_m0=0.315 and h=0.674. Internal
+        These retained CDM prescriptions are evaluated with Omega_m0=0.315 and h=0.674; their original fit calibrations are not changed. Internal
         base units are Msun, Mpc and seconds; internal velocities are Mpc/s, converted at
         observable boundaries. The fitted relations and mass definitions remain model choices,
         not consequences of the shared numerical executor.
@@ -1077,7 +1307,7 @@ class CDMTidalKernels(CDMPhysics):
         self.eps_33 = lambda _za, _z: self._eps_33_interp(_z) - self._eps_33_interp(_za)
 
     def Mzvir(self, z):
-        """Evaluate the virial host history used in the subhalo-to-host mass ratio.
+        r"""Evaluate the virial host history used in the subhalo-to-host mass ratio.
 
         Parameters
         ----------
@@ -1092,7 +1322,7 @@ class CDMTidalKernels(CDMPhysics):
 
         Notes
         -----
-        These are the retained CDM prescriptions fitted for Omega_m0=0.315 and h=0.674. Internal
+        These retained CDM prescriptions are evaluated with Omega_m0=0.315 and h=0.674; their original fit calibrations are not changed. Internal
         base units are Msun, Mpc and seconds; internal velocities are Mpc/s, converted at
         observable boundaries. The fitted relations and mass definitions remain model choices,
         not consequences of the shared numerical executor.
@@ -1102,7 +1332,7 @@ class CDMTidalKernels(CDMPhysics):
         return Mvir
 
     def AMz(self, z):
-        """Evaluate the fitted dimensionless amplitude of the C tidal mass-loss law.
+        r"""Evaluate the fitted dimensionless amplitude of the C tidal mass-loss law.
 
         Parameters
         ----------
@@ -1117,10 +1347,21 @@ class CDMTidalKernels(CDMPhysics):
 
         Notes
         -----
-        These are the retained CDM prescriptions fitted for Omega_m0=0.315 and h=0.674. Internal
+        The adopted A(M,z) and zeta(M,z) coefficients are Hiroshima et al., Eqs. (23)-(24),
+        calibrated for host masses 1e-6 to 1e16 solar masses and redshifts 0 to 7. Numerical
+        integration or iteration controls do not extend that calibration or bound total model
+        error.
+
+        These retained CDM prescriptions are evaluated with Omega_m0=0.315 and h=0.674; their original fit calibrations are not changed. Internal
         base units are Msun, Mpc and seconds; internal velocities are Mpc/s, converted at
         observable boundaries. The fitted relations and mass definitions remain model choices,
         not consequences of the shared numerical executor.
+
+        References
+        ----------
+
+        .. [cite-tidal] Hiroshima, Ando & Ishiyama (2018), Modeling evolution of dark matter substructure and annihilation boost, Eqs. (23)-(24).
+            https://arxiv.org/abs/1803.07691
         """
         log10a = (-0.0003 * np.log10(self.Mzvir(z) / self.Msun) + 0.02) * z + (
             0.011 * np.log10(self.Mzvir(z) / self.Msun) - 0.354
@@ -1128,7 +1369,7 @@ class CDMTidalKernels(CDMPhysics):
         return 10.0**log10a
 
     def zetaMz(self, z):
-        """Evaluate the fitted exponent of the tidal subhalo-to-host mass ratio.
+        r"""Evaluate the fitted exponent of the tidal subhalo-to-host mass ratio.
 
         Parameters
         ----------
@@ -1143,17 +1384,28 @@ class CDMTidalKernels(CDMPhysics):
 
         Notes
         -----
-        These are the retained CDM prescriptions fitted for Omega_m0=0.315 and h=0.674. Internal
+        The adopted A(M,z) and zeta(M,z) coefficients are Hiroshima et al., Eqs. (23)-(24),
+        calibrated for host masses 1e-6 to 1e16 solar masses and redshifts 0 to 7. Numerical
+        integration or iteration controls do not extend that calibration or bound total model
+        error.
+
+        These retained CDM prescriptions are evaluated with Omega_m0=0.315 and h=0.674; their original fit calibrations are not changed. Internal
         base units are Msun, Mpc and seconds; internal velocities are Mpc/s, converted at
         observable boundaries. The fitted relations and mass definitions remain model choices,
         not consequences of the shared numerical executor.
+
+        References
+        ----------
+
+        .. [cite-tidal] Hiroshima, Ando & Ishiyama (2018), Modeling evolution of dark matter substructure and annihilation boost, Eqs. (23)-(24).
+            https://arxiv.org/abs/1803.07691
         """
         return (0.00012 * np.log10(self.Mzvir(z) / self.Msun) - 0.0033) * z + (
             -0.0011 * np.log10(self.Mzvir(z) / self.Msun) + 0.026
         )
 
     def tdynz(self, z):
-        """Evaluate the virial dynamical time entering the fitted tidal loss law.
+        r"""Evaluate the virial dynamical time entering the fitted tidal loss law.
 
         Parameters
         ----------
@@ -1168,10 +1420,22 @@ class CDMTidalKernels(CDMPhysics):
 
         Notes
         -----
-        These are the retained CDM prescriptions fitted for Omega_m0=0.315 and h=0.674. Internal
+        The normalization 1.628/h Gyr and factors (Delta_vir/178)**(-1/2)*(H/H0)**(-1) are Jiang
+        & van den Bosch, Eq. (2), with Bryan--Norman virial overdensity.
+
+        These retained CDM prescriptions are evaluated with Omega_m0=0.315 and h=0.674; their original fit calibrations are not changed. Internal
         base units are Msun, Mpc and seconds; internal velocities are Mpc/s, converted at
         observable boundaries. The fitted relations and mass definitions remain model choices,
         not consequences of the shared numerical executor.
+
+        References
+        ----------
+
+        .. [cite-time] Jiang & van den Bosch (2016), Statistics of Dark Matter Substructure: I. Model and Universal Fitting Functions, Eq. (2).
+            https://arxiv.org/abs/1403.6827
+
+        .. [cite-virial] Bryan & Norman (1998), Statistical Properties of X-ray Clusters: Analytic and Numerical Comparisons, Eq. (6).
+            https://arxiv.org/abs/astro-ph/9710107
         """
         Oz_z = self.OmegaM * (1.0 + z) ** 3 / self.g(z)
         return (
@@ -1184,7 +1448,7 @@ class CDMTidalKernels(CDMPhysics):
         )
 
     def _get_picard_table(self, z_final):
-        """Return a cached x3 Picard table for the requested final redshift.
+        r"""Return a cached x3 Picard table for the requested final redshift.
 
         Parameters
         ----------
@@ -1199,7 +1463,7 @@ class CDMTidalKernels(CDMPhysics):
 
         Notes
         -----
-        These are the retained CDM prescriptions fitted for Omega_m0=0.315 and h=0.674. Internal
+        These retained CDM prescriptions are evaluated with Omega_m0=0.315 and h=0.674; their original fit calibrations are not changed. Internal
         base units are Msun, Mpc and seconds; internal velocities are Mpc/s, converted at
         observable boundaries. The fitted relations and mass definitions remain model choices,
         not consequences of the shared numerical executor.
@@ -1216,7 +1480,7 @@ class CDMTidalKernels(CDMPhysics):
         return table
 
     def subhalo_mass_stripped_picard_table(self, ma, za, z, **kwargs):
-        """Calculate tidal mass loss with the precomputed Picard table.
+        r"""Calculate tidal mass loss with the precomputed Picard table.
 
         Parameters
         ----------
@@ -1241,7 +1505,7 @@ class CDMTidalKernels(CDMPhysics):
 
         Notes
         -----
-        These are the retained CDM prescriptions fitted for Omega_m0=0.315 and h=0.674. Internal
+        These retained CDM prescriptions are evaluated with Omega_m0=0.315 and h=0.674; their original fit calibrations are not changed. Internal
         base units are Msun, Mpc and seconds; internal velocities are Mpc/s, converted at
         observable boundaries. The fitted relations and mass definitions remain model choices,
         not consequences of the shared numerical executor.
@@ -1249,7 +1513,7 @@ class CDMTidalKernels(CDMPhysics):
         return get_picard_solver(self).endpoint(ma, za, z, **kwargs)
 
     def msolve(self, m, z):
-        """Evaluate the positive redshift derivative of the bound subhalo mass.
+        r"""Evaluate the positive redshift derivative of the bound subhalo mass.
 
         Parameters
         ----------
@@ -1267,7 +1531,7 @@ class CDMTidalKernels(CDMPhysics):
 
         Notes
         -----
-        These are the retained CDM prescriptions fitted for Omega_m0=0.315 and h=0.674. Internal
+        These retained CDM prescriptions are evaluated with Omega_m0=0.315 and h=0.674; their original fit calibrations are not changed. Internal
         base units are Msun, Mpc and seconds; internal velocities are Mpc/s, converted at
         observable boundaries. The fitted relations and mass definitions remain model choices,
         not consequences of the shared numerical executor.
@@ -1280,7 +1544,7 @@ class CDMTidalKernels(CDMPhysics):
         )
 
     def subhalo_mass_stripped_odeint(self, ma, za, z0, **kwargs):
-        """Integrate the owned tidal RHS through ITAMAE's odeint controller.
+        r"""Integrate the owned tidal RHS through ITAMAE's odeint controller.
 
         Numerical options retain SciPy meanings. A supplied Dfun keeps this
         method's historical state-first signature; ITAMAE receives time first.
@@ -1310,7 +1574,7 @@ class CDMTidalKernels(CDMPhysics):
 
         Notes
         -----
-        These are the retained CDM prescriptions fitted for Omega_m0=0.315 and h=0.674. Internal
+        These retained CDM prescriptions are evaluated with Omega_m0=0.315 and h=0.674; their original fit calibrations are not changed. Internal
         base units are Msun, Mpc and seconds; internal velocities are Mpc/s, converted at
         observable boundaries. The fitted relations and mass definitions remain model choices,
         not consequences of the shared numerical executor.
@@ -1546,7 +1810,7 @@ class CDMTidalKernels(CDMPhysics):
         return _z, integral_30, integral_31, integral_32, integral_33
 
     def subhalo_mass_stripped_pert0(self, ma, za, z):
-        """Calculate subhalo mass stripping using zeroth-order perturbation.
+        r"""Calculate subhalo mass stripping using zeroth-order perturbation.
 
         Parameters
         ----------
@@ -1568,7 +1832,7 @@ class CDMTidalKernels(CDMPhysics):
 
         Notes
         -----
-        These are the retained CDM prescriptions fitted for Omega_m0=0.315 and h=0.674. Internal
+        These retained CDM prescriptions are evaluated with Omega_m0=0.315 and h=0.674; their original fit calibrations are not changed. Internal
         base units are Msun, Mpc and seconds; internal velocities are Mpc/s, converted at
         observable boundaries. The fitted relations and mass definitions remain model choices,
         not consequences of the shared numerical executor.
@@ -1577,7 +1841,7 @@ class CDMTidalKernels(CDMPhysics):
         return ma * np.exp(eps_0)
 
     def subhalo_mass_stripped_pert1(self, ma, za, z):
-        """Calculate subhalo mass stripping using first-order perturbation.
+        r"""Calculate subhalo mass stripping using first-order perturbation.
 
         Parameters
         ----------
@@ -1599,7 +1863,7 @@ class CDMTidalKernels(CDMPhysics):
 
         Notes
         -----
-        These are the retained CDM prescriptions fitted for Omega_m0=0.315 and h=0.674. Internal
+        These retained CDM prescriptions are evaluated with Omega_m0=0.315 and h=0.674; their original fit calibrations are not changed. Internal
         base units are Msun, Mpc and seconds; internal velocities are Mpc/s, converted at
         observable boundaries. The fitted relations and mass definitions remain model choices,
         not consequences of the shared numerical executor.
@@ -1612,7 +1876,7 @@ class CDMTidalKernels(CDMPhysics):
         return ma * np.exp(eps)
 
     def subhalo_mass_stripped_pert2(self, ma, za, z):
-        """Calculate subhalo mass stripping using second-order perturbation.
+        r"""Calculate subhalo mass stripping using second-order perturbation.
 
         Parameters
         ----------
@@ -1634,7 +1898,7 @@ class CDMTidalKernels(CDMPhysics):
 
         Notes
         -----
-        These are the retained CDM prescriptions fitted for Omega_m0=0.315 and h=0.674. Internal
+        These retained CDM prescriptions are evaluated with Omega_m0=0.315 and h=0.674; their original fit calibrations are not changed. Internal
         base units are Msun, Mpc and seconds; internal velocities are Mpc/s, converted at
         observable boundaries. The fitted relations and mass definitions remain model choices,
         not consequences of the shared numerical executor.
@@ -1657,7 +1921,7 @@ class CDMTidalKernels(CDMPhysics):
         return ma * np.exp(eps)
 
     def subhalo_mass_stripped_pert3(self, ma, za, z):
-        """Calculate subhalo mass stripping using third-order perturbation.
+        r"""Calculate subhalo mass stripping using third-order perturbation.
 
         Parameters
         ----------
@@ -1679,7 +1943,7 @@ class CDMTidalKernels(CDMPhysics):
 
         Notes
         -----
-        These are the retained CDM prescriptions fitted for Omega_m0=0.315 and h=0.674. Internal
+        These retained CDM prescriptions are evaluated with Omega_m0=0.315 and h=0.674; their original fit calibrations are not changed. Internal
         base units are Msun, Mpc and seconds; internal velocities are Mpc/s, converted at
         observable boundaries. The fitted relations and mass definitions remain model choices,
         not consequences of the shared numerical executor.
@@ -1710,7 +1974,7 @@ class CDMTidalKernels(CDMPhysics):
         return ma * np.exp(eps)
 
     def subhalo_mass_stripped(self, ma, za, z, method="picard_table", **kwargs):
-        """A wrapper function to calculate subhalo mass stripping.
+        r"""A wrapper function to calculate subhalo mass stripping.
 
         Parameters
         ----------
@@ -1735,7 +1999,7 @@ class CDMTidalKernels(CDMPhysics):
 
         Notes
         -----
-        These are the retained CDM prescriptions fitted for Omega_m0=0.315 and h=0.674. Internal
+        These retained CDM prescriptions are evaluated with Omega_m0=0.315 and h=0.674; their original fit calibrations are not changed. Internal
         base units are Msun, Mpc and seconds; internal velocities are Mpc/s, converted at
         observable boundaries. The fitted relations and mass definitions remain model choices,
         not consequences of the shared numerical executor.
@@ -1762,18 +2026,18 @@ class CDMTidalKernels(CDMPhysics):
 
 
 class CDMObservableKernels:
-    """Observable reductions over a previously computed named population.
+    r"""Observable reductions over a previously computed named population.
 
     Notes
     -----
-    These are the retained CDM prescriptions fitted for Omega_m0=0.315 and h=0.674. Internal
+    These retained CDM prescriptions are evaluated with Omega_m0=0.315 and h=0.674; their original fit calibrations are not changed. Internal
     base units are Msun, Mpc and seconds; internal velocities are Mpc/s, converted at
     observable boundaries. The fitted relations and mass definitions remain model choices,
     not consequences of the shared numerical executor.
     """
 
     def mass_function(self, evolved=True):
-        """Histogram the selected surviving population in present or accretion mass.
+        r"""Histogram the selected surviving population in present or accretion mass.
 
         Parameters
         ----------
@@ -1788,7 +2052,7 @@ class CDMObservableKernels:
 
         Notes
         -----
-        These are the retained CDM prescriptions fitted for Omega_m0=0.315 and h=0.674. Internal
+        These retained CDM prescriptions are evaluated with Omega_m0=0.315 and h=0.674; their original fit calibrations are not changed. Internal
         base units are Msun, Mpc and seconds; internal velocities are Mpc/s, converted at
         observable boundaries. The fitted relations and mass definitions remain model choices,
         not consequences of the shared numerical executor.
@@ -1810,7 +2074,7 @@ class CDMObservableKernels:
         return m / self.Msun, dNdlnm
 
     def Nsat_Mpeak(self, Mpeak_th):
-        """Count surviving subhalos passing the accretion-mass satellite proxy threshold.
+        r"""Count surviving subhalos passing the accretion-mass satellite proxy threshold.
 
         Parameters
         ----------
@@ -1826,7 +2090,7 @@ class CDMObservableKernels:
 
         Notes
         -----
-        These are the retained CDM prescriptions fitted for Omega_m0=0.315 and h=0.674. Internal
+        These retained CDM prescriptions are evaluated with Omega_m0=0.315 and h=0.674; their original fit calibrations are not changed. Internal
         base units are Msun, Mpc and seconds; internal velocities are Mpc/s, converted at
         observable boundaries. The fitted relations and mass definitions remain model choices,
         not consequences of the shared numerical executor.
@@ -1855,7 +2119,7 @@ class CDMObservableKernels:
         return m / self.Msun, Nccum_m, Vmax / (self.km / self.s), Nccum_Vmax
 
     def Nsat_Vpeak(self, Vpeak_th):
-        """Count surviving subhalos passing the peak-speed satellite proxy threshold.
+        r"""Count surviving subhalos passing the peak-speed satellite proxy threshold.
 
         Parameters
         ----------
@@ -1871,7 +2135,7 @@ class CDMObservableKernels:
 
         Notes
         -----
-        These are the retained CDM prescriptions fitted for Omega_m0=0.315 and h=0.674. Internal
+        These retained CDM prescriptions are evaluated with Omega_m0=0.315 and h=0.674; their original fit calibrations are not changed. Internal
         base units are Msun, Mpc and seconds; internal velocities are Mpc/s, converted at
         observable boundaries. The fitted relations and mass definitions remain model choices,
         not consequences of the shared numerical executor.
@@ -1900,7 +2164,7 @@ class CDMObservableKernels:
         return m / self.Msun, Nccum_m, Vmax / (self.km / self.s), Nccum_Vmax
 
     def mass_fraction(self, evolved=True):
-        """Sum the selected subhalo masses relative to the host M200 at the target epoch.
+        r"""Sum the selected subhalo masses relative to the host M200 at the target epoch.
 
         Parameters
         ----------
@@ -1916,7 +2180,7 @@ class CDMObservableKernels:
 
         Notes
         -----
-        These are the retained CDM prescriptions fitted for Omega_m0=0.315 and h=0.674. Internal
+        These retained CDM prescriptions are evaluated with Omega_m0=0.315 and h=0.674; their original fit calibrations are not changed. Internal
         base units are Msun, Mpc and seconds; internal velocities are Mpc/s, converted at
         observable boundaries. The fitted relations and mass definitions remain model choices,
         not consequences of the shared numerical executor.
@@ -1933,7 +2197,7 @@ class CDMObservableKernels:
     def annihilation_boost_factor(
         self, n=0, evolved=True, *, allow_incomplete_tables=False
     ):
-        """Integrate the NFW annihilation luminosity of subhalos and optional recursive
+        r"""Integrate the NFW annihilation luminosity of subhalos and optional recursive
         substructure.
 
         Parameters
@@ -1955,7 +2219,7 @@ class CDMObservableKernels:
 
         Notes
         -----
-        These are the retained CDM prescriptions fitted for Omega_m0=0.315 and h=0.674. Internal
+        These retained CDM prescriptions are evaluated with Omega_m0=0.315 and h=0.674; their original fit calibrations are not changed. Internal
         base units are Msun, Mpc and seconds; internal velocities are Mpc/s, converted at
         observable boundaries. The fitted relations and mass definitions remain model choices,
         not consequences of the shared numerical executor.
@@ -2046,7 +2310,7 @@ class CDMObservableKernels:
     def annihilation_boost_factor_prompt_cusps(
         self, n=0, f_surv=1.0, f_surv_stripped=1.0, *, allow_incomplete_tables=False
     ):
-        """Add bound and stripped prompt-cusp luminosities to the recursive subhalo boost.
+        r"""Add bound and stripped prompt-cusp luminosities to the recursive subhalo boost.
 
         Parameters
         ----------
@@ -2071,7 +2335,7 @@ class CDMObservableKernels:
 
         Notes
         -----
-        These are the retained CDM prescriptions fitted for Omega_m0=0.315 and h=0.674. Internal
+        These retained CDM prescriptions are evaluated with Omega_m0=0.315 and h=0.674; their original fit calibrations are not changed. Internal
         base units are Msun, Mpc and seconds; internal velocities are Mpc/s, converted at
         observable boundaries. The fitted relations and mass definitions remain model choices,
         not consequences of the shared numerical executor.
@@ -2211,7 +2475,7 @@ class CDMObservableKernels:
         )
 
     def subhalo_catalog_MC(self, mth, *, rng=None, seed=None):
-        """Draw independent Poisson multiplicities for surviving nodes above a bound-mass
+        r"""Draw independent Poisson multiplicities for surviving nodes above a bound-mass
         threshold.
 
         Parameters
@@ -2234,7 +2498,7 @@ class CDMObservableKernels:
 
         Notes
         -----
-        These are the retained CDM prescriptions fitted for Omega_m0=0.315 and h=0.674. Internal
+        These retained CDM prescriptions are evaluated with Omega_m0=0.315 and h=0.674; their original fit calibrations are not changed. Internal
         base units are Msun, Mpc and seconds; internal velocities are Mpc/s, converted at
         observable boundaries. The fitted relations and mass definitions remain model choices,
         not consequences of the shared numerical executor.

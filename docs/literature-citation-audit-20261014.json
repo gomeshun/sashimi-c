@@ -1,0 +1,3441 @@
+{
+  "audit_started": "2026-10-14 UTC",
+  "audit_completed_at": "2026-10-14T15:03:15.532608+00:00",
+  "code_before_citation_edit": "53523abbd0cb863fb7af1bdf2fd9abe700385970",
+  "comparison_baseline": {
+    "kind": "author upstream/main",
+    "sha": "e07ef8fa13503bd80818995c0d366311104fb644"
+  },
+  "active_definitions_inventoried": 238,
+  "changed_docstrings": 90,
+  "changed_with_local_references": 59,
+  "local_test_cases_passed": 116,
+  "executable_ast_differences": [],
+  "reference_files_changed": [],
+  "method": "Source-qualified AST inventory including private/nested definitions, existing-attribution and direct-literal screening, followed by primary-paper equation/table matching. Generic numerical controls and fixed regressions are not treated as empirical calibration. Inventory counts alone do not prove scientific correctness.",
+  "limits": [
+    "Prompt-cusp a_kd=5.3e-12 is retained from the author implementation. The cited papers establish the thermal benchmark, but the exact numerical provenance of this scale factor was not independently recovered. Its source remains unresolved, explicitly in the class and constructor docstrings.",
+    "Correa concentration/history and Ludlow variance fits retain their original calibrations while the adopted background uses rounded Planck-2018 parameters. Misleading descriptions of a new Planck-2018 calibration were removed.",
+    "The concentration scatter 0.128 dex is the z=0, 1e9-1e10 Msun value in Ishiyama et al.; using it across mass/redshift is an assumption. C defaults to ct_th=0, so the literature threshold 0.77 is not falsely described as its active default.",
+    "The historical prompt-cusp calculation assumes a nonempty collapsed sample. This documentation audit does not repair its empty-sample path."
+  ],
+  "references": {
+    "bbks": [
+      "Bardeen, Bond, Kaiser & Szalay (1986), The Statistics of Peaks of Gaussian Random Fields, Appendix A.",
+      "https://doi.org/10.1086/164143"
+    ],
+    "conversion": [
+      "Hu & Kravtsov (2003), Sample Variance Considerations for Cluster Surveys, Appendix C.",
+      "https://arxiv.org/abs/astro-ph/0203169"
+    ],
+    "correa": [
+      "Correa et al. (2015), The accretion history of dark matter haloes - III. A physical model for the concentration-mass relation, Section 3 and Appendix B.",
+      "https://arxiv.org/abs/1502.00391"
+    ],
+    "delos": [
+      "Delos & White (2023), Prompt cusps and the dark matter annihilation signal.",
+      "https://arxiv.org/abs/2209.11237"
+    ],
+    "ellipsoid": [
+      "Sheth, Mo & Tormen (2001), Ellipsoidal collapse and an improved model for the number and spatial distribution of dark matter haloes, Eq. (3), Appendix A.",
+      "https://arxiv.org/abs/astro-ph/9907024"
+    ],
+    "growth": [
+      "Carroll, Press & Turner (1992), The Cosmological Constant, Section 3.5.",
+      "https://doi.org/10.1146/annurev.aa.30.090192.002435"
+    ],
+    "ludlow": [
+      "Ludlow et al. (2016), The mass-concentration-redshift relation of cold and warm dark matter haloes, Appendix C.",
+      "https://arxiv.org/abs/1601.02624"
+    ],
+    "nfw": [
+      "Navarro, Frenk & White (1997), A Universal Density Profile from Hierarchical Clustering.",
+      "https://arxiv.org/abs/astro-ph/9611107"
+    ],
+    "parkinson": [
+      "Parkinson, Cole & Helly (2008), Generating Dark Matter Halo Merger Trees, Section 3.1.",
+      "https://arxiv.org/abs/0708.1382"
+    ],
+    "planck": [
+      "Planck Collaboration (2020), Planck 2018 results. VI. Cosmological parameters, Table 2.",
+      "https://arxiv.org/abs/1807.06209"
+    ],
+    "prompt": [
+      "Ando, Moro-Gonzalez & Li (2026), Prompt cusps in hierarchical dark matter halos: Implications for annihilation boost, Sections 2.1-2.3.",
+      "https://arxiv.org/abs/2601.19863"
+    ],
+    "scatter": [
+      "Ishiyama et al. (2013), The Cosmogrid Simulation: Statistical Properties of Small Dark Matter Halos, Eq. (7), Fig. 10.",
+      "https://arxiv.org/abs/1101.2020"
+    ],
+    "structure": [
+      "Hiroshima, Ando & Ishiyama (2018), Modeling evolution of dark matter substructure and annihilation boost, Section II, Eqs. (5)-(9).",
+      "https://arxiv.org/abs/1803.07691"
+    ],
+    "stucker": [
+      "Stucker et al. (2023), The effect of stellar encounters on the dark matter annihilation signal from prompt cusps.",
+      "https://arxiv.org/abs/2301.04670"
+    ],
+    "survival": [
+      "Hayashi et al. (2003), The Structural Evolution of Substructure.",
+      "https://arxiv.org/abs/astro-ph/0203004"
+    ],
+    "tidal": [
+      "Hiroshima, Ando & Ishiyama (2018), Modeling evolution of dark matter substructure and annihilation boost, Eqs. (23)-(24).",
+      "https://arxiv.org/abs/1803.07691"
+    ],
+    "time": [
+      "Jiang & van den Bosch (2016), Statistics of Dark Matter Substructure: I. Model and Universal Fitting Functions, Eq. (2).",
+      "https://arxiv.org/abs/1403.6827"
+    ],
+    "tracks": [
+      "Penarrubia et al. (2010), The impact of dark matter cusps and cores on the satellite galaxy population around spiral galaxies, Eq. (8), Fig. 6.",
+      "https://arxiv.org/abs/1002.3376"
+    ],
+    "virial": [
+      "Bryan & Norman (1998), Statistical Properties of X-ray Clusters: Analytic and Numerical Comparisons, Eq. (6).",
+      "https://arxiv.org/abs/astro-ph/9710107"
+    ],
+    "yang": [
+      "Yang et al. (2011), An Analytical Model for the Accretion of Dark Matter Subhalos, Eqs. (12)-(14), (21).",
+      "https://arxiv.org/abs/1104.1757"
+    ]
+  },
+  "definitions": [
+    {
+      "repo": "sashimi-c",
+      "file": "benchmarks/benchmark_picard_tidal_stripping.py",
+      "name": "reference_log_ode_mass",
+      "kind": "FunctionDef",
+      "line": 25,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "benchmarks/benchmark_picard_tidal_stripping.py",
+      "name": "main",
+      "kind": "FunctionDef",
+      "line": 92,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "benchmarks/benchmark_picard_tidal_stripping.py",
+      "name": "reference_log_ode_mass.rhs",
+      "kind": "FunctionDef",
+      "line": 55,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "scripts/picard_sync_comparison.py",
+      "name": "max_relative",
+      "kind": "FunctionDef",
+      "line": 34,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "scripts/picard_sync_comparison.py",
+      "name": "build_report",
+      "kind": "FunctionDef",
+      "line": 60,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "scripts/picard_sync_comparison.py",
+      "name": "main",
+      "kind": "FunctionDef",
+      "line": 152,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "scripts/prepare_family_manifest.py",
+      "name": "prepare",
+      "kind": "FunctionDef",
+      "line": 17,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "scripts/prepare_family_manifest.py",
+      "name": "main",
+      "kind": "FunctionDef",
+      "line": 126,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "scripts/tests/test_family_manifest.py",
+      "name": "FamilyManifestTests",
+      "kind": "ClassDef",
+      "line": 22,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "scripts/tests/test_family_manifest.py",
+      "name": "FamilyManifestTests.setUp",
+      "kind": "FunctionDef",
+      "line": 32,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "scripts/tests/test_family_manifest.py",
+      "name": "FamilyManifestTests.git",
+      "kind": "FunctionDef",
+      "line": 86,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "scripts/tests/test_family_manifest.py",
+      "name": "FamilyManifestTests.prepare",
+      "kind": "FunctionDef",
+      "line": 109,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "scripts/tests/test_family_manifest.py",
+      "name": "FamilyManifestTests.test_candidate_only_replaces_one_revision_and_records_base",
+      "kind": "FunctionDef",
+      "line": 132,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "scripts/tests/test_family_manifest.py",
+      "name": "FamilyManifestTests.test_coordinated_core_candidate_is_recorded_without_changing_other_siblings",
+      "kind": "FunctionDef",
+      "line": 158,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "scripts/tests/test_family_manifest.py",
+      "name": "FamilyManifestTests.test_coordinated_overrides_are_immutable_and_unambiguous",
+      "kind": "FunctionDef",
+      "line": 183,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "scripts/tests/test_family_manifest.py",
+      "name": "FamilyManifestTests.test_promoted_mode_keeps_every_canonical_revision",
+      "kind": "FunctionDef",
+      "line": 207,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "scripts/tests/test_family_manifest.py",
+      "name": "FamilyManifestTests.test_c_candidate_keeps_f_and_other_sibling_revisions",
+      "kind": "FunctionDef",
+      "line": 223,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "scripts/tests/test_family_manifest.py",
+      "name": "FamilyManifestTests.test_refuses_canonical_output_path",
+      "kind": "FunctionDef",
+      "line": 245,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "scripts/tests/test_family_manifest.py",
+      "name": "FamilyManifestTests.test_rejects_non_immutable_candidate_ref",
+      "kind": "FunctionDef",
+      "line": 267,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "scripts/tests/test_family_manifest.py",
+      "name": "FamilyManifestTests.test_non_candidate_gitlink_mismatch_fails_before_output",
+      "kind": "FunctionDef",
+      "line": 287,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "scripts/tests/test_family_manifest.py",
+      "name": "FamilyManifestTests.test_candidate_base_mismatch_is_not_hidden_by_override",
+      "kind": "FunctionDef",
+      "line": 316,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "scripts/tests/test_family_manifest.py",
+      "name": "FamilyManifestTests.test_wrong_candidate_wheel_provenance_is_rejected",
+      "kind": "FunctionDef",
+      "line": 336,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "setup.py",
+      "name": "_valid_revision",
+      "kind": "FunctionDef",
+      "line": 19,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "setup.py",
+      "name": "_existing_revision",
+      "kind": "FunctionDef",
+      "line": 44,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "setup.py",
+      "name": "_git_checkout_revision",
+      "kind": "FunctionDef",
+      "line": 76,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "setup.py",
+      "name": "_resolve_revision",
+      "kind": "FunctionDef",
+      "line": 118,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "setup.py",
+      "name": "_ProvenanceBuildPy",
+      "kind": "ClassDef",
+      "line": 160,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "setup.py",
+      "name": "_ProvenanceSdist",
+      "kind": "ClassDef",
+      "line": 220,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "setup.py",
+      "name": "_ProvenanceSdist.make_release_tree",
+      "kind": "FunctionDef",
+      "line": 230,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "setup.py",
+      "name": "_ProvenanceBuildPy.run",
+      "kind": "FunctionDef",
+      "line": 172,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "setup.py",
+      "name": "_ProvenanceBuildPy.get_outputs",
+      "kind": "FunctionDef",
+      "line": 193,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/__init__.py",
+      "name": "StrippingDiagnostics",
+      "kind": "ClassDef",
+      "line": 56,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/__init__.py",
+      "name": "TidalStrippingSolver",
+      "kind": "ClassDef",
+      "line": 202,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/__init__.py",
+      "name": "SubhaloProperties",
+      "kind": "ClassDef",
+      "line": 263,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/__init__.py",
+      "name": "SubhaloObservables",
+      "kind": "ClassDef",
+      "line": 1081,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/__init__.py",
+      "name": "diagnose_stripping_approximation",
+      "kind": "FunctionDef",
+      "line": 1335,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/__init__.py",
+      "name": "SubhaloObservables.__init__",
+      "kind": "FunctionDef",
+      "line": 1155,
+      "archived": false,
+      "outcome": "local_paper_references_added_or_completed",
+      "reference_keys": [
+        "nfw",
+        "structure",
+        "scatter",
+        "survival",
+        "prompt"
+      ],
+      "paper_urls": [
+        "https://arxiv.org/abs/1101.2020",
+        "https://arxiv.org/abs/1803.07691",
+        "https://arxiv.org/abs/2601.19863",
+        "https://arxiv.org/abs/astro-ph/0203004",
+        "https://arxiv.org/abs/astro-ph/9611107"
+      ]
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/__init__.py",
+      "name": "SubhaloProperties.Ffunc",
+      "kind": "FunctionDef",
+      "line": 274,
+      "archived": false,
+      "outcome": "local_paper_references_added_or_completed",
+      "reference_keys": [
+        "yang"
+      ],
+      "paper_urls": [
+        "https://arxiv.org/abs/1104.1757"
+      ]
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/__init__.py",
+      "name": "SubhaloProperties.Gfunc",
+      "kind": "FunctionDef",
+      "line": 313,
+      "archived": false,
+      "outcome": "local_paper_references_added_or_completed",
+      "reference_keys": [
+        "parkinson",
+        "yang"
+      ],
+      "paper_urls": [
+        "https://arxiv.org/abs/0708.1382",
+        "https://arxiv.org/abs/1104.1757"
+      ]
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/__init__.py",
+      "name": "SubhaloProperties.Ffunc_Yang",
+      "kind": "FunctionDef",
+      "line": 359,
+      "archived": false,
+      "outcome": "local_paper_references_added_or_completed",
+      "reference_keys": [
+        "yang"
+      ],
+      "paper_urls": [
+        "https://arxiv.org/abs/1104.1757"
+      ]
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/__init__.py",
+      "name": "SubhaloProperties._normalized_yang_kernel",
+      "kind": "FunctionDef",
+      "line": 407,
+      "archived": false,
+      "outcome": "local_paper_references_added_or_completed",
+      "reference_keys": [
+        "yang"
+      ],
+      "paper_urls": [
+        "https://arxiv.org/abs/1104.1757"
+      ]
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/__init__.py",
+      "name": "SubhaloProperties.Na_calc",
+      "kind": "FunctionDef",
+      "line": 479,
+      "archived": false,
+      "outcome": "local_paper_references_added_or_completed",
+      "reference_keys": [
+        "yang"
+      ],
+      "paper_urls": [
+        "https://arxiv.org/abs/1104.1757"
+      ]
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/__init__.py",
+      "name": "SubhaloProperties.subhalo_catalog_calc",
+      "kind": "FunctionDef",
+      "line": 629,
+      "archived": false,
+      "outcome": "local_paper_references_added_or_completed",
+      "reference_keys": [
+        "scatter",
+        "structure",
+        "survival"
+      ],
+      "paper_urls": [
+        "https://arxiv.org/abs/1101.2020",
+        "https://arxiv.org/abs/1803.07691",
+        "https://arxiv.org/abs/astro-ph/0203004"
+      ]
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/__init__.py",
+      "name": "SubhaloProperties._validate_catalog_inputs",
+      "kind": "FunctionDef",
+      "line": 903,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/__init__.py",
+      "name": "SubhaloProperties.subhalo_properties_calc",
+      "kind": "FunctionDef",
+      "line": 1015,
+      "archived": false,
+      "outcome": "local_paper_references_added_or_completed",
+      "reference_keys": [
+        "scatter",
+        "structure",
+        "survival"
+      ],
+      "paper_urls": [
+        "https://arxiv.org/abs/1101.2020",
+        "https://arxiv.org/abs/1803.07691",
+        "https://arxiv.org/abs/astro-ph/0203004"
+      ]
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/__init__.py",
+      "name": "TidalStrippingSolver.subhalo_mass_stripped_pert2_shanks",
+      "kind": "FunctionDef",
+      "line": 213,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/__init__.py",
+      "name": "StrippingDiagnostics.__post_init__",
+      "kind": "FunctionDef",
+      "line": 128,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/__init__.py",
+      "name": "StrippingDiagnostics.max_relative_difference",
+      "kind": "FunctionDef",
+      "line": 155,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/__init__.py",
+      "name": "StrippingDiagnostics.summary",
+      "kind": "FunctionDef",
+      "line": 172,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/_boost.py",
+      "name": "validate_order",
+      "kind": "FunctionDef",
+      "line": 31,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/_boost.py",
+      "name": "model_contract",
+      "kind": "FunctionDef",
+      "line": 51,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/_boost.py",
+      "name": "interpolate_boost_tables",
+      "kind": "FunctionDef",
+      "line": 93,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/_boost.py",
+      "name": "generate_boost_tables",
+      "kind": "FunctionDef",
+      "line": 289,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/_boost.py",
+      "name": "generation_cli",
+      "kind": "FunctionDef",
+      "line": 546,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/_boost.py",
+      "name": "interpolate_boost_tables.read",
+      "kind": "FunctionDef",
+      "line": 174,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/_data.py",
+      "name": "data_directory",
+      "kind": "FunctionDef",
+      "line": 9,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/_data.py",
+      "name": "require_input",
+      "kind": "FunctionDef",
+      "line": 41,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/_itamae_components.py",
+      "name": "CDMAccretionSlices",
+      "kind": "ClassDef",
+      "line": 22,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/_itamae_components.py",
+      "name": "NFWInitialStructure",
+      "kind": "ClassDef",
+      "line": 126,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/_itamae_components.py",
+      "name": "TidalProfileEvolution",
+      "kind": "ClassDef",
+      "line": 196,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/_itamae_components.py",
+      "name": "CDMCatalogColumns",
+      "kind": "ClassDef",
+      "line": 322,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/_itamae_components.py",
+      "name": "TruncationThresholdSurvival",
+      "kind": "ClassDef",
+      "line": 378,
+      "archived": false,
+      "outcome": "local_paper_references_added_or_completed",
+      "reference_keys": [
+        "survival",
+        "structure"
+      ],
+      "paper_urls": [
+        "https://arxiv.org/abs/1803.07691",
+        "https://arxiv.org/abs/astro-ph/0203004"
+      ]
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/_itamae_components.py",
+      "name": "TruncationThresholdSurvival.select",
+      "kind": "FunctionDef",
+      "line": 415,
+      "archived": false,
+      "outcome": "local_paper_references_added_or_completed",
+      "reference_keys": [
+        "survival",
+        "structure"
+      ],
+      "paper_urls": [
+        "https://arxiv.org/abs/1803.07691",
+        "https://arxiv.org/abs/astro-ph/0203004"
+      ]
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/_itamae_components.py",
+      "name": "CDMCatalogColumns.build",
+      "kind": "FunctionDef",
+      "line": 332,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/_itamae_components.py",
+      "name": "TidalProfileEvolution.evolve",
+      "kind": "FunctionDef",
+      "line": 237,
+      "archived": false,
+      "outcome": "local_paper_references_added_or_completed",
+      "reference_keys": [
+        "tracks",
+        "structure",
+        "nfw"
+      ],
+      "paper_urls": [
+        "https://arxiv.org/abs/1002.3376",
+        "https://arxiv.org/abs/1803.07691",
+        "https://arxiv.org/abs/astro-ph/9611107"
+      ]
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/_itamae_components.py",
+      "name": "NFWInitialStructure.initialize",
+      "kind": "FunctionDef",
+      "line": 148,
+      "archived": false,
+      "outcome": "local_paper_references_added_or_completed",
+      "reference_keys": [
+        "nfw",
+        "structure"
+      ],
+      "paper_urls": [
+        "https://arxiv.org/abs/1803.07691",
+        "https://arxiv.org/abs/astro-ph/9611107"
+      ]
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/_itamae_components.py",
+      "name": "CDMAccretionSlices.build",
+      "kind": "FunctionDef",
+      "line": 58,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/_itamae_variance.py",
+      "name": "make_variance_model",
+      "kind": "FunctionDef",
+      "line": 17,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/_physics.py",
+      "name": "CDMUnits",
+      "kind": "ClassDef",
+      "line": 33,
+      "archived": false,
+      "outcome": "documentation_clarified_without_new_paper_values",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/_physics.py",
+      "name": "CDMPhysics",
+      "kind": "ClassDef",
+      "line": 67,
+      "archived": false,
+      "outcome": "local_paper_references_added_or_completed",
+      "reference_keys": [
+        "planck",
+        "prompt"
+      ],
+      "paper_urls": [
+        "https://arxiv.org/abs/1807.06209",
+        "https://arxiv.org/abs/2601.19863"
+      ]
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/_physics.py",
+      "name": "CDMTidalKernels",
+      "kind": "ClassDef",
+      "line": 1157,
+      "archived": false,
+      "outcome": "documentation_clarified_without_new_paper_values",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/_physics.py",
+      "name": "CDMObservableKernels",
+      "kind": "ClassDef",
+      "line": 2028,
+      "archived": false,
+      "outcome": "documentation_clarified_without_new_paper_values",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/_physics.py",
+      "name": "CDMObservableKernels.mass_function",
+      "kind": "FunctionDef",
+      "line": 2039,
+      "archived": false,
+      "outcome": "documentation_clarified_without_new_paper_values",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/_physics.py",
+      "name": "CDMObservableKernels.Nsat_Mpeak",
+      "kind": "FunctionDef",
+      "line": 2076,
+      "archived": false,
+      "outcome": "documentation_clarified_without_new_paper_values",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/_physics.py",
+      "name": "CDMObservableKernels.Nsat_Vpeak",
+      "kind": "FunctionDef",
+      "line": 2121,
+      "archived": false,
+      "outcome": "documentation_clarified_without_new_paper_values",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/_physics.py",
+      "name": "CDMObservableKernels.mass_fraction",
+      "kind": "FunctionDef",
+      "line": 2166,
+      "archived": false,
+      "outcome": "documentation_clarified_without_new_paper_values",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/_physics.py",
+      "name": "CDMObservableKernels.annihilation_boost_factor",
+      "kind": "FunctionDef",
+      "line": 2197,
+      "archived": false,
+      "outcome": "documentation_clarified_without_new_paper_values",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/_physics.py",
+      "name": "CDMObservableKernels.annihilation_boost_factor_prompt_cusps",
+      "kind": "FunctionDef",
+      "line": 2310,
+      "archived": false,
+      "outcome": "documentation_clarified_without_new_paper_values",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/_physics.py",
+      "name": "CDMObservableKernels.subhalo_catalog_MC",
+      "kind": "FunctionDef",
+      "line": 2477,
+      "archived": false,
+      "outcome": "documentation_clarified_without_new_paper_values",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/_physics.py",
+      "name": "CDMTidalKernels.__init__",
+      "kind": "FunctionDef",
+      "line": 1184,
+      "archived": false,
+      "outcome": "documentation_clarified_without_new_paper_values",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/_physics.py",
+      "name": "CDMTidalKernels.M0",
+      "kind": "FunctionDef",
+      "line": 1238,
+      "archived": false,
+      "outcome": "documentation_clarified_without_new_paper_values",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/_physics.py",
+      "name": "CDMTidalKernels.M0",
+      "kind": "FunctionDef",
+      "line": 1238,
+      "archived": false,
+      "outcome": "documentation_clarified_without_new_paper_values",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/_physics.py",
+      "name": "CDMTidalKernels.reset_interpolation",
+      "kind": "FunctionDef",
+      "line": 1259,
+      "archived": false,
+      "outcome": "documentation_clarified_without_new_paper_values",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/_physics.py",
+      "name": "CDMTidalKernels.Mzvir",
+      "kind": "FunctionDef",
+      "line": 1309,
+      "archived": false,
+      "outcome": "documentation_clarified_without_new_paper_values",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/_physics.py",
+      "name": "CDMTidalKernels.AMz",
+      "kind": "FunctionDef",
+      "line": 1334,
+      "archived": false,
+      "outcome": "local_paper_references_added_or_completed",
+      "reference_keys": [
+        "tidal"
+      ],
+      "paper_urls": [
+        "https://arxiv.org/abs/1803.07691"
+      ]
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/_physics.py",
+      "name": "CDMTidalKernels.zetaMz",
+      "kind": "FunctionDef",
+      "line": 1371,
+      "archived": false,
+      "outcome": "local_paper_references_added_or_completed",
+      "reference_keys": [
+        "tidal"
+      ],
+      "paper_urls": [
+        "https://arxiv.org/abs/1803.07691"
+      ]
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/_physics.py",
+      "name": "CDMTidalKernels.tdynz",
+      "kind": "FunctionDef",
+      "line": 1407,
+      "archived": false,
+      "outcome": "local_paper_references_added_or_completed",
+      "reference_keys": [
+        "time",
+        "virial"
+      ],
+      "paper_urls": [
+        "https://arxiv.org/abs/1403.6827",
+        "https://arxiv.org/abs/astro-ph/9710107"
+      ]
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/_physics.py",
+      "name": "CDMTidalKernels._get_picard_table",
+      "kind": "FunctionDef",
+      "line": 1450,
+      "archived": false,
+      "outcome": "documentation_clarified_without_new_paper_values",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/_physics.py",
+      "name": "CDMTidalKernels.subhalo_mass_stripped_picard_table",
+      "kind": "FunctionDef",
+      "line": 1482,
+      "archived": false,
+      "outcome": "documentation_clarified_without_new_paper_values",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/_physics.py",
+      "name": "CDMTidalKernels.msolve",
+      "kind": "FunctionDef",
+      "line": 1515,
+      "archived": false,
+      "outcome": "documentation_clarified_without_new_paper_values",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/_physics.py",
+      "name": "CDMTidalKernels.subhalo_mass_stripped_odeint",
+      "kind": "FunctionDef",
+      "line": 1546,
+      "archived": false,
+      "outcome": "documentation_clarified_without_new_paper_values",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/_physics.py",
+      "name": "CDMTidalKernels.Phi",
+      "kind": "FunctionDef",
+      "line": 1600,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/_physics.py",
+      "name": "CDMTidalKernels._eps_0",
+      "kind": "FunctionDef",
+      "line": 1621,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/_physics.py",
+      "name": "CDMTidalKernels._eps_1",
+      "kind": "FunctionDef",
+      "line": 1653,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/_physics.py",
+      "name": "CDMTidalKernels._eps_2",
+      "kind": "FunctionDef",
+      "line": 1696,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/_physics.py",
+      "name": "CDMTidalKernels._eps_3",
+      "kind": "FunctionDef",
+      "line": 1746,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/_physics.py",
+      "name": "CDMTidalKernels.subhalo_mass_stripped_pert0",
+      "kind": "FunctionDef",
+      "line": 1812,
+      "archived": false,
+      "outcome": "documentation_clarified_without_new_paper_values",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/_physics.py",
+      "name": "CDMTidalKernels.subhalo_mass_stripped_pert1",
+      "kind": "FunctionDef",
+      "line": 1843,
+      "archived": false,
+      "outcome": "documentation_clarified_without_new_paper_values",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/_physics.py",
+      "name": "CDMTidalKernels.subhalo_mass_stripped_pert2",
+      "kind": "FunctionDef",
+      "line": 1878,
+      "archived": false,
+      "outcome": "documentation_clarified_without_new_paper_values",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/_physics.py",
+      "name": "CDMTidalKernels.subhalo_mass_stripped_pert3",
+      "kind": "FunctionDef",
+      "line": 1923,
+      "archived": false,
+      "outcome": "documentation_clarified_without_new_paper_values",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/_physics.py",
+      "name": "CDMTidalKernels.subhalo_mass_stripped",
+      "kind": "FunctionDef",
+      "line": 1976,
+      "archived": false,
+      "outcome": "documentation_clarified_without_new_paper_values",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/_physics.py",
+      "name": "CDMPhysics.__init__",
+      "kind": "FunctionDef",
+      "line": 115,
+      "archived": false,
+      "outcome": "local_paper_references_added_or_completed",
+      "reference_keys": [
+        "planck",
+        "prompt"
+      ],
+      "paper_urls": [
+        "https://arxiv.org/abs/1807.06209",
+        "https://arxiv.org/abs/2601.19863"
+      ]
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/_physics.py",
+      "name": "CDMPhysics._synchronize_physics_constants",
+      "kind": "FunctionDef",
+      "line": 197,
+      "archived": false,
+      "outcome": "local_paper_references_added_or_completed",
+      "reference_keys": [
+        "planck"
+      ],
+      "paper_urls": [
+        "https://arxiv.org/abs/1807.06209"
+      ]
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/_physics.py",
+      "name": "CDMPhysics._validate_migration_cosmology",
+      "kind": "FunctionDef",
+      "line": 227,
+      "archived": false,
+      "outcome": "local_paper_references_added_or_completed",
+      "reference_keys": [
+        "planck"
+      ],
+      "paper_urls": [
+        "https://arxiv.org/abs/1807.06209"
+      ]
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/_physics.py",
+      "name": "CDMPhysics.Hubble",
+      "kind": "FunctionDef",
+      "line": 271,
+      "archived": false,
+      "outcome": "documentation_clarified_without_new_paper_values",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/_physics.py",
+      "name": "CDMPhysics.rhocrit",
+      "kind": "FunctionDef",
+      "line": 294,
+      "archived": false,
+      "outcome": "documentation_clarified_without_new_paper_values",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/_physics.py",
+      "name": "CDMPhysics.growthD",
+      "kind": "FunctionDef",
+      "line": 319,
+      "archived": false,
+      "outcome": "local_paper_references_added_or_completed",
+      "reference_keys": [
+        "growth"
+      ],
+      "paper_urls": [
+        "https://doi.org/10.1146/annurev.aa.30.090192.002435"
+      ]
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/_physics.py",
+      "name": "CDMPhysics.g",
+      "kind": "FunctionDef",
+      "line": 352,
+      "archived": false,
+      "outcome": "documentation_clarified_without_new_paper_values",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/_physics.py",
+      "name": "CDMPhysics.dDdz",
+      "kind": "FunctionDef",
+      "line": 375,
+      "archived": false,
+      "outcome": "local_paper_references_added_or_completed",
+      "reference_keys": [
+        "growth"
+      ],
+      "paper_urls": [
+        "https://doi.org/10.1146/annurev.aa.30.090192.002435"
+      ]
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/_physics.py",
+      "name": "CDMPhysics.sigmaMz",
+      "kind": "FunctionDef",
+      "line": 459,
+      "archived": false,
+      "outcome": "documentation_clarified_without_new_paper_values",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/_physics.py",
+      "name": "CDMPhysics.dsdm",
+      "kind": "FunctionDef",
+      "line": 488,
+      "archived": false,
+      "outcome": "documentation_clarified_without_new_paper_values",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/_physics.py",
+      "name": "CDMPhysics.sigma_Ludlow",
+      "kind": "FunctionDef",
+      "line": 517,
+      "archived": false,
+      "outcome": "local_paper_references_added_or_completed",
+      "reference_keys": [
+        "ludlow"
+      ],
+      "paper_urls": [
+        "https://arxiv.org/abs/1601.02624"
+      ]
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/_physics.py",
+      "name": "CDMPhysics.dsdm_Ludlow",
+      "kind": "FunctionDef",
+      "line": 588,
+      "archived": false,
+      "outcome": "local_paper_references_added_or_completed",
+      "reference_keys": [
+        "ludlow"
+      ],
+      "paper_urls": [
+        "https://arxiv.org/abs/1601.02624"
+      ]
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/_physics.py",
+      "name": "CDMPhysics.deltac_func",
+      "kind": "FunctionDef",
+      "line": 662,
+      "archived": false,
+      "outcome": "local_paper_references_added_or_completed",
+      "reference_keys": [
+        "ludlow"
+      ],
+      "paper_urls": [
+        "https://arxiv.org/abs/1601.02624"
+      ]
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/_physics.py",
+      "name": "CDMPhysics.s_func",
+      "kind": "FunctionDef",
+      "line": 695,
+      "archived": false,
+      "outcome": "documentation_clarified_without_new_paper_values",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/_physics.py",
+      "name": "CDMPhysics.fc",
+      "kind": "FunctionDef",
+      "line": 718,
+      "archived": false,
+      "outcome": "local_paper_references_added_or_completed",
+      "reference_keys": [
+        "nfw"
+      ],
+      "paper_urls": [
+        "https://arxiv.org/abs/astro-ph/9611107"
+      ]
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/_physics.py",
+      "name": "CDMPhysics.Delc",
+      "kind": "FunctionDef",
+      "line": 749,
+      "archived": false,
+      "outcome": "local_paper_references_added_or_completed",
+      "reference_keys": [
+        "virial"
+      ],
+      "paper_urls": [
+        "https://arxiv.org/abs/astro-ph/9710107"
+      ]
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/_physics.py",
+      "name": "CDMPhysics.conc200",
+      "kind": "FunctionDef",
+      "line": 780,
+      "archived": false,
+      "outcome": "local_paper_references_added_or_completed",
+      "reference_keys": [
+        "correa"
+      ],
+      "paper_urls": [
+        "https://arxiv.org/abs/1502.00391"
+      ]
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/_physics.py",
+      "name": "CDMPhysics.Mvir_from_M200",
+      "kind": "FunctionDef",
+      "line": 830,
+      "archived": false,
+      "outcome": "local_paper_references_added_or_completed",
+      "reference_keys": [
+        "nfw"
+      ],
+      "paper_urls": [
+        "https://arxiv.org/abs/astro-ph/9611107"
+      ]
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/_physics.py",
+      "name": "CDMPhysics.Mvir_from_M200_fit",
+      "kind": "FunctionDef",
+      "line": 880,
+      "archived": false,
+      "outcome": "local_paper_references_added_or_completed",
+      "reference_keys": [
+        "conversion"
+      ],
+      "paper_urls": [
+        "https://arxiv.org/abs/astro-ph/0203169"
+      ]
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/_physics.py",
+      "name": "CDMPhysics.Mzi",
+      "kind": "FunctionDef",
+      "line": 998,
+      "archived": false,
+      "outcome": "local_paper_references_added_or_completed",
+      "reference_keys": [
+        "correa",
+        "ludlow"
+      ],
+      "paper_urls": [
+        "https://arxiv.org/abs/1502.00391",
+        "https://arxiv.org/abs/1601.02624"
+      ]
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/_physics.py",
+      "name": "CDMPhysics.Mzzi",
+      "kind": "FunctionDef",
+      "line": 1045,
+      "archived": false,
+      "outcome": "local_paper_references_added_or_completed",
+      "reference_keys": [
+        "correa",
+        "ludlow"
+      ],
+      "paper_urls": [
+        "https://arxiv.org/abs/1502.00391",
+        "https://arxiv.org/abs/1601.02624"
+      ]
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/_physics.py",
+      "name": "CDMPhysics.dMdz",
+      "kind": "FunctionDef",
+      "line": 1099,
+      "archived": false,
+      "outcome": "local_paper_references_added_or_completed",
+      "reference_keys": [
+        "correa",
+        "ludlow"
+      ],
+      "paper_urls": [
+        "https://arxiv.org/abs/1502.00391",
+        "https://arxiv.org/abs/1601.02624"
+      ]
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/_physics.py",
+      "name": "CDMPhysics.Mvir_from_M200_fit.ffunc",
+      "kind": "FunctionDef",
+      "line": 920,
+      "archived": false,
+      "outcome": "local_paper_references_added_or_completed",
+      "reference_keys": [
+        "conversion"
+      ],
+      "paper_urls": [
+        "https://arxiv.org/abs/astro-ph/0203169"
+      ]
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/_physics.py",
+      "name": "CDMPhysics.Mvir_from_M200_fit.xfunc",
+      "kind": "FunctionDef",
+      "line": 952,
+      "archived": false,
+      "outcome": "local_paper_references_added_or_completed",
+      "reference_keys": [
+        "conversion"
+      ],
+      "paper_urls": [
+        "https://arxiv.org/abs/astro-ph/0203169"
+      ]
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/_physics.py",
+      "name": "CDMPhysics.dsdm_Ludlow.xi",
+      "kind": "FunctionDef",
+      "line": 620,
+      "archived": false,
+      "outcome": "local_paper_references_added_or_completed",
+      "reference_keys": [
+        "ludlow"
+      ],
+      "paper_urls": [
+        "https://arxiv.org/abs/1601.02624"
+      ]
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/_physics.py",
+      "name": "CDMPhysics.sigma_Ludlow.xi",
+      "kind": "FunctionDef",
+      "line": 549,
+      "archived": false,
+      "outcome": "local_paper_references_added_or_completed",
+      "reference_keys": [
+        "ludlow"
+      ],
+      "paper_urls": [
+        "https://arxiv.org/abs/1601.02624"
+      ]
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/_physics.py",
+      "name": "CDMPhysics.dDdz.dOdz",
+      "kind": "FunctionDef",
+      "line": 407,
+      "archived": false,
+      "outcome": "documentation_clarified_without_new_paper_values",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/_physics.py",
+      "name": "CDMUnits.__init__",
+      "kind": "FunctionDef",
+      "line": 44,
+      "archived": false,
+      "outcome": "documentation_clarified_without_new_paper_values",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/boost_iteration.py",
+      "name": "main",
+      "kind": "FunctionDef",
+      "line": 6,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/boost_iteration_prompt_cusps.py",
+      "name": "main",
+      "kind": "FunctionDef",
+      "line": 6,
+      "archived": false,
+      "outcome": "local_paper_references_added_or_completed",
+      "reference_keys": [
+        "prompt"
+      ],
+      "paper_urls": [
+        "https://arxiv.org/abs/2601.19863"
+      ]
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/picard_tidal_stripping.py",
+      "name": "physics_key",
+      "kind": "FunctionDef",
+      "line": 13,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/picard_tidal_stripping.py",
+      "name": "get_picard_solver",
+      "kind": "FunctionDef",
+      "line": 92,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/picard_tidal_stripping.py",
+      "name": "PicardTidalStrippingTable",
+      "kind": "ClassDef",
+      "line": 131,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/picard_tidal_stripping.py",
+      "name": "PicardTidalStrippingTable.__init__",
+      "kind": "FunctionDef",
+      "line": 154,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/picard_tidal_stripping.py",
+      "name": "physics_key.inputs",
+      "kind": "FunctionDef",
+      "line": 40,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/prompt_cusps.py",
+      "name": "build_ps_interpolators",
+      "kind": "FunctionDef",
+      "line": 30,
+      "archived": false,
+      "outcome": "local_paper_references_added_or_completed",
+      "reference_keys": [
+        "prompt"
+      ],
+      "paper_urls": [
+        "https://arxiv.org/abs/2601.19863"
+      ]
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/prompt_cusps.py",
+      "name": "prompt_cusps",
+      "kind": "ClassDef",
+      "line": 166,
+      "archived": false,
+      "outcome": "local_paper_references_added_or_completed",
+      "reference_keys": [
+        "prompt",
+        "delos",
+        "stucker"
+      ],
+      "paper_urls": [
+        "https://arxiv.org/abs/2209.11237",
+        "https://arxiv.org/abs/2301.04670",
+        "https://arxiv.org/abs/2601.19863"
+      ]
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/prompt_cusps.py",
+      "name": "prompt_cusps.__init__",
+      "kind": "FunctionDef",
+      "line": 212,
+      "archived": false,
+      "outcome": "local_paper_references_added_or_completed",
+      "reference_keys": [
+        "prompt",
+        "delos",
+        "stucker"
+      ],
+      "paper_urls": [
+        "https://arxiv.org/abs/2209.11237",
+        "https://arxiv.org/abs/2301.04670",
+        "https://arxiv.org/abs/2601.19863"
+      ]
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/prompt_cusps.py",
+      "name": "prompt_cusps.powerspectrum",
+      "kind": "FunctionDef",
+      "line": 256,
+      "archived": false,
+      "outcome": "local_paper_references_added_or_completed",
+      "reference_keys": [
+        "prompt"
+      ],
+      "paper_urls": [
+        "https://arxiv.org/abs/2601.19863"
+      ]
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/prompt_cusps.py",
+      "name": "prompt_cusps.sigma_function",
+      "kind": "FunctionDef",
+      "line": 299,
+      "archived": false,
+      "outcome": "local_paper_references_added_or_completed",
+      "reference_keys": [
+        "prompt",
+        "bbks"
+      ],
+      "paper_urls": [
+        "https://arxiv.org/abs/2601.19863",
+        "https://doi.org/10.1086/164143"
+      ]
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/prompt_cusps.py",
+      "name": "prompt_cusps.cusps_Monte_Carlo",
+      "kind": "FunctionDef",
+      "line": 353,
+      "archived": false,
+      "outcome": "local_paper_references_added_or_completed",
+      "reference_keys": [
+        "prompt",
+        "bbks",
+        "ellipsoid"
+      ],
+      "paper_urls": [
+        "https://arxiv.org/abs/2601.19863",
+        "https://arxiv.org/abs/astro-ph/9907024",
+        "https://doi.org/10.1086/164143"
+      ]
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/prompt_cusps.py",
+      "name": "prompt_cusps._load_or_generate_prompt_cusp_mc",
+      "kind": "FunctionDef",
+      "line": 660,
+      "archived": false,
+      "outcome": "local_paper_references_added_or_completed",
+      "reference_keys": [
+        "prompt"
+      ],
+      "paper_urls": [
+        "https://arxiv.org/abs/2601.19863"
+      ]
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/prompt_cusps.py",
+      "name": "prompt_cusps.cusp_properties",
+      "kind": "FunctionDef",
+      "line": 741,
+      "archived": false,
+      "outcome": "local_paper_references_added_or_completed",
+      "reference_keys": [
+        "prompt",
+        "bbks",
+        "delos",
+        "stucker"
+      ],
+      "paper_urls": [
+        "https://arxiv.org/abs/2209.11237",
+        "https://arxiv.org/abs/2301.04670",
+        "https://arxiv.org/abs/2601.19863",
+        "https://doi.org/10.1086/164143"
+      ]
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/prompt_cusps.py",
+      "name": "prompt_cusps.cusp_properties.f_x",
+      "kind": "FunctionDef",
+      "line": 821,
+      "archived": false,
+      "outcome": "local_paper_references_added_or_completed",
+      "reference_keys": [
+        "prompt",
+        "bbks"
+      ],
+      "paper_urls": [
+        "https://arxiv.org/abs/2601.19863",
+        "https://doi.org/10.1086/164143"
+      ]
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/prompt_cusps.py",
+      "name": "prompt_cusps.cusp_properties.ddn",
+      "kind": "FunctionDef",
+      "line": 858,
+      "archived": false,
+      "outcome": "local_paper_references_added_or_completed",
+      "reference_keys": [
+        "prompt",
+        "bbks"
+      ],
+      "paper_urls": [
+        "https://arxiv.org/abs/2601.19863",
+        "https://doi.org/10.1086/164143"
+      ]
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/prompt_cusps.py",
+      "name": "prompt_cusps.cusp_properties.n_peaks",
+      "kind": "FunctionDef",
+      "line": 898,
+      "archived": false,
+      "outcome": "local_paper_references_added_or_completed",
+      "reference_keys": [
+        "prompt",
+        "bbks"
+      ],
+      "paper_urls": [
+        "https://arxiv.org/abs/2601.19863",
+        "https://doi.org/10.1086/164143"
+      ]
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/prompt_cusps.py",
+      "name": "prompt_cusps.cusps_Monte_Carlo.f_x",
+      "kind": "FunctionDef",
+      "line": 410,
+      "archived": false,
+      "outcome": "local_paper_references_added_or_completed",
+      "reference_keys": [
+        "prompt",
+        "bbks"
+      ],
+      "paper_urls": [
+        "https://arxiv.org/abs/2601.19863",
+        "https://doi.org/10.1086/164143"
+      ]
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/prompt_cusps.py",
+      "name": "prompt_cusps.cusps_Monte_Carlo.d2n_dnudx",
+      "kind": "FunctionDef",
+      "line": 451,
+      "archived": false,
+      "outcome": "local_paper_references_added_or_completed",
+      "reference_keys": [
+        "prompt",
+        "bbks"
+      ],
+      "paper_urls": [
+        "https://arxiv.org/abs/2601.19863",
+        "https://doi.org/10.1086/164143"
+      ]
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/prompt_cusps.py",
+      "name": "prompt_cusps.cusps_Monte_Carlo.draw_u",
+      "kind": "FunctionDef",
+      "line": 526,
+      "archived": false,
+      "outcome": "local_paper_references_added_or_completed",
+      "reference_keys": [
+        "prompt",
+        "ellipsoid"
+      ],
+      "paper_urls": [
+        "https://arxiv.org/abs/2601.19863",
+        "https://arxiv.org/abs/astro-ph/9907024"
+      ]
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/prompt_cusps.py",
+      "name": "prompt_cusps.cusps_Monte_Carlo.fec_fun",
+      "kind": "FunctionDef",
+      "line": 599,
+      "archived": false,
+      "outcome": "local_paper_references_added_or_completed",
+      "reference_keys": [
+        "prompt",
+        "ellipsoid"
+      ],
+      "paper_urls": [
+        "https://arxiv.org/abs/2601.19863",
+        "https://arxiv.org/abs/astro-ph/9907024"
+      ]
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/prompt_cusps.py",
+      "name": "build_ps_interpolators.sigma_calc",
+      "kind": "FunctionDef",
+      "line": 72,
+      "archived": false,
+      "outcome": "local_paper_references_added_or_completed",
+      "reference_keys": [
+        "prompt"
+      ],
+      "paper_urls": [
+        "https://arxiv.org/abs/2601.19863"
+      ]
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/prompt_cusps.py",
+      "name": "build_ps_interpolators.dsdm_calc",
+      "kind": "FunctionDef",
+      "line": 115,
+      "archived": false,
+      "outcome": "local_paper_references_added_or_completed",
+      "reference_keys": [
+        "prompt"
+      ],
+      "paper_urls": [
+        "https://arxiv.org/abs/2601.19863"
+      ]
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_boost_inputs.py",
+      "name": "frozen_boost",
+      "kind": "FunctionDef",
+      "line": 19,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_boost_inputs.py",
+      "name": "prepare",
+      "kind": "FunctionDef",
+      "line": 62,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_boost_inputs.py",
+      "name": "test_positive_table_result_is_unchanged_outside_source",
+      "kind": "FunctionDef",
+      "line": 125,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_boost_inputs.py",
+      "name": "test_wrong_physical_table_contract_fails",
+      "kind": "FunctionDef",
+      "line": 173,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_boost_inputs.py",
+      "name": "test_table_corruption_fails",
+      "kind": "FunctionDef",
+      "line": 206,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_boost_inputs.py",
+      "name": "test_out_of_domain_is_not_silently_replaced_with_zero",
+      "kind": "FunctionDef",
+      "line": 233,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_boost_inputs.py",
+      "name": "test_zero_log_table_is_not_silently_replaced_with_zero",
+      "kind": "FunctionDef",
+      "line": 261,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_boost_inputs.py",
+      "name": "test_invalid_order_fails_before_file_access",
+      "kind": "FunctionDef",
+      "line": 293,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_boost_inputs.py",
+      "name": "test_generator_records_reproducible_inputs_and_refuses_overwrite",
+      "kind": "FunctionDef",
+      "line": 322,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_boost_inputs.py",
+      "name": "test_failed_generator_leaves_no_partial_table",
+      "kind": "FunctionDef",
+      "line": 369,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_boost_inputs.py",
+      "name": "test_explicit_approximation_retains_frozen_results_and_reports_invalid_points",
+      "kind": "FunctionDef",
+      "line": 408,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_boost_inputs.py",
+      "name": "test_generator_can_explicitly_preserve_incomplete_hierarchy",
+      "kind": "FunctionDef",
+      "line": 461,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_boost_inputs.py",
+      "name": "test_generator_preserves_only_the_documented_zero_width_boundary",
+      "kind": "FunctionDef",
+      "line": 507,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_build_source_identity.py",
+      "name": "resolve",
+      "kind": "FunctionDef",
+      "line": 24,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_build_source_identity.py",
+      "name": "git",
+      "kind": "FunctionDef",
+      "line": 46,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_build_source_identity.py",
+      "name": "repository",
+      "kind": "FunctionDef",
+      "line": 73,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_build_source_identity.py",
+      "name": "archive",
+      "kind": "FunctionDef",
+      "line": 114,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_build_source_identity.py",
+      "name": "test_archive_in_unrelated_repository_keeps_embedded_revision",
+      "kind": "FunctionDef",
+      "line": 141,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_build_source_identity.py",
+      "name": "test_unidentified_export_rejects_enclosing_repository",
+      "kind": "FunctionDef",
+      "line": 165,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_build_source_identity.py",
+      "name": "test_exact_source_checkout_uses_own_revision",
+      "kind": "FunctionDef",
+      "line": 191,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_build_source_identity.py",
+      "name": "test_archive_rejects_conflicting_explicit_revision",
+      "kind": "FunctionDef",
+      "line": 213,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_build_source_identity.py",
+      "name": "test_exact_checkout_rejects_conflicting_explicit_revision",
+      "kind": "FunctionDef",
+      "line": 242,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_build_source_identity.py",
+      "name": "test_malformed_explicit_revision_does_not_silently_fall_back",
+      "kind": "FunctionDef",
+      "line": 270,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_build_source_identity.py",
+      "name": "test_matching_explicit_archive_revision_is_allowed",
+      "kind": "FunctionDef",
+      "line": 300,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_eps_normalized_limit.py",
+      "name": "test_normalized_yang_kernel_against_independent_definite_integral",
+      "kind": "FunctionDef",
+      "line": 11,
+      "archived": false,
+      "outcome": "local_paper_references_added_or_completed",
+      "reference_keys": [
+        "yang"
+      ],
+      "paper_urls": [
+        "https://arxiv.org/abs/1104.1757"
+      ]
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_eps_normalized_limit.py",
+      "name": "test_host_quadrature_refinement_includes_finite_zero_gap_nodes",
+      "kind": "FunctionDef",
+      "line": 50,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_eps_normalized_limit.py",
+      "name": "test_invalid_active_variance_is_not_replaced_by_zero",
+      "kind": "FunctionDef",
+      "line": 76,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_eps_normalized_limit.py",
+      "name": "test_zero_width_normalization_support_has_no_runtime_warning",
+      "kind": "FunctionDef",
+      "line": 115,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_itamae_components.py",
+      "name": "test_truncation_threshold_survival_preserves_strict_legacy_cut",
+      "kind": "FunctionDef",
+      "line": 14,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_itamae_components.py",
+      "name": "test_cdm_stages_preserve_node_identity_and_initial_enclosed_mass",
+      "kind": "FunctionDef",
+      "line": 42,
+      "archived": false,
+      "outcome": "local_paper_references_added_or_completed",
+      "reference_keys": [
+        "scatter",
+        "structure"
+      ],
+      "paper_urls": [
+        "https://arxiv.org/abs/1101.2020",
+        "https://arxiv.org/abs/1803.07691"
+      ]
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_itamae_components.py",
+      "name": "test_cdm_stages_preserve_node_identity_and_initial_enclosed_mass.HalfMassSolver",
+      "kind": "ClassDef",
+      "line": 96,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_itamae_components.py",
+      "name": "test_cdm_stages_preserve_node_identity_and_initial_enclosed_mass.HalfMassSolver.subhalo_mass_stripped",
+      "kind": "FunctionDef",
+      "line": 110,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_itamae_migration.py",
+      "name": "test_golden_fixture_provenance_is_complete",
+      "kind": "FunctionDef",
+      "line": 35,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_itamae_migration.py",
+      "name": "test_itamae_concentration_quadrature_is_normalized",
+      "kind": "FunctionDef",
+      "line": 69,
+      "archived": false,
+      "outcome": "local_paper_references_added_or_completed",
+      "reference_keys": [
+        "scatter",
+        "structure"
+      ],
+      "paper_urls": [
+        "https://arxiv.org/abs/1101.2020",
+        "https://arxiv.org/abs/1803.07691"
+      ]
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_itamae_migration.py",
+      "name": "test_catalog_satisfies_mass_profile_and_weight_invariants",
+      "kind": "FunctionDef",
+      "line": 110,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_itamae_migration.py",
+      "name": "test_migration_rejects_mixed_cosmology",
+      "kind": "FunctionDef",
+      "line": 164,
+      "archived": false,
+      "outcome": "local_paper_references_added_or_completed",
+      "reference_keys": [
+        "planck"
+      ],
+      "paper_urls": [
+        "https://arxiv.org/abs/1807.06209"
+      ]
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_itamae_migration.py",
+      "name": "test_catalog_rejects_unphysical_inputs",
+      "kind": "FunctionDef",
+      "line": 209,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_itamae_migration.py",
+      "name": "_catalog_summary",
+      "kind": "FunctionDef",
+      "line": 249,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_itamae_migration.py",
+      "name": "_observable_summary",
+      "kind": "FunctionDef",
+      "line": 284,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_itamae_migration.py",
+      "name": "test_full_catalog_and_observables_match_preserved_consistent_golden",
+      "kind": "FunctionDef",
+      "line": 346,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_itamae_migration.py",
+      "name": "test_catalog_metadata_records_mode_solver_weights_and_threshold",
+      "kind": "FunctionDef",
+      "line": 390,
+      "archived": false,
+      "outcome": "local_paper_references_added_or_completed",
+      "reference_keys": [
+        "planck"
+      ],
+      "paper_urls": [
+        "https://arxiv.org/abs/1807.06209"
+      ]
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_itamae_migration.py",
+      "name": "test_shanks_vs_ode_diagnostic_does_not_change_defaults",
+      "kind": "FunctionDef",
+      "line": 509,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_itamae_migration.py",
+      "name": "test_migration_imports_do_not_monkeypatch_legacy_globals",
+      "kind": "FunctionDef",
+      "line": 562,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_itamae_variance.py",
+      "name": "test_c_variance_adapter_matches_legacy_model",
+      "kind": "FunctionDef",
+      "line": 9,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_picard_migration_sync.py",
+      "name": "test_historical_reference_remains_explicit_and_shanks_based",
+      "kind": "FunctionDef",
+      "line": 35,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_picard_migration_sync.py",
+      "name": "test_public_default_uses_shared_picard",
+      "kind": "FunctionDef",
+      "line": 60,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_picard_migration_sync.py",
+      "name": "test_picard_table_is_explicit_cached_and_invalidated_with_host_mass",
+      "kind": "FunctionDef",
+      "line": 81,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_picard_migration_sync.py",
+      "name": "test_optional_picard_compares_at_full_catalog_level",
+      "kind": "FunctionDef",
+      "line": 107,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_picard_migration_sync.py",
+      "name": "test_optional_picard_compares_at_observable_level",
+      "kind": "FunctionDef",
+      "line": 156,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_picard_state_identity.py",
+      "name": "AnalyticHost",
+      "kind": "ClassDef",
+      "line": 10,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_picard_state_identity.py",
+      "name": "test_unchanged_host_reuses_table_and_preserves_analytic_mass",
+      "kind": "FunctionDef",
+      "line": 101,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_picard_state_identity.py",
+      "name": "test_mutation_rejects_retained_table_and_rebuilds_owned_cache",
+      "kind": "FunctionDef",
+      "line": 124,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_picard_state_identity.py",
+      "name": "test_real_solver_mass_setter_and_legacy_table_rejection",
+      "kind": "FunctionDef",
+      "line": 165,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_picard_state_identity.py",
+      "name": "test_cache_fields_do_not_change_identity_and_provider_hook_covers_hidden_state",
+      "kind": "FunctionDef",
+      "line": 191,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_picard_state_identity.py",
+      "name": "test_cosmology_replacement_and_mutable_scalar_state_are_detected",
+      "kind": "FunctionDef",
+      "line": 218,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_picard_state_identity.py",
+      "name": "AnalyticHost.__init__",
+      "kind": "FunctionDef",
+      "line": 22,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_picard_state_identity.py",
+      "name": "AnalyticHost.Mzvir",
+      "kind": "FunctionDef",
+      "line": 37,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_picard_state_identity.py",
+      "name": "AnalyticHost.zetaMz",
+      "kind": "FunctionDef",
+      "line": 58,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_picard_state_identity.py",
+      "name": "AnalyticHost.Phi",
+      "kind": "FunctionDef",
+      "line": 79,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_picard_tidal_stripping.py",
+      "name": "solver",
+      "kind": "FunctionDef",
+      "line": 10,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_picard_tidal_stripping.py",
+      "name": "picard3",
+      "kind": "FunctionDef",
+      "line": 27,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_picard_tidal_stripping.py",
+      "name": "reference_log_ode_mass",
+      "kind": "FunctionDef",
+      "line": 58,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_picard_tidal_stripping.py",
+      "name": "test_picard3_matches_log_ode_reference",
+      "kind": "FunctionDef",
+      "line": 127,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_picard_tidal_stripping.py",
+      "name": "test_three_iterations_improve_challenging_high_redshift_case",
+      "kind": "FunctionDef",
+      "line": 161,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_picard_tidal_stripping.py",
+      "name": "test_vectorized_lookup_and_range_checks",
+      "kind": "FunctionDef",
+      "line": 202,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_picard_tidal_stripping.py",
+      "name": "reference_log_ode_mass.rhs",
+      "kind": "FunctionDef",
+      "line": 88,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_runtime_inputs.py",
+      "name": "observable",
+      "kind": "FunctionDef",
+      "line": 11,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_runtime_inputs.py",
+      "name": "test_seeded_mc_does_not_consume_global_random_state",
+      "kind": "FunctionDef",
+      "line": 30,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_runtime_inputs.py",
+      "name": "test_mc_empty_population_and_rng_validation",
+      "kind": "FunctionDef",
+      "line": 63,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_runtime_inputs.py",
+      "name": "test_missing_prompt_spectra_raise_explicit_errors",
+      "kind": "FunctionDef",
+      "line": 90,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_shared_picard.py",
+      "name": "test_public_default_covers_off_grid_masses_and_redshifts",
+      "kind": "FunctionDef",
+      "line": 11,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_shared_picard.py",
+      "name": "test_solver_options_are_applied_and_recorded_by_catalog",
+      "kind": "FunctionDef",
+      "line": 34,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_shared_picard.py",
+      "name": "test_fallback_is_recorded_and_unknown_options_are_rejected",
+      "kind": "FunctionDef",
+      "line": 68,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_shared_tidal_ode.py",
+      "name": "solver",
+      "kind": "FunctionDef",
+      "line": 11,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_shared_tidal_ode.py",
+      "name": "test_tidal_solver_preserves_direct_scipy_values",
+      "kind": "FunctionDef",
+      "line": 28,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_shared_tidal_ode.py",
+      "name": "test_zero_evolution_preserves_initial_masses",
+      "kind": "FunctionDef",
+      "line": 58,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_shared_tidal_ode.py",
+      "name": "test_failed_integration_does_not_return_mass_values",
+      "kind": "FunctionDef",
+      "line": 83,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_shared_tidal_ode.py",
+      "name": "test_state_first_jacobian_adapter_preserves_stiff_solution",
+      "kind": "FunctionDef",
+      "line": 107,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_shared_tidal_ode.py",
+      "name": "test_state_first_jacobian_adapter_preserves_stiff_solution.rhs",
+      "kind": "FunctionDef",
+      "line": 133,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_shared_tidal_ode.py",
+      "name": "test_state_first_jacobian_adapter_preserves_stiff_solution.jacobian",
+      "kind": "FunctionDef",
+      "line": 160,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_standard_api.py",
+      "name": "test_corrected_full_catalog_matches_independent_reference_b",
+      "kind": "FunctionDef",
+      "line": 31,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_standard_api.py",
+      "name": "test_removed_mode_cannot_select_a_hidden_calculation",
+      "kind": "FunctionDef",
+      "line": 69,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_standard_api.py",
+      "name": "test_standard_import_and_tuple_conversion_use_the_same_population",
+      "kind": "FunctionDef",
+      "line": 100,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_standard_api.py",
+      "name": "test_cosmology_units_and_growth_derivative_are_consistent",
+      "kind": "FunctionDef",
+      "line": 138,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_standard_api.py",
+      "name": "test_target_redshift_host_mass_keeps_the_recorded_mass_definition",
+      "kind": "FunctionDef",
+      "line": 166,
+      "archived": false,
+      "outcome": "no_additional_paper_value_reference_identified",
+      "reference_keys": [],
+      "paper_urls": []
+    }
+  ],
+  "source_identity_checks": [
+    {
+      "repo": "sashimi-c",
+      "file": "benchmarks/benchmark_picard_tidal_stripping.py",
+      "source_before_sha256": "b746231e87cf3201d1a891ca7c4bc18aeebf96face6f630485eb9f22e0c11781",
+      "source_after_sha256": "b746231e87cf3201d1a891ca7c4bc18aeebf96face6f630485eb9f22e0c11781",
+      "executable_ast_sha256": "ece8bb93f43670ba93fe24fbf96ef68ae04fc84cc5fe3f7b6c987cf524db1ce2",
+      "executable_ast_equal": true,
+      "historical_archive": false
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "scripts/execute_walkthrough.py",
+      "source_before_sha256": "cdbf9c127817183b717b2494fabb1efc4fae73bcd5bd97e56cae8a962a1310e4",
+      "source_after_sha256": "cdbf9c127817183b717b2494fabb1efc4fae73bcd5bd97e56cae8a962a1310e4",
+      "executable_ast_sha256": "9e0e9d969aa472c777246d9dea0a56e01fd195ea8fddd34708ad063991d9e93b",
+      "executable_ast_equal": true,
+      "historical_archive": false
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "scripts/picard_sync_comparison.py",
+      "source_before_sha256": "1270d2a3d143019f2fb9bfc5fc3be4a048ae1475c73860776bed1d307b86ddd8",
+      "source_after_sha256": "1270d2a3d143019f2fb9bfc5fc3be4a048ae1475c73860776bed1d307b86ddd8",
+      "executable_ast_sha256": "df7dc0008f2a95883915a17b291139e1d5badc11baea0fccf6bdb4214b9fb33f",
+      "executable_ast_equal": true,
+      "historical_archive": false
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "scripts/prepare_family_manifest.py",
+      "source_before_sha256": "b920c4471ddbea51d7268d8e441715e7c1572a0ada9d97b98b045880ed67def1",
+      "source_after_sha256": "b920c4471ddbea51d7268d8e441715e7c1572a0ada9d97b98b045880ed67def1",
+      "executable_ast_sha256": "e6f9ac1b4fb6d1910773a32025cc1d505bcb38f5bd1c4ffe8822205b6692c2c2",
+      "executable_ast_equal": true,
+      "historical_archive": false
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "scripts/tests/test_family_manifest.py",
+      "source_before_sha256": "3076dbf8378adfe5e3f52c797ed648f2be8b32a8753450964c6dad72d32879b4",
+      "source_after_sha256": "3076dbf8378adfe5e3f52c797ed648f2be8b32a8753450964c6dad72d32879b4",
+      "executable_ast_sha256": "e32b7a8a06e9e3702d2d5513daf38eb82564bafd789e45ff2784195c194b2787",
+      "executable_ast_equal": true,
+      "historical_archive": false
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "setup.py",
+      "source_before_sha256": "209fd8d6216e8a03f19affb492589003b492423f075d05891fd45a5ff857fc81",
+      "source_after_sha256": "209fd8d6216e8a03f19affb492589003b492423f075d05891fd45a5ff857fc81",
+      "executable_ast_sha256": "be30861eb9a580c71de53ae85fcb6f492ee4fdf8fe096755320730e23a0bfe73",
+      "executable_ast_equal": true,
+      "historical_archive": false
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/boost_iteration.py",
+      "source_before_sha256": "5a1a58375897772e75387a2309ba6a9e5bbe5b5be33c9b25e607415d0513aaed",
+      "source_after_sha256": "5a1a58375897772e75387a2309ba6a9e5bbe5b5be33c9b25e607415d0513aaed",
+      "executable_ast_sha256": "ac5aca3cf79f876b692c17336cb5928cd3a8e068504855080abf1fd03e286a35",
+      "executable_ast_equal": true,
+      "historical_archive": false
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/boost_iteration_prompt_cusps.py",
+      "source_before_sha256": "91b1740224a0ead597475dff1fa1011316173377cad53146a987b8a23cd5ec22",
+      "source_after_sha256": "91b1740224a0ead597475dff1fa1011316173377cad53146a987b8a23cd5ec22",
+      "executable_ast_sha256": "a11befec000150344d11fe8b279b4c09f64c42968ec82a768b86f026e964eca8",
+      "executable_ast_equal": true,
+      "historical_archive": false
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/picard_tidal_stripping.py",
+      "source_before_sha256": "f2ca98547ffb21637343a8bb70921b500aec75336ad55f5c2289e051b270066c",
+      "source_after_sha256": "f2ca98547ffb21637343a8bb70921b500aec75336ad55f5c2289e051b270066c",
+      "executable_ast_sha256": "6c8440c4142585a2342d5784a48ca0cc3f5b62c8b7d8500a81227e1354a857f7",
+      "executable_ast_equal": true,
+      "historical_archive": false
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/prompt_cusps.py",
+      "source_before_sha256": "7a6142e975ebd4fd2ecaeb534adab7136512005e15be824afcd69b84b355caa6",
+      "source_after_sha256": "7a6142e975ebd4fd2ecaeb534adab7136512005e15be824afcd69b84b355caa6",
+      "executable_ast_sha256": "ebac342aeaa62c132898457ea4d70f2a0edd73cf4aac033c23f78268609c1ad0",
+      "executable_ast_equal": true,
+      "historical_archive": false
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/__init__.py",
+      "source_before_sha256": "e708528ee9c64aecf6211104a013ca3995f90b1d00d599fd784e6e67652b94ec",
+      "source_after_sha256": "b91246b7b50596574f0b1bd07ce8a976a5ebc563728a914cffadea53354fc72b",
+      "executable_ast_sha256": "3fb643855f79a7845375cd2d5e7a2c8945119c49a61e10f0a894e0dc0f7db006",
+      "executable_ast_equal": true,
+      "historical_archive": false
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/_boost.py",
+      "source_before_sha256": "1178f58dbf0f33a0aa30e64385c0d14a1ddda3ee9631d3d535c3a27d076bc3bb",
+      "source_after_sha256": "1178f58dbf0f33a0aa30e64385c0d14a1ddda3ee9631d3d535c3a27d076bc3bb",
+      "executable_ast_sha256": "d1c930eaf6ab88331a4697881ba357df712ee9e0c5fade5990dd3b88d830baf8",
+      "executable_ast_equal": true,
+      "historical_archive": false
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/_data.py",
+      "source_before_sha256": "5d5cf3e09fe7f6614f61db36caa52ebfa7bc1d06e8bcd044bf24f86cd40c755a",
+      "source_after_sha256": "5d5cf3e09fe7f6614f61db36caa52ebfa7bc1d06e8bcd044bf24f86cd40c755a",
+      "executable_ast_sha256": "a7c8c669ee14e0f167d376b261036c97bb67ad701d8fe27918ce2c7b0d133671",
+      "executable_ast_equal": true,
+      "historical_archive": false
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/_itamae.py",
+      "source_before_sha256": "081ba451c5deabb1c8acfeb7697db6954a0ac0dcad7b1d2dfe42cd9da12cb9f9",
+      "source_after_sha256": "081ba451c5deabb1c8acfeb7697db6954a0ac0dcad7b1d2dfe42cd9da12cb9f9",
+      "executable_ast_sha256": "51206b2366f2776c0230c5d4db73a30ab41a106f475ecd71d4b44490462a56f1",
+      "executable_ast_equal": true,
+      "historical_archive": false
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/_itamae_catalog.py",
+      "source_before_sha256": "4fc77459e7224c38b55c4142585c1e84eb65e49b662ff0f157e8e2e83b7ab7e8",
+      "source_after_sha256": "4fc77459e7224c38b55c4142585c1e84eb65e49b662ff0f157e8e2e83b7ab7e8",
+      "executable_ast_sha256": "8e8a7f7228a15cabb3ad30ab0194cdde1357a2b0a73638836c2895f1fee24b5e",
+      "executable_ast_equal": true,
+      "historical_archive": false
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/_itamae_components.py",
+      "source_before_sha256": "a64d84758b76b989912ed01b0c6783693f19cdf999685df32e1e83fad35e76a7",
+      "source_after_sha256": "fe18f3aefd65d9425a6cceae84615093a1a0f38e85cc623e52db8ed9fc99454a",
+      "executable_ast_sha256": "6c53a60be599d7570fabd886de7f6fa9c872cb6db50454bf0e27290494b66390",
+      "executable_ast_equal": true,
+      "historical_archive": false
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/_itamae_migration.py",
+      "source_before_sha256": "4aaab1cedb4249a711a2cb7c4863521fddf0c27e967f9d3cddcf041599ea8872",
+      "source_after_sha256": "4aaab1cedb4249a711a2cb7c4863521fddf0c27e967f9d3cddcf041599ea8872",
+      "executable_ast_sha256": "4a4a8dd45bda979529dd1ef505f818b485f687cf80bfb84a5d5a5fbf888da79f",
+      "executable_ast_equal": true,
+      "historical_archive": false
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/_itamae_variance.py",
+      "source_before_sha256": "debdc910e66a06c876887ed80fcc99fcc99921f9975ff227cf957fb39100cb12",
+      "source_after_sha256": "debdc910e66a06c876887ed80fcc99fcc99921f9975ff227cf957fb39100cb12",
+      "executable_ast_sha256": "64adb7084b66b2024a4084864b5e9aec1518579c751a8f750c5f0f0f27ed6708",
+      "executable_ast_equal": true,
+      "historical_archive": false
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/_physics.py",
+      "source_before_sha256": "8c670a37946a1608ee88efe2ccb3f036386658b1ca8da6ad6bcbd195c8a5ea60",
+      "source_after_sha256": "77c214268f039c7642ff505c446f6fb8e1fae8890efc57f63c8541d611be5f51",
+      "executable_ast_sha256": "8a08995751a279b9f7d26fca6a834d048733e094e0782aaa75f9a313429b646d",
+      "executable_ast_equal": true,
+      "historical_archive": false
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/boost_iteration.py",
+      "source_before_sha256": "332e539c8dafb3795cb28899a2b0f50ecb393ec61cec5a53508e0432f7aa9b46",
+      "source_after_sha256": "332e539c8dafb3795cb28899a2b0f50ecb393ec61cec5a53508e0432f7aa9b46",
+      "executable_ast_sha256": "e703a0eadf70489a410369cd1a3f6c7eabe0feac4644437398f197148602af84",
+      "executable_ast_equal": true,
+      "historical_archive": false
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/boost_iteration_prompt_cusps.py",
+      "source_before_sha256": "e75d6c60d6211b38274814b9c293e37e9b5c8906d08ee82fa0643fb82e3367dc",
+      "source_after_sha256": "ad348992af0638ba3b895a19264cfc3fccd9efa912bc1581083ed6ac9b4cd04e",
+      "executable_ast_sha256": "56a23390b0e946b3496e5a2428401fd78f22d1bdce298b5cd0bc44b8b59d5788",
+      "executable_ast_equal": true,
+      "historical_archive": false
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/picard_tidal_stripping.py",
+      "source_before_sha256": "666fba5161c81dd1a80a73819ec3123cc681a9754311a6566d10d9a5e014a41d",
+      "source_after_sha256": "666fba5161c81dd1a80a73819ec3123cc681a9754311a6566d10d9a5e014a41d",
+      "executable_ast_sha256": "bf82e9e23cdd08f3bb0c539e42a799222ab7d721635b159e64b0488ff8fc2d0c",
+      "executable_ast_equal": true,
+      "historical_archive": false
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c/prompt_cusps.py",
+      "source_before_sha256": "4757354bb7b0ba77f78041110313956fe6322a678021db9b40345f15015ca129",
+      "source_after_sha256": "81a7d8a607b50a9facba26d30ff741a1bbd866a58191518217fc54c05e80b50e",
+      "executable_ast_sha256": "86c2a2a63f4f226bb9b14b16fcc84ad176e9943cd9206d36acbe2fc43e6efedb",
+      "executable_ast_equal": true,
+      "historical_archive": false
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c_boost.py",
+      "source_before_sha256": "a693e9104bd2311ff6fcebd201df95aae1c3defb048b97caeb21a2d2a4f898db",
+      "source_after_sha256": "a693e9104bd2311ff6fcebd201df95aae1c3defb048b97caeb21a2d2a4f898db",
+      "executable_ast_sha256": "07bc6ee50dc8291aeb515f290729277c36420eb9ad47cfc535eb86f7213a384d",
+      "executable_ast_equal": true,
+      "historical_archive": false
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c_data.py",
+      "source_before_sha256": "eb82aec8ae48743b1b15858434376573f51aae06b433839aa807b95dc38f616f",
+      "source_after_sha256": "eb82aec8ae48743b1b15858434376573f51aae06b433839aa807b95dc38f616f",
+      "executable_ast_sha256": "9fd778de05db1bd584f5d80c40879536fe9a690e0f9c5c158027d1db94e10b66",
+      "executable_ast_equal": true,
+      "historical_archive": false
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c_itamae.py",
+      "source_before_sha256": "1653e5fbe3a34cae78cf3e43ad8cd20409a0c8bba9eb92c345239a3c7e1d928d",
+      "source_after_sha256": "1653e5fbe3a34cae78cf3e43ad8cd20409a0c8bba9eb92c345239a3c7e1d928d",
+      "executable_ast_sha256": "6d570ef1f5305a0e12662b27e6534f1d5b9745960898b0a9f978be26dc7fb2db",
+      "executable_ast_equal": true,
+      "historical_archive": false
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c_itamae_catalog.py",
+      "source_before_sha256": "2003781b7b20dc5418493857dd9cace750dee2c44ef4ad0c43df9ab04703a937",
+      "source_after_sha256": "2003781b7b20dc5418493857dd9cace750dee2c44ef4ad0c43df9ab04703a937",
+      "executable_ast_sha256": "1c6de50ab74dfa8c8b59e817d3b1173fcc9d1cc8d86cca09136ac3f1d0d8f744",
+      "executable_ast_equal": true,
+      "historical_archive": false
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c_itamae_components.py",
+      "source_before_sha256": "f689d2843baedf1c299a3ee99c630ad7ea27b092a216473f6aad11c2d713757e",
+      "source_after_sha256": "f689d2843baedf1c299a3ee99c630ad7ea27b092a216473f6aad11c2d713757e",
+      "executable_ast_sha256": "48d308758fc00739782f40e983071e553ecba34ca33b7d379f1bcfdf56bcd911",
+      "executable_ast_equal": true,
+      "historical_archive": false
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c_itamae_migration.py",
+      "source_before_sha256": "7dc2640e415593540086c81652f20045d6f9883bffa4fbe1c59a1ead5e8fffc6",
+      "source_after_sha256": "7dc2640e415593540086c81652f20045d6f9883bffa4fbe1c59a1ead5e8fffc6",
+      "executable_ast_sha256": "8973da55bcef306e4bc63f4cef1aade48214e381dbb7b43c67aae218881d52e3",
+      "executable_ast_equal": true,
+      "historical_archive": false
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c_itamae_variance.py",
+      "source_before_sha256": "d7a09cfd93944bd75ffb8fb47c99fec89c7d7901eef4d2d8345e504bb32e9afd",
+      "source_after_sha256": "d7a09cfd93944bd75ffb8fb47c99fec89c7d7901eef4d2d8345e504bb32e9afd",
+      "executable_ast_sha256": "6d5c125371294d8c2a6b84bf1a00cdcd03f0340bc63e16dddd3eebb87bdb71cf",
+      "executable_ast_equal": true,
+      "historical_archive": false
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "src/sashimi_c_physics.py",
+      "source_before_sha256": "b35337bdb2498bf442fc3dfb881db94947c623ad353aac5b31c1183412821877",
+      "source_after_sha256": "b35337bdb2498bf442fc3dfb881db94947c623ad353aac5b31c1183412821877",
+      "executable_ast_sha256": "f11a3ce7c917bf5018764de062c35abcd67dd2b95c8e6deee5561cbe2fe7d5ff",
+      "executable_ast_equal": true,
+      "historical_archive": false
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_boost_inputs.py",
+      "source_before_sha256": "ae8ff8822b643084fd492ce0dda9d67a43f7005ac3c2265a6fc934b8f0c4fa9a",
+      "source_after_sha256": "ae8ff8822b643084fd492ce0dda9d67a43f7005ac3c2265a6fc934b8f0c4fa9a",
+      "executable_ast_sha256": "6292b793a72b6161aad9715931a7e095ac070c504d5bc72e8a4e9f5e1a6a31a2",
+      "executable_ast_equal": true,
+      "historical_archive": false
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_build_source_identity.py",
+      "source_before_sha256": "400a6de57aef9efd841022e20c4fe47c1408375482aee5ad73025e9c860f9ddc",
+      "source_after_sha256": "400a6de57aef9efd841022e20c4fe47c1408375482aee5ad73025e9c860f9ddc",
+      "executable_ast_sha256": "4a73b28db2080dca75efef3676d9b23a4f7edea1fd15caded855a6e4791d9bc5",
+      "executable_ast_equal": true,
+      "historical_archive": false
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_eps_normalized_limit.py",
+      "source_before_sha256": "70df5675dae43f3b7d3e4f6f8e1186812965a66304018817d1e5d615097b0529",
+      "source_after_sha256": "2582869bac05c2d2cf3a31a97fc2c69c9daf7888a73d318741e5fcea1a75e374",
+      "executable_ast_sha256": "f9ceb6fc30ddff441c18754e61ad78875c04cb5e379c21a2e6bbcc02e8af4a71",
+      "executable_ast_equal": true,
+      "historical_archive": false
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_itamae_components.py",
+      "source_before_sha256": "cb59a5ebcea69178be5abcf01bd22066a52fe83c0184fd4b86219bb720802244",
+      "source_after_sha256": "d82939810864df0165304be0ddfdbae53960e5b1f006ad45a90ef9bef58fed56",
+      "executable_ast_sha256": "4f029db926b38ecfab410b4d3ad90374728a24f904a0564329f105247e70e6da",
+      "executable_ast_equal": true,
+      "historical_archive": false
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_itamae_migration.py",
+      "source_before_sha256": "036d9300646fc8e1fc1ac84a1526cfd0075d48a667435eb0926c8e6f98b61314",
+      "source_after_sha256": "8aa153acd0e78960c0e9f7a77760647eb6d8caaf87f4795b13d9b5e51eb282bf",
+      "executable_ast_sha256": "10708468f0abbd4386d3cdc2f933a581116bae9bc6028b3e6e1198a9a1255cc9",
+      "executable_ast_equal": true,
+      "historical_archive": false
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_itamae_variance.py",
+      "source_before_sha256": "1bf4ea94424e9570d305b6489940da8d46c7dd61c5314a074394a1fe142d7b31",
+      "source_after_sha256": "1bf4ea94424e9570d305b6489940da8d46c7dd61c5314a074394a1fe142d7b31",
+      "executable_ast_sha256": "9571e211321ff7400726208c77ea30bae9878412a8c7c13552e710810eb96de5",
+      "executable_ast_equal": true,
+      "historical_archive": false
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_picard_migration_sync.py",
+      "source_before_sha256": "0511d3b3c52799d69f3ab8b951d95da967873cca6d0cf78c77add21677137d0e",
+      "source_after_sha256": "0511d3b3c52799d69f3ab8b951d95da967873cca6d0cf78c77add21677137d0e",
+      "executable_ast_sha256": "c13f6243786e44f9700bf0cae7389f0a426ce36391c2005b89989c5fbc8ccbb9",
+      "executable_ast_equal": true,
+      "historical_archive": false
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_picard_state_identity.py",
+      "source_before_sha256": "b95f02de001aeb70e44e2117646717a78c550553237d83b8a1f2a2ff3e735d12",
+      "source_after_sha256": "b95f02de001aeb70e44e2117646717a78c550553237d83b8a1f2a2ff3e735d12",
+      "executable_ast_sha256": "8e6ebd36a9857176a083b79cc86c50c0977b2933eb1c461276f2cc7cce761f9a",
+      "executable_ast_equal": true,
+      "historical_archive": false
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_picard_tidal_stripping.py",
+      "source_before_sha256": "dd2ceab108303c822bdcd320dccfa5c3f012a83848bbe5aa0365c5513275a512",
+      "source_after_sha256": "dd2ceab108303c822bdcd320dccfa5c3f012a83848bbe5aa0365c5513275a512",
+      "executable_ast_sha256": "9d73bbc736f9af2cacb5ed06db4c1549830e6240e613d8353181d68cdfd3a765",
+      "executable_ast_equal": true,
+      "historical_archive": false
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_runtime_inputs.py",
+      "source_before_sha256": "41865357dbde3fa4e5e65fbd6a7ca1cb4ed9d6fbea491d2e70a4130f1eab5421",
+      "source_after_sha256": "41865357dbde3fa4e5e65fbd6a7ca1cb4ed9d6fbea491d2e70a4130f1eab5421",
+      "executable_ast_sha256": "22138d64d3cd30b2404f6d14bc077c08daefab4a2f6cc6aab1e79c2206b671fb",
+      "executable_ast_equal": true,
+      "historical_archive": false
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_shared_picard.py",
+      "source_before_sha256": "d25fecc6988e987b8a7dd3103c47ec4d63a3a684a968e7aab1ea7b2cadb5086a",
+      "source_after_sha256": "d25fecc6988e987b8a7dd3103c47ec4d63a3a684a968e7aab1ea7b2cadb5086a",
+      "executable_ast_sha256": "cb7acbccd8079e154d599f4edc0fc96d8c5700f644fb32849bca36408dbfef67",
+      "executable_ast_equal": true,
+      "historical_archive": false
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_shared_tidal_ode.py",
+      "source_before_sha256": "1764be3ca4cc836b3c3fb526e2513feab9da0b9ca826f45d365d1a90aa2e7717",
+      "source_after_sha256": "1764be3ca4cc836b3c3fb526e2513feab9da0b9ca826f45d365d1a90aa2e7717",
+      "executable_ast_sha256": "d035b8c471208d792b499fb66ceabdea65b23d24bb9971e15d6828e6ae85a232",
+      "executable_ast_equal": true,
+      "historical_archive": false
+    },
+    {
+      "repo": "sashimi-c",
+      "file": "tests/test_standard_api.py",
+      "source_before_sha256": "1e8db27385c2aacd26555058a56a7e3f40efa974e2d36a65546f589a8f28708b",
+      "source_after_sha256": "1e8db27385c2aacd26555058a56a7e3f40efa974e2d36a65546f589a8f28708b",
+      "executable_ast_sha256": "f559a80077bdd9e8136570fd85f2d254b2576c02972b67325b32635d07dc567c",
+      "executable_ast_equal": true,
+      "historical_archive": false
+    }
+  ],
+  "dependency_documentation_revision": {
+    "previous_itamae": "c452c5bbbbf8276870a8ff1f61f77d8bff0d8d7c",
+    "new_itamae": "4aeb13ed4e3e3e87171fe800e08f74b95c1244a2",
+    "executable_code_unchanged": true
+  }
+}

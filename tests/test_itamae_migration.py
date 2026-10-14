@@ -67,10 +67,15 @@ def test_golden_fixture_provenance_is_complete() -> None:
 
 
 def test_itamae_concentration_quadrature_is_normalized() -> None:
-    """Preserve the abundance and log-concentration mean when averaging concentration scatter.
+    r"""Preserve the abundance and log-concentration mean when averaging concentration scatter.
 
     Notes
     -----
+    The retained default scatter sigma(log10(c)) = 0.128 dex is the Ishiyama et al. Eq. (7),
+    Fig. 10 value for z=0 halos of 1e9 to 1e10 solar masses; Hiroshima et al. adopt the
+    rounded value 0.13 dex. Using one value across masses and redshifts is a model
+    assumption, not a quadrature error or a new calibration.
+
     Pass criteria: Five-node quadrature sums to one and recovers log10 of medians 5,10,20 to
     about 1e-15 absolute accuracy.
 
@@ -79,6 +84,15 @@ def test_itamae_concentration_quadrature_is_normalized() -> None:
 
     Scope: This controlled calculation does not calibrate a subhalo population against
     simulations or observations.
+
+    References
+    ----------
+
+    .. [cite-scatter] Ishiyama et al. (2013), The Cosmogrid Simulation: Statistical Properties of Small Dark Matter Halos, Eq. (7), Fig. 10.
+        https://arxiv.org/abs/1101.2020
+
+    .. [cite-structure] Hiroshima, Ando & Ishiyama (2018), Modeling evolution of dark matter substructure and annihilation boost, Section II, Eqs. (5)-(9).
+        https://arxiv.org/abs/1803.07691
     """
 
     median = np.array([5.0, 10.0, 20.0])
@@ -148,10 +162,13 @@ def test_catalog_satisfies_mass_profile_and_weight_invariants() -> None:
 
 
 def test_migration_rejects_mixed_cosmology() -> None:
-    """Prevent combining the fixed CDM variance fit with an incompatible background.
+    r"""Prevent combining the fixed CDM variance fit with an incompatible background.
 
     Notes
     -----
+    Planck-like background numbers are controlled test inputs. Equality or rejection here
+    checks the stated background contract, not the cosmological fit.
+
     Pass criteria: Backends with Omega_m0=0.30 or h=0.70 are rejected against the supported
     0.315/0.674 model.
 
@@ -160,6 +177,12 @@ def test_migration_rejects_mixed_cosmology() -> None:
 
     Scope: This controlled calculation does not calibrate a subhalo population against
     simulations or observations.
+
+    References
+    ----------
+
+    .. [cite-planck] Planck Collaboration (2020), Planck 2018 results. VI. Cosmological parameters, Table 2.
+        https://arxiv.org/abs/1807.06209
     """
 
     with pytest.raises(ValueError, match=r"requires OmegaM=0\.315"):
@@ -367,7 +390,7 @@ def test_full_catalog_and_observables_match_preserved_consistent_golden() -> Non
 def test_catalog_metadata_records_mode_solver_weights_and_threshold(
     tmp_path: Path,
 ) -> None:
-    """Save the physical and numerical choices needed to reproduce the CDM population.
+    r"""Save the physical and numerical choices needed to reproduce the CDM population.
 
     Parameters
     ----------
@@ -376,6 +399,9 @@ def test_catalog_metadata_records_mode_solver_weights_and_threshold(
 
     Notes
     -----
+    Planck-like background numbers are controlled test inputs. Equality or rejection here
+    checks the stated background contract, not the cosmological fit.
+
     Pass criteria: Metadata record source, cosmology, units, solver, threshold and weight
     rules; saved catalogue metadata and arrays round-trip unchanged.
 
@@ -384,6 +410,12 @@ def test_catalog_metadata_records_mode_solver_weights_and_threshold(
 
     Scope: This controlled calculation does not calibrate a subhalo population against
     simulations or observations.
+
+    References
+    ----------
+
+    .. [cite-planck] Planck Collaboration (2020), Planck 2018 results. VI. Cosmological parameters, Table 2.
+        https://arxiv.org/abs/1807.06209
     """
     parameters = {
         "M0": 1.0e10,

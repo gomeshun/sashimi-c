@@ -40,10 +40,15 @@ def test_truncation_threshold_survival_preserves_strict_legacy_cut():
 
 
 def test_cdm_stages_preserve_node_identity_and_initial_enclosed_mass():
-    """Transport a known half-mass stripping law without altering accretion-node identity.
+    r"""Transport a known half-mass stripping law without altering accretion-node identity.
 
     Notes
     -----
+    The retained default scatter sigma(log10(c)) = 0.128 dex is the Ishiyama et al. Eq. (7),
+    Fig. 10 value for z=0 halos of 1e9 to 1e10 solar masses; Hiroshima et al. adopt the
+    rounded value 0.13 dex. Using one value across masses and redshifts is a model
+    assumption, not a quadrature error or a new calibration.
+
     Pass criteria: Initial NFW enclosed mass matches virial accretion mass, bound mass is
     halved, fixed profile parameters are preserved, and the recovered truncated mass agrees
     within 2e-12.
@@ -53,6 +58,15 @@ def test_cdm_stages_preserve_node_identity_and_initial_enclosed_mass():
 
     Scope: This controlled calculation does not calibrate a subhalo population against
     simulations or observations.
+
+    References
+    ----------
+
+    .. [cite-scatter] Ishiyama et al. (2013), The Cosmogrid Simulation: Statistical Properties of Small Dark Matter Halos, Eq. (7), Fig. 10.
+        https://arxiv.org/abs/1101.2020
+
+    .. [cite-structure] Hiroshima, Ando & Ishiyama (2018), Modeling evolution of dark matter substructure and annihilation boost, Section II, Eqs. (5)-(9).
+        https://arxiv.org/abs/1803.07691
     """
     model = subhalo_properties()
     mass = np.geomspace(1.0e6, 1.0e8, 3)

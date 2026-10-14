@@ -9,7 +9,7 @@ from sashimi_c import SubhaloProperties
 
 @pytest.mark.parametrize("gap", [0.0, 1e-12, 1e-6, 1e-3, 1.0, 10.0])
 def test_normalized_yang_kernel_against_independent_definite_integral(gap):
-    """Recover the finite normalized EPS limit when the collapse-barrier gap vanishes.
+    r"""Recover the finite normalized EPS limit when the collapse-barrier gap vanishes.
 
     Parameters
     ----------
@@ -18,6 +18,9 @@ def test_normalized_yang_kernel_against_independent_definite_integral(gap):
 
     Notes
     -----
+    The independent definite integral is of the Yang et al. accretion kernel. Its tolerance
+    tests algebra and quadrature near the limiting barrier, not the empirical merger rate.
+
     Pass criteria: For barrier gaps from zero to ten, the normalized Yang kernel agrees with
     an independent definite integral at the specified floating-point tolerance.
 
@@ -26,6 +29,12 @@ def test_normalized_yang_kernel_against_independent_definite_integral(gap):
 
     Scope: This controlled calculation does not calibrate a subhalo population against
     simulations or observations.
+
+    References
+    ----------
+
+    .. [cite-yang] Yang et al. (2011), An Analytical Model for the Accretion of Dark Matter Subhalos, Eqs. (12)-(14), (21).
+        https://arxiv.org/abs/1104.1757
     """
     model = SubhaloProperties()
     ds, dsmin = 8.0, 3.0

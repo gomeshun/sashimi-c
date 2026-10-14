@@ -272,7 +272,7 @@ class SubhaloProperties(CDMPhysics):
     """
 
     def Ffunc(self, dela, s1, s2):
-        """Evaluate the Yang et al. EPS kernel before support normalization.
+        r"""Evaluate the Yang et al. EPS kernel before support normalization.
 
         Parameters
         ----------
@@ -293,15 +293,25 @@ class SubhaloProperties(CDMPhysics):
 
         Notes
         -----
+        The EPS accretion kernel and, where used, host-history scatter 0.12-0.15*log10(Ma/M0)
+        follow Yang et al., Eqs. (12)-(14), (21). Finite-gap normalization and zero-barrier
+        limits are numerical treatments of that kernel, not new empirical fits.
+
         The CDM population combines EPS accretion, lognormal concentration scatter, the selected
         tidal solver and the strict c_t survival cut. Named catalogues retain abundance,
         concentration and survival as separate factors; changing a numerical solver does not by
         itself recalibrate any fitted physical relation.
+
+        References
+        ----------
+
+        .. [cite-yang] Yang et al. (2011), An Analytical Model for the Accretion of Dark Matter Subhalos, Eqs. (12)-(14), (21).
+            https://arxiv.org/abs/1104.1757
         """
         return 1 / np.sqrt(2.0 * np.pi) * dela / (s2 - s1) ** 1.5
 
     def Gfunc(self, dela, s1, s2):
-        """Evaluate the retained empirical multiplicative correction to the EPS kernel.
+        r"""Evaluate the retained empirical multiplicative correction to the EPS kernel.
 
         Parameters
         ----------
@@ -322,10 +332,22 @@ class SubhaloProperties(CDMPhysics):
 
         Notes
         -----
+        The empirical correction G0=0.57, gamma1=0.38, gamma2=-0.01 is from Parkinson et al.,
+        Section 3.1, and is adopted in Yang et al., Eq. (13).
+
         The CDM population combines EPS accretion, lognormal concentration scatter, the selected
         tidal solver and the strict c_t survival cut. Named catalogues retain abundance,
         concentration and survival as separate factors; changing a numerical solver does not by
         itself recalibrate any fitted physical relation.
+
+        References
+        ----------
+
+        .. [cite-parkinson] Parkinson, Cole & Helly (2008), Generating Dark Matter Halo Merger Trees, Section 3.1.
+            https://arxiv.org/abs/0708.1382
+
+        .. [cite-yang] Yang et al. (2011), An Analytical Model for the Accretion of Dark Matter Subhalos, Eqs. (12)-(14), (21).
+            https://arxiv.org/abs/1104.1757
         """
         G0 = 0.57
         gamma1 = 0.38
@@ -335,7 +357,7 @@ class SubhaloProperties(CDMPhysics):
         return G0 * pow(sig2 / sig1, gamma1) * pow(dela / sig1, gamma2)
 
     def Ffunc_Yang(self, delc1, delc2, s1, s2):
-        """Evaluate the conditional EPS kernel with its collapse-barrier difference.
+        r"""Evaluate the conditional EPS kernel with its collapse-barrier difference.
 
         Parameters
         ----------
@@ -359,10 +381,20 @@ class SubhaloProperties(CDMPhysics):
 
         Notes
         -----
+        The EPS accretion kernel and, where used, host-history scatter 0.12-0.15*log10(Ma/M0)
+        follow Yang et al., Eqs. (12)-(14), (21). Finite-gap normalization and zero-barrier
+        limits are numerical treatments of that kernel, not new empirical fits.
+
         The CDM population combines EPS accretion, lognormal concentration scatter, the selected
         tidal solver and the strict c_t survival cut. Named catalogues retain abundance,
         concentration and survival as separate factors; changing a numerical solver does not by
         itself recalibrate any fitted physical relation.
+
+        References
+        ----------
+
+        .. [cite-yang] Yang et al. (2011), An Analytical Model for the Accretion of Dark Matter Subhalos, Eqs. (12)-(14), (21).
+            https://arxiv.org/abs/1104.1757
         """
         return (
             1.0
@@ -373,7 +405,7 @@ class SubhaloProperties(CDMPhysics):
         )
 
     def _normalized_yang_kernel(self, delc1, delc2, s1, s2, smin):
-        """Yang Eq. (14) divided by its mass-support integral, including gap=0.
+        r"""Yang Eq. (14) divided by its mass-support integral, including gap=0.
 
         For x=delta/sqrt(2*(smin-s1)), erf(x)/x tends to 2/sqrt(pi).
         The small-x series evaluates that ratio before the vanishing factors
@@ -405,10 +437,20 @@ class SubhaloProperties(CDMPhysics):
 
         Notes
         -----
+        The EPS accretion kernel and, where used, host-history scatter 0.12-0.15*log10(Ma/M0)
+        follow Yang et al., Eqs. (12)-(14), (21). Finite-gap normalization and zero-barrier
+        limits are numerical treatments of that kernel, not new empirical fits.
+
         The CDM population combines EPS accretion, lognormal concentration scatter, the selected
         tidal solver and the strict c_t survival cut. Named catalogues retain abundance,
         concentration and survival as separate factors; changing a numerical solver does not by
         itself recalibrate any fitted physical relation.
+
+        References
+        ----------
+
+        .. [cite-yang] Yang et al. (2011), An Analytical Model for the Accretion of Dark Matter Subhalos, Eqs. (12)-(14), (21).
+            https://arxiv.org/abs/1104.1757
         """
         d1, d2, a, b, minimum = np.broadcast_arrays(delc1, delc2, s1, s2, smin)
         gap, ds, dsmin = d2 - d1, b - a, minimum - a
@@ -435,7 +477,7 @@ class SubhaloProperties(CDMPhysics):
         return result
 
     def Na_calc(self, ma, zacc, Mhost, z0=0.0, N_herm=200, Nrand=1000, Na_model=3):
-        """Evaluate the Yang et al. accretion rate with ITAMAE quadrature.
+        r"""Evaluate the Yang et al. accretion rate with ITAMAE quadrature.
 
         Parameters
         ----------
@@ -463,10 +505,20 @@ class SubhaloProperties(CDMPhysics):
 
         Notes
         -----
+        The EPS accretion kernel and, where used, host-history scatter 0.12-0.15*log10(Ma/M0)
+        follow Yang et al., Eqs. (12)-(14), (21). Finite-gap normalization and zero-barrier
+        limits are numerical treatments of that kernel, not new empirical fits.
+
         The CDM population combines EPS accretion, lognormal concentration scatter, the selected
         tidal solver and the strict c_t survival cut. Named catalogues retain abundance,
         concentration and survival as separate factors; changing a numerical solver does not by
         itself recalibrate any fitted physical relation.
+
+        References
+        ----------
+
+        .. [cite-yang] Yang et al. (2011), An Analytical Model for the Accretion of Dark Matter Subhalos, Eqs. (12)-(14), (21).
+            https://arxiv.org/abs/1104.1757
         """
 
         zacc_2d = np.asarray(zacc).reshape(-1, 1)
@@ -593,7 +645,7 @@ class SubhaloProperties(CDMPhysics):
         method="picard_table",
         **kwargs,
     ) -> WeightedSubhaloCatalog:
-        """Generate an ITAMAE weighted catalog while preserving SASHIMI physics.
+        r"""Generate an ITAMAE weighted catalog while preserving SASHIMI physics.
 
         Parameters
         ----------
@@ -651,11 +703,32 @@ class SubhaloProperties(CDMPhysics):
 
         Notes
         -----
+        The retained default scatter sigma(log10(c)) = 0.128 dex is the Ishiyama et al. Eq. (7),
+        Fig. 10 value for z=0 halos of 1e9 to 1e10 solar masses; Hiroshima et al. adopt the
+        rounded value 0.13 dex. Using one value across masses and redshifts is a model
+        assumption, not a quadrature error or a new calibration. The literature threshold rt/rs
+        > 0.77 follows the Hayashi et al. disruption prescription adopted by Hiroshima et al. A
+        caller-supplied threshold takes precedence in variants that expose it (C and SI
+        currently default to 0). This is a model selection rule; an exact-boundary test does not
+        calibrate disruption physics.
+
         Catalogue masses and lengths are Msun and Mpc in this C implementation, densities
         Msun/Mpc^3. All accretion nodes are retained; weight_final includes the survival mask.
         The legacy tuple exposes the same nodes with a separate mask. The z grid uses the
         retained arange(target+dz,zmax+dz,dz) convention, so a non-aligned zmax can be exceeded
         by less than one nominal step.
+
+        References
+        ----------
+
+        .. [cite-scatter] Ishiyama et al. (2013), The Cosmogrid Simulation: Statistical Properties of Small Dark Matter Halos, Eq. (7), Fig. 10.
+            https://arxiv.org/abs/1101.2020
+
+        .. [cite-structure] Hiroshima, Ando & Ishiyama (2018), Modeling evolution of dark matter substructure and annihilation boost, Section II, Eqs. (5)-(9).
+            https://arxiv.org/abs/1803.07691
+
+        .. [cite-survival] Hayashi et al. (2003), The Structural Evolution of Substructure.
+            https://arxiv.org/abs/astro-ph/0203004
         """
         if "physics_mode" in kwargs:
             raise TypeError(
@@ -940,7 +1013,7 @@ class SubhaloProperties(CDMPhysics):
             raise ValueError("logmamin must be smaller than logmamax.")
 
     def subhalo_properties_calc(self, *args: Any, **kwargs: Any):
-        """Return the historical tuple from the ITAMAE catalog calculation.
+        r"""Return the historical tuple from the ITAMAE catalog calculation.
 
         Parameters
         ----------
@@ -959,10 +1032,31 @@ class SubhaloProperties(CDMPhysics):
 
         Notes
         -----
+        The retained default scatter sigma(log10(c)) = 0.128 dex is the Ishiyama et al. Eq. (7),
+        Fig. 10 value for z=0 halos of 1e9 to 1e10 solar masses; Hiroshima et al. adopt the
+        rounded value 0.13 dex. Using one value across masses and redshifts is a model
+        assumption, not a quadrature error or a new calibration. The literature threshold rt/rs
+        > 0.77 follows the Hayashi et al. disruption prescription adopted by Hiroshima et al. A
+        caller-supplied threshold takes precedence in variants that expose it (C and SI
+        currently default to 0). This is a model selection rule; an exact-boundary test does not
+        calibrate disruption physics.
+
         The CDM population combines EPS accretion, lognormal concentration scatter, the selected
         tidal solver and the strict c_t survival cut. Named catalogues retain abundance,
         concentration and survival as separate factors; changing a numerical solver does not by
         itself recalibrate any fitted physical relation.
+
+        References
+        ----------
+
+        .. [cite-scatter] Ishiyama et al. (2013), The Cosmogrid Simulation: Statistical Properties of Small Dark Matter Halos, Eq. (7), Fig. 10.
+            https://arxiv.org/abs/1101.2020
+
+        .. [cite-structure] Hiroshima, Ando & Ishiyama (2018), Modeling evolution of dark matter substructure and annihilation boost, Section II, Eqs. (5)-(9).
+            https://arxiv.org/abs/1803.07691
+
+        .. [cite-survival] Hayashi et al. (2003), The Structural Evolution of Substructure.
+            https://arxiv.org/abs/astro-ph/0203004
         """
         catalog = self.subhalo_catalog_calc(*args, **kwargs)
         self.catalog = catalog
@@ -1083,7 +1177,7 @@ class SubhaloObservables(SubhaloProperties, CDMObservableKernels):
         data_dir=None,
         **kwargs,
     ):
-        """Compute a CDM population and retain surviving nodes for the standard observable
+        r"""Compute a CDM population and retain surviving nodes for the standard observable
         reductions.
 
         Parameters
@@ -1151,10 +1245,45 @@ class SubhaloObservables(SubhaloProperties, CDMObservableKernels):
 
         Notes
         -----
+        The NFW profile is from Navarro et al. The rounded factors rmax/rs = 2.163 (2.1626 where
+        explicitly used) and 4.625 are NFW maximum-circular-speed identities, as written in
+        Hiroshima et al., Eqs. (5)-(7), rather than independent empirical fits.
+
+        The retained default scatter sigma(log10(c)) = 0.128 dex is the Ishiyama et al. Eq. (7),
+        Fig. 10 value for z=0 halos of 1e9 to 1e10 solar masses; Hiroshima et al. adopt the
+        rounded value 0.13 dex. Using one value across masses and redshifts is a model
+        assumption, not a quadrature error or a new calibration. The literature threshold rt/rs
+        > 0.77 follows the Hayashi et al. disruption prescription adopted by Hiroshima et al. A
+        caller-supplied threshold takes precedence in variants that expose it (C and SI
+        currently default to 0). This is a model selection rule; an exact-boundary test does not
+        calibrate disruption physics.
+
+        If prompt cusps are enabled, the benchmark cutoff k_fs=1.06e6 Mpc**(-1) and sharp-k
+        multiplier alpha=1.8 follow the prompt-cusp model of Ando et al.; these are separate
+        from the CDM variance fit used by default.
+
         The CDM population combines EPS accretion, lognormal concentration scatter, the selected
         tidal solver and the strict c_t survival cut. Named catalogues retain abundance,
         concentration and survival as separate factors; changing a numerical solver does not by
         itself recalibrate any fitted physical relation.
+
+        References
+        ----------
+
+        .. [cite-nfw] Navarro, Frenk & White (1997), A Universal Density Profile from Hierarchical Clustering.
+            https://arxiv.org/abs/astro-ph/9611107
+
+        .. [cite-structure] Hiroshima, Ando & Ishiyama (2018), Modeling evolution of dark matter substructure and annihilation boost, Section II, Eqs. (5)-(9).
+            https://arxiv.org/abs/1803.07691
+
+        .. [cite-scatter] Ishiyama et al. (2013), The Cosmogrid Simulation: Statistical Properties of Small Dark Matter Halos, Eq. (7), Fig. 10.
+            https://arxiv.org/abs/1101.2020
+
+        .. [cite-survival] Hayashi et al. (2003), The Structural Evolution of Substructure.
+            https://arxiv.org/abs/astro-ph/0203004
+
+        .. [cite-prompt] Ando, Moro-Gonzalez & Li (2026), Prompt cusps in hierarchical dark matter halos: Implications for annihilation boost, Sections 2.1-2.3.
+            https://arxiv.org/abs/2601.19863
         """
 
         SubhaloProperties.__init__(

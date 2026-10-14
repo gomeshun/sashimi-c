@@ -25,6 +25,16 @@ direction, assumptions and validated domain when relevant. Explain numerical
 controls and their limits: an iteration tolerance is not a total accuracy
 bound. Keep inherited upstream equations identifiable.
 
+Whenever a function or class uses a value taken from a scientific paper,
+including fitted coefficients or adopted parameter values, cite that paper
+in the function's or class's own docstring. This also applies to constructors
+and methods. Use a NumPy-style References section and include at least one
+identifier that locates the paper: a DOI, a paper URL, or an arXiv link.
+Clearly associate each adopted value with its source; include the relevant
+equation or table number when available. A citation only in a README,
+external documentation, a module docstring, or another function's docstring
+does not satisfy this requirement.
+
 A technical summary such as "adapter", "validation helper" or "tests the
 API" is insufficient. For infrastructure, explain the scientific consequence
 (e.g. mixing cosmologies, losing mass units, reusing stale tidal tables, or

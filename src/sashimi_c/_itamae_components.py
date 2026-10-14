@@ -146,7 +146,7 @@ class NFWInitialStructure:
     N_herm: int
 
     def initialize(self, batch, context):
-        """Normalize the accreted NFW profile to the virial mass for every concentration node.
+        r"""Normalize the accreted NFW profile to the virial mass for every concentration node.
 
         Parameters
         ----------
@@ -164,9 +164,22 @@ class NFWInitialStructure:
 
         Notes
         -----
+        The NFW profile is from Navarro et al. The rounded factors rmax/rs = 2.163 (2.1626 where
+        explicitly used) and 4.625 are NFW maximum-circular-speed identities, as written in
+        Hiroshima et al., Eqs. (5)-(7), rather than independent empirical fits.
+
         Each accretion slice is flattened in concentration-major, then mass order. Stages retain
         C internal Msun/Mpc/second units and explicit independent weights; the model owns virial
         conversion, NFW structure, tidal response and disruption.
+
+        References
+        ----------
+
+        .. [cite-nfw] Navarro, Frenk & White (1997), A Universal Density Profile from Hierarchical Clustering.
+            https://arxiv.org/abs/astro-ph/9611107
+
+        .. [cite-structure] Hiroshima, Ando & Ishiyama (2018), Modeling evolution of dark matter substructure and annihilation boost, Section II, Eqs. (5)-(9).
+            https://arxiv.org/abs/1803.07691
         """
         c_sub = batch.concentration_acc.reshape(self.N_herm, -1)
         rs_acc = context["rvir_acc"] / c_sub
@@ -222,7 +235,7 @@ class TidalProfileEvolution:
     kwargs: dict[str, Any]
 
     def evolve(self, batch, initial, context):
-        """Strip the accreted mass and apply the C NFW structural response when selected.
+        r"""Strip the accreted mass and apply the C NFW structural response when selected.
 
         Parameters
         ----------
@@ -244,9 +257,32 @@ class TidalProfileEvolution:
 
         Notes
         -----
+        The factors 2**0.4*mu**0.3/(1+mu)**0.4 and 2**(-0.3)*mu**0.4*(1+mu)**0.3 are the cuspy
+        tidal tracks of Penarrubia et al., reproduced in Hiroshima et al., Eqs. (8)-(9), with mu
+        the retained bound-mass fraction. The NFW profile is from Navarro et al. The rounded
+        factors rmax/rs = 2.163 (2.1626 where explicitly used) and 4.625 are NFW maximum-
+        circular-speed identities, as written in Hiroshima et al., Eqs. (5)-(7), rather than
+        independent empirical fits.
+
+        The NFW profile is from Navarro et al. The rounded factors rmax/rs = 2.163 (2.1626 where
+        explicitly used) and 4.625 are NFW maximum-circular-speed identities, as written in
+        Hiroshima et al., Eqs. (5)-(7), rather than independent empirical fits.
+
         Each accretion slice is flattened in concentration-major, then mass order. Stages retain
         C internal Msun/Mpc/second units and explicit independent weights; the model owns virial
         conversion, NFW structure, tidal response and disruption.
+
+        References
+        ----------
+
+        .. [cite-tracks] Penarrubia et al. (2010), The impact of dark matter cusps and cores on the satellite galaxy population around spiral galaxies, Eq. (8), Fig. 6.
+            https://arxiv.org/abs/1002.3376
+
+        .. [cite-structure] Hiroshima, Ando & Ishiyama (2018), Modeling evolution of dark matter substructure and annihilation boost, Section II, Eqs. (5)-(9).
+            https://arxiv.org/abs/1803.07691
+
+        .. [cite-nfw] Navarro, Frenk & White (1997), A Universal Density Profile from Hierarchical Clustering.
+            https://arxiv.org/abs/astro-ph/9611107
         """
         n_mass = context["mvir_acc"].size
         m0 = self.solver.subhalo_mass_stripped(
@@ -340,7 +376,7 @@ class CDMCatalogColumns:
 
 @dataclass(frozen=True, slots=True)
 class TruncationThresholdSurvival:
-    """Apply the historical SASHIMI-C truncation-concentration survival cut.
+    r"""Apply the historical SASHIMI-C truncation-concentration survival cut.
 
     The strict ``c_t > ct_threshold`` comparison is the existing SASHIMI-C
     catalog rule. Keeping it in the variant package makes the scientific
@@ -355,9 +391,23 @@ class TruncationThresholdSurvival:
 
     Notes
     -----
+    The literature threshold rt/rs > 0.77 follows the Hayashi et al. disruption prescription
+    adopted by Hiroshima et al. A caller-supplied threshold takes precedence in variants
+    that expose it (C and SI currently default to 0). This is a model selection rule; an
+    exact-boundary test does not calibrate disruption physics.
+
     Each accretion slice is flattened in concentration-major, then mass order. Stages retain
     C internal Msun/Mpc/second units and explicit independent weights; the model owns virial
     conversion, NFW structure, tidal response and disruption.
+
+    References
+    ----------
+
+    .. [cite-survival] Hayashi et al. (2003), The Structural Evolution of Substructure.
+        https://arxiv.org/abs/astro-ph/0203004
+
+    .. [cite-structure] Hiroshima, Ando & Ishiyama (2018), Modeling evolution of dark matter substructure and annihilation boost, Section II, Eqs. (5)-(9).
+        https://arxiv.org/abs/1803.07691
     """
 
     ct_threshold: float
@@ -369,7 +419,7 @@ class TruncationThresholdSurvival:
         evolved: PopulationState,
         context: Any,
     ) -> np.ndarray:
-        """Return the historical boolean survival mask for one batch.
+        r"""Return the historical boolean survival mask for one batch.
 
         Parameters
         ----------
@@ -393,9 +443,23 @@ class TruncationThresholdSurvival:
 
         Notes
         -----
+        The literature threshold rt/rs > 0.77 follows the Hayashi et al. disruption prescription
+        adopted by Hiroshima et al. A caller-supplied threshold takes precedence in variants
+        that expose it (C and SI currently default to 0). This is a model selection rule; an
+        exact-boundary test does not calibrate disruption physics.
+
         Each accretion slice is flattened in concentration-major, then mass order. Stages retain
         C internal Msun/Mpc/second units and explicit independent weights; the model owns virial
         conversion, NFW structure, tidal response and disruption.
+
+        References
+        ----------
+
+        .. [cite-survival] Hayashi et al. (2003), The Structural Evolution of Substructure.
+            https://arxiv.org/abs/astro-ph/0203004
+
+        .. [cite-structure] Hiroshima, Ando & Ishiyama (2018), Modeling evolution of dark matter substructure and annihilation boost, Section II, Eqs. (5)-(9).
+            https://arxiv.org/abs/1803.07691
         """
         del batch, initial, context
         return evolved["c_t"] > self.ct_threshold

@@ -29,15 +29,39 @@ from ._data import data_directory, require_input
 
 def build_ps_interpolators(cosmo, k_fs, filter='Sharp-k', alpha=1.8,
                            datafile=None):
-    """
-    Build ``sigma(M)`` and ``dsigma^2/dM`` interpolators for the prompt-cusp mass
-    function, from the CAMB linear matter power spectrum with a free-streaming
-    cutoff ``exp[-(k/k_fs)^2]``.
+    r"""Build the cutoff-spectrum variance and mass-derivative interpolators for prompt-cusp halo abundances.
 
-    ``cosmo`` supplies ``OmegaM``, ``rhocrit0``, ``Mpc``, ``h``, ``Msun``.
-    Returns ``(sigma_interp, dsdm_interp)`` -- cubic-spline ``interp1d`` objects
-    over ``log10(M/Msun)``. Lifted out of ``sashimi_c.halo_model`` so the heavy
-    power-spectrum code is only loaded when ``prompt_cusps=True``.
+    Parameters
+    ----------
+    cosmo : object
+        Background and unit provider with OmegaM, rhocrit0, Mpc, h, Msun and data_dir.
+    k_fs : float
+        Free-streaming cutoff in inverse internal length.
+    filter : {'Sharp-k', 'TopHat'}
+        Variance window; sharp-k is the default.
+    alpha : float
+        Dimensionless sharp-k cutoff multiplier in kmax=alpha/R; default 1.8.
+    datafile : path-like or None
+        CAMB table with k in h/Mpc and P in (Mpc/h)**3; None selects the bundled table.
+
+    Returns
+    -------
+    sigma_interp, dsdm_interp : scipy.interpolate.interp1d
+        Cubic interpolators versus log10(M/Msun), returning dimensionless sigma and d(sigma**2)/dM in inverse internal mass.
+
+    Notes
+    -----
+    The prompt-cusp prescription is Ando et al., Sections 2.1-2.3. Its sharp-k mapping
+    alpha=1.8 is a large-mass top-hat matching choice, explicitly not a direct microhalo-
+    simulation calibration.
+
+    The tabulated mass range is 1e-12 to 1e17 solar masses. The free-streaming factor multiplies power as exp[-(k/k_fs)**2]. Grid sizes are numerical choices; there is no accuracy guarantee outside the input-table coverage. Missing tables raise FileNotFoundError.
+
+    References
+    ----------
+
+    .. [cite-prompt] Ando, Moro-Gonzalez & Li (2026), Prompt cusps in hierarchical dark matter halos: Implications for annihilation boost, Sections 2.1-2.3.
+        https://arxiv.org/abs/2601.19863
     """
     source = require_input(datafile if datafile is not None else data_directory(cosmo.data_dir)/"Planck2018_CAMB_extrap.dat")
     k, Pk = np.loadtxt(source, unpack=True)
@@ -46,6 +70,32 @@ def build_ps_interpolators(cosmo, k_fs, filter='Sharp-k', alpha=1.8,
     Pk = Pk * np.exp(-(k / k_fs) ** 2)
 
     def sigma_calc(M):
+        r"""Evaluate the selected cutoff-power variance window on the physical halo mass grid.
+
+        Parameters
+        ----------
+        M : numpy.ndarray
+            Positive physical mass in the internal units supplied by cosmo; the top-hat derivative expects an array.
+
+        Returns
+        -------
+        values : numpy.ndarray
+            Dimensionless rms density fluctuation, with the shape of M.
+
+        Notes
+        -----
+        The prompt-cusp prescription is Ando et al., Sections 2.1-2.3. Its sharp-k mapping
+        alpha=1.8 is a large-mass top-hat matching choice, explicitly not a direct microhalo-
+        simulation calibration.
+
+        Uses the enclosing power table and alpha/R sharp-k cutoff or spherical top-hat. The derivative is of sigma squared, not of sigma.
+
+        References
+        ----------
+
+        .. [cite-prompt] Ando, Moro-Gonzalez & Li (2026), Prompt cusps in hierarchical dark matter halos: Implications for annihilation boost, Sections 2.1-2.3.
+            https://arxiv.org/abs/2601.19863
+        """
         R = np.cbrt(3. * M / (4. * np.pi * cosmo.OmegaM * cosmo.rhocrit0))
         if filter == 'TopHat':
             R         = R[..., np.newaxis]
@@ -63,6 +113,32 @@ def build_ps_interpolators(cosmo, k_fs, filter='Sharp-k', alpha=1.8,
         return np.sqrt(sigma_sq)
 
     def dsdm_calc(M):
+        r"""Differentiate the selected cutoff-power variance with respect to halo mass.
+
+        Parameters
+        ----------
+        M : numpy.ndarray
+            Positive physical mass in the internal units supplied by cosmo; the top-hat derivative expects an array.
+
+        Returns
+        -------
+        values : numpy.ndarray
+            Derivative of variance in inverse internal mass, with the mass-grid shape.
+
+        Notes
+        -----
+        The prompt-cusp prescription is Ando et al., Sections 2.1-2.3. Its sharp-k mapping
+        alpha=1.8 is a large-mass top-hat matching choice, explicitly not a direct microhalo-
+        simulation calibration.
+
+        Uses the enclosing power table and alpha/R sharp-k cutoff or spherical top-hat. The derivative is of sigma squared, not of sigma.
+
+        References
+        ----------
+
+        .. [cite-prompt] Ando, Moro-Gonzalez & Li (2026), Prompt cusps in hierarchical dark matter halos: Implications for annihilation boost, Sections 2.1-2.3.
+            https://arxiv.org/abs/2601.19863
+        """
         if filter == 'TopHat':
             M         = M.reshape(-1, 1)
             R         = np.cbrt(3. * M / (4. * np.pi * cosmo.OmegaM * cosmo.rhocrit0))
@@ -90,7 +166,84 @@ def build_ps_interpolators(cosmo, k_fs, filter='Sharp-k', alpha=1.8,
 class prompt_cusps(cosmology):
     
     
+    r"""Model the Gaussian peaks that seed prompt cusps and their annihilation luminosity.
+
+    Parameters
+    ----------
+    k_fs : float
+        Comoving free-streaming cutoff in inverse internal length.
+    data_dir : path-like or None
+        Directory containing the linear power spectrum and optional peak cache.
+
+    Attributes
+    ----------
+    m_chi, T_kd : float
+        Particle mass and kinetic-decoupling temperature in the internal mass/energy convention.
+    a_kd : float
+        Adopted kinetic-decoupling scale factor.
+    k_fs : float
+        Comoving cutoff in inverse internal length.
+
+    Notes
+    -----
+    The prompt-cusp prescription is Ando et al., Sections 2.1-2.3. Its sharp-k mapping
+    alpha=1.8 is a large-mass top-hat matching choice, explicitly not a direct microhalo-
+    simulation calibration.
+
+    The thermal benchmark and cusp/core prescription follow Delos & White; the luminosity
+    constant 0.531 follows Stucker et al. and Ando et al., Eq. (2.8). The retained
+    diagnostic fit with coefficient 0.08 is from Delos & White; it is evaluated internally
+    but is not returned by cusp_properties.
+
+    The state fixes a 100 GeV particle, 30 MeV kinetic-decoupling benchmark and a_kd=5.3e-12. The latter is a retained upstream benchmark value; its exact numerical provenance has not been independently recovered from the cited paper. Use powerspectrum and sigma_function before sampling or evaluating cusp_properties. This is the small-scale cusp prescription, not a new calibration.
+
+    References
+    ----------
+
+    .. [cite-prompt] Ando, Moro-Gonzalez & Li (2026), Prompt cusps in hierarchical dark matter halos: Implications for annihilation boost, Sections 2.1-2.3.
+        https://arxiv.org/abs/2601.19863
+
+    .. [cite-delos] Delos & White (2023), Prompt cusps and the dark matter annihilation signal.
+        https://arxiv.org/abs/2209.11237
+
+    .. [cite-stucker] Stucker et al. (2023), The effect of stellar encounters on the dark matter annihilation signal from prompt cusps.
+        https://arxiv.org/abs/2301.04670
+    """
     def __init__(self, k_fs, *, data_dir=None):
+        r"""Set the thermal benchmark and data location for the prompt-cusp calculation.
+
+        Parameters
+        ----------
+        k_fs : float
+            Comoving cutoff in inverse internal length.
+        data_dir : path-like or None
+            Root for the power table and peak caches.
+
+        Notes
+        -----
+        The prompt-cusp prescription is Ando et al., Sections 2.1-2.3. Its sharp-k mapping
+        alpha=1.8 is a large-mass top-hat matching choice, explicitly not a direct microhalo-
+        simulation calibration.
+
+        The thermal benchmark and cusp/core prescription follow Delos & White; the luminosity
+        constant 0.531 follows Stucker et al. and Ando et al., Eq. (2.8). The retained
+        diagnostic fit with coefficient 0.08 is from Delos & White; it is evaluated internally
+        but is not returned by cusp_properties.
+
+        The benchmark fixes m_chi=100 GeV, T_kd=0.03 GeV and a_kd=5.3e-12. The precise source of a_kd has not been independently recovered; it is preserved as an upstream input, not newly attributed to a paper.
+
+        References
+        ----------
+
+        .. [cite-prompt] Ando, Moro-Gonzalez & Li (2026), Prompt cusps in hierarchical dark matter halos: Implications for annihilation boost, Sections 2.1-2.3.
+            https://arxiv.org/abs/2601.19863
+
+        .. [cite-delos] Delos & White (2023), Prompt cusps and the dark matter annihilation signal.
+            https://arxiv.org/abs/2209.11237
+
+        .. [cite-stucker] Stucker et al. (2023), The effect of stellar encounters on the dark matter annihilation signal from prompt cusps.
+            https://arxiv.org/abs/2301.04670
+        """
         cosmology.__init__(self, data_dir=data_dir)
         
         self.GeV      = self.Msun/1.118e57
@@ -101,6 +254,34 @@ class prompt_cusps(cosmology):
         
         
     def powerspectrum(self, k, z=0.):
+        r"""Rescale the z=31 dimensionless spectrum to the requested epoch and apply free streaming.
+
+        Parameters
+        ----------
+        k : array_like
+            Comoving wavenumbers in inverse internal length; k*self.Mpc is in Mpc**(-1).
+        z : float
+            Dimensionless observation redshift; the small-scale growth approximation is assumed.
+
+        Returns
+        -------
+        Delta2 : numpy.ndarray
+            Dimensionless k**3*P(k)/(2*pi**2), broadcast over k.
+
+        Notes
+        -----
+        The prompt-cusp prescription is Ando et al., Sections 2.1-2.3. Its sharp-k mapping
+        alpha=1.8 is a large-mass top-hat matching choice, explicitly not a direct microhalo-
+        simulation calibration.
+
+        Uses small-scale growth Delta2 proportional to a**(2*g), g=0.901, and the Gaussian power cutoff. The input spectrum is logarithmically interpolated and extrapolated; this is not a full Boltzmann evolution at arbitrary redshift.
+
+        References
+        ----------
+
+        .. [cite-prompt] Ando, Moro-Gonzalez & Li (2026), Prompt cusps in hierarchical dark matter halos: Implications for annihilation boost, Sections 2.1-2.3.
+            https://arxiv.org/abs/2601.19863
+        """
         _z         = 31.
         _a         = 1./(1.+_z)
         a          = 1./(1.+z)
@@ -117,6 +298,42 @@ class prompt_cusps(cosmology):
     
     def sigma_function(self, k=np.logspace(-1.,7.,num=1000)):
         #Spectral parameters
+        r"""Integrate the three spectral moments needed for BBKS peak statistics.
+
+        Parameters
+        ----------
+        k : array_like
+            One-dimensional increasing wavenumbers as numerical values in Mpc**(-1); converted to internal inverse length.
+
+        Returns
+        -------
+        sigma : numpy.ndarray, shape (3,)
+            Moments sigma_j=sqrt(integral Delta2*k**(2*j) dlnk); units internal length**(-j).
+        R_s : float
+            sqrt(3)*sigma_1/sigma_2, a comoving internal length.
+        gamma : float
+            sigma_1**2/(sigma_0*sigma_2), dimensionless.
+
+        Notes
+        -----
+        The prompt-cusp prescription is Ando et al., Sections 2.1-2.3. Its sharp-k mapping
+        alpha=1.8 is a large-mass top-hat matching choice, explicitly not a direct microhalo-
+        simulation calibration.
+
+        Peak-height/curvature weighting and spectral moments use the BBKS Gaussian-peak
+        statistics; finite grids and Monte Carlo sizes are numerical choices.
+
+        The default finite grid runs from 0.1 to 1e7 Mpc**(-1). It is a numerical integration domain, not a fitted physical cutoff.
+
+        References
+        ----------
+
+        .. [cite-prompt] Ando, Moro-Gonzalez & Li (2026), Prompt cusps in hierarchical dark matter halos: Implications for annihilation boost, Sections 2.1-2.3.
+            https://arxiv.org/abs/2601.19863
+
+        .. [cite-bbks] Bardeen, Bond, Kaiser & Szalay (1986), The Statistics of Peaks of Gaussian Random Fields, Appendix A.
+            https://doi.org/10.1086/164143
+        """
         k     = k/self.Mpc
         sigma = np.empty(3)
         for j in np.arange(3):
@@ -136,22 +353,52 @@ class prompt_cusps(cosmology):
     def cusps_Monte_Carlo(self, length=10000, nu_max=10.0, x_max=10.0, N_nu=1001, N_x=1000,
                           rng_seed=None, verbose=False,
     ):
-        """
-        Monte Carlo sampler for prompt-cusp peak parameters:
-        (nu, x) from BBKS peak density d^2n/(dnu dx),
-        (e, p) from the DW/BBKS (Doroshkevich-type) conditional ellipticity/prolateness distribution,
-        f_ec   solved from the collapse condition equation (as in your current code).
+        r"""Sample peak height, curvature and tidal shape for the ellipsoidal prompt-cusp collapse model.
 
-        DW-consistent core (up to normalization):
-        f(e,p|nu) ∝ e (e^2 - p^2) exp[-(5/2) nu^2 (3 e^2 + p^2)]
-        With u=p/e:
-        f(e,u|nu) ∝ e^4 (1-u^2) exp[-alpha e^2],  alpha=(5/2) nu^2 (3+u^2)
-        => f(u|nu) ∝ (1-u^2) (3+u^2)^(-5/2)
-        => t=e^2 | (u,nu) ~ Gamma(shape=5/2, scale=1/alpha)
+        Parameters
+        ----------
+        length : int
+            Number of requested independent Monte Carlo draws.
+        nu_max, x_max : float
+            Upper dimensionless height and curvature limits.
+        N_nu, N_x : int
+            Numbers of grid points for height and curvature.
+        rng_seed : int or None
+            Seed for a local NumPy random generator.
+        verbose : bool
+            Print the number of collapse-root attempts.
 
         Returns
         -------
-        x_random, nu_random, e_random, p_random, fec_random : 1D arrays (length,)
+        x_random, nu_random, e_random, p_random, fec_random : numpy.ndarray, shape (length,)
+            Dimensionless curvature, height, ellipticity, prolateness and collapse factor; failed/unsupported collapse factors are NaN.
+
+        Notes
+        -----
+        The prompt-cusp prescription is Ando et al., Sections 2.1-2.3. Its sharp-k mapping
+        alpha=1.8 is a large-mass top-hat matching choice, explicitly not a direct microhalo-
+        simulation calibration.
+
+        Peak-height/curvature weighting and spectral moments use the BBKS Gaussian-peak
+        statistics; finite grids and Monte Carlo sizes are numerical choices.
+
+        The collapse coefficients 0.47 and 0.615 and conditional ellipticity/prolateness law
+        come from Sheth, Mo & Tormen, Eq. (3) and Appendix A. The e**2-p*abs(p)<0.26 cut is the
+        prompt-cusp adoption described by Ando et al.
+
+        The peak grid is normalized over finite positive nu and x. Shape draws use u=p/e and e**2 drawn from a Gamma distribution with shape 5/2. Peaks outside e**2-p*abs(p)<0.26, or failed positive collapse roots, retain NaN collapse factors. Invalid probability normalization raises ValueError; successful sampling does not establish cusp-abundance calibration.
+
+        References
+        ----------
+
+        .. [cite-prompt] Ando, Moro-Gonzalez & Li (2026), Prompt cusps in hierarchical dark matter halos: Implications for annihilation boost, Sections 2.1-2.3.
+            https://arxiv.org/abs/2601.19863
+
+        .. [cite-bbks] Bardeen, Bond, Kaiser & Szalay (1986), The Statistics of Peaks of Gaussian Random Fields, Appendix A.
+            https://doi.org/10.1086/164143
+
+        .. [cite-ellipsoid] Sheth, Mo & Tormen (2001), Ellipsoidal collapse and an improved model for the number and spatial distribution of dark matter haloes, Eq. (3), Appendix A.
+            https://arxiv.org/abs/astro-ph/9907024
         """
 
         rng = np.random.default_rng(rng_seed)
@@ -161,6 +408,38 @@ class prompt_cusps(cosmology):
 
         # --- BBKS f(x) ---
         def f_x(x):
+            r"""Evaluate the BBKS curvature weighting of maxima in a Gaussian density field.
+
+            Parameters
+            ----------
+            x : array_like
+                Dimensionless positive normalized peak curvature.
+
+            Returns
+            -------
+            weight : array_like
+                Dimensionless BBKS f(x), broadcast over x.
+
+            Notes
+            -----
+            The prompt-cusp prescription is Ando et al., Sections 2.1-2.3. Its sharp-k mapping
+            alpha=1.8 is a large-mass top-hat matching choice, explicitly not a direct microhalo-
+            simulation calibration.
+
+            Peak-height/curvature weighting and spectral moments use the BBKS Gaussian-peak
+            statistics; finite grids and Monte Carlo sizes are numerical choices.
+
+            The polynomial, error-function and exponential coefficients are those of BBKS Appendix A.
+
+            References
+            ----------
+
+            .. [cite-prompt] Ando, Moro-Gonzalez & Li (2026), Prompt cusps in hierarchical dark matter halos: Implications for annihilation boost, Sections 2.1-2.3.
+                https://arxiv.org/abs/2601.19863
+
+            .. [cite-bbks] Bardeen, Bond, Kaiser & Szalay (1986), The Statistics of Peaks of Gaussian Random Fields, Appendix A.
+                https://doi.org/10.1086/164143
+            """
             return ((x**3 - 3.0 * x) / 2.0) * (
                 erf(np.sqrt(5.0 / 2.0) * x) + erf(np.sqrt(5.0 / 8.0) * x)
             ) + np.sqrt(2.0 / (5.0 * np.pi)) * (
@@ -170,6 +449,40 @@ class prompt_cusps(cosmology):
 
         # --- BBKS d^2n/(dnu dx) (matches your ddn() structure) ---
         def d2n_dnudx(nu, x):
+            r"""Evaluate the joint Gaussian peak density per height and curvature.
+
+            Parameters
+            ----------
+            nu : array_like
+                Dimensionless density height delta/sigma_0.
+            x : array_like
+                Dimensionless negative Laplacian divided by sigma_2; must broadcast with nu.
+
+            Returns
+            -------
+            density : array_like
+                d**2 n/(dnu dx) in inverse internal comoving volume.
+
+            Notes
+            -----
+            The prompt-cusp prescription is Ando et al., Sections 2.1-2.3. Its sharp-k mapping
+            alpha=1.8 is a large-mass top-hat matching choice, explicitly not a direct microhalo-
+            simulation calibration.
+
+            Peak-height/curvature weighting and spectral moments use the BBKS Gaussian-peak
+            statistics; finite grids and Monte Carlo sizes are numerical choices.
+
+            The enclosing spectral moments set R_s and gamma; the Gaussian conditional curvature law and BBKS f(x) determine the peak density.
+
+            References
+            ----------
+
+            .. [cite-prompt] Ando, Moro-Gonzalez & Li (2026), Prompt cusps in hierarchical dark matter halos: Implications for annihilation boost, Sections 2.1-2.3.
+                https://arxiv.org/abs/2601.19863
+
+            .. [cite-bbks] Bardeen, Bond, Kaiser & Szalay (1986), The Statistics of Peaks of Gaussian Random Fields, Appendix A.
+                https://doi.org/10.1086/164143
+            """
             return (
                 np.exp(-0.5 * nu**2)
                 / ((2.0 * np.pi) ** 2 * R_s**3)
@@ -211,6 +524,39 @@ class prompt_cusps(cosmology):
         #   stage1: Uniform[-1,1] accepted with (1-u^2)  -> proposal ∝ (1-u^2)
         #   stage2: accept with (3/(3+u^2))^(5/2)       -> adds (3+u^2)^(-5/2)
         def draw_u(n):
+            r"""Draw the shape ratio p/e for the adopted ellipsoidal-collapse distribution.
+
+            Parameters
+            ----------
+            n : int
+                Number of accepted shape-ratio draws.
+
+            Returns
+            -------
+            u : numpy.ndarray, shape (n,)
+                Dimensionless ratios in [-1,1].
+
+            Notes
+            -----
+            The prompt-cusp prescription is Ando et al., Sections 2.1-2.3. Its sharp-k mapping
+            alpha=1.8 is a large-mass top-hat matching choice, explicitly not a direct microhalo-
+            simulation calibration.
+
+            The collapse coefficients 0.47 and 0.615 and conditional ellipticity/prolateness law
+            come from Sheth, Mo & Tormen, Eq. (3) and Appendix A. The e**2-p*abs(p)<0.26 cut is the
+            prompt-cusp adoption described by Ando et al.
+
+            The two rejection steps sample density proportional to (1-u**2)*(3+u**2)**(-5/2), obtained by integrating the adopted conditional ellipticity law. Oversampling sizes only affect execution.
+
+            References
+            ----------
+
+            .. [cite-prompt] Ando, Moro-Gonzalez & Li (2026), Prompt cusps in hierarchical dark matter halos: Implications for annihilation boost, Sections 2.1-2.3.
+                https://arxiv.org/abs/2601.19863
+
+            .. [cite-ellipsoid] Sheth, Mo & Tormen (2001), Ellipsoidal collapse and an improved model for the number and spatial distribution of dark matter haloes, Eq. (3), Appendix A.
+                https://arxiv.org/abs/astro-ph/9907024
+            """
             out = np.empty(n, dtype=float)
             filled = 0
             while filled < n:
@@ -251,6 +597,41 @@ class prompt_cusps(cosmology):
         # -------------------------------------------------------------------------
         # --- collapse factor f_ec (keep your existing definition/condition) -------
         def fec_fun(fec, e, p):
+            r"""Form the ellipsoidal-collapse root equation for a single peak shape.
+
+            Parameters
+            ----------
+            fec : array_like
+                Trial spherical-to-ellipsoidal collapse correction.
+            e, p : float
+                Dimensionless ellipticity and prolateness.
+
+            Returns
+            -------
+            residual : array_like
+                fec-1-0.47*[5*(e**2-p*abs(p))*fec**2]**0.615; the desired root is zero.
+
+            Notes
+            -----
+            The prompt-cusp prescription is Ando et al., Sections 2.1-2.3. Its sharp-k mapping
+            alpha=1.8 is a large-mass top-hat matching choice, explicitly not a direct microhalo-
+            simulation calibration.
+
+            The collapse coefficients 0.47 and 0.615 and conditional ellipticity/prolateness law
+            come from Sheth, Mo & Tormen, Eq. (3) and Appendix A. The e**2-p*abs(p)<0.26 cut is the
+            prompt-cusp adoption described by Ando et al.
+
+            A numerical root is sought only after applying the retained prompt-cusp shape cut.
+
+            References
+            ----------
+
+            .. [cite-prompt] Ando, Moro-Gonzalez & Li (2026), Prompt cusps in hierarchical dark matter halos: Implications for annihilation boost, Sections 2.1-2.3.
+                https://arxiv.org/abs/2601.19863
+
+            .. [cite-ellipsoid] Sheth, Mo & Tormen (2001), Ellipsoidal collapse and an improved model for the number and spatial distribution of dark matter haloes, Eq. (3), Appendix A.
+                https://arxiv.org/abs/astro-ph/9907024
+            """
             return fec - 1.0 - 0.47 * (5.0 * (e**2 - p * np.abs(p)) * fec**2) ** 0.615
 
         fec_random = np.full(int(length), np.nan, dtype=float)
@@ -284,7 +665,7 @@ class prompt_cusps(cosmology):
         rng_seed=None,
         verbose=False,
     ):
-        """Load cached Monte Carlo samples for prompt-cusp peak parameters, or generate and cache them.
+        r"""Load cached Monte Carlo samples for prompt-cusp peak parameters, or generate and cache them.
 
         The cached file contains 5 columns in the following order:
             x, nu, e, p, f_ec
@@ -305,6 +686,18 @@ class prompt_cusps(cosmology):
         Returns
         -------
         x_random, nu_random, e_random, p_random, fec_random : 1D arrays
+
+        Notes
+        -----
+        The prompt-cusp prescription is Ando et al., Sections 2.1-2.3. Its sharp-k mapping
+        alpha=1.8 is a large-mass top-hat matching choice, explicitly not a direct microhalo-
+        simulation calibration.
+
+        References
+        ----------
+
+        .. [cite-prompt] Ando, Moro-Gonzalez & Li (2026), Prompt cusps in hierarchical dark matter halos: Implications for annihilation boost, Sections 2.1-2.3.
+            https://arxiv.org/abs/2601.19863
         """
 
         cache_path = str(self.data_dir/"prompt_cusps"/"prompt_cusps_Monte_Carlo.txt") if mc_cache_file is None else str(mc_cache_file)
@@ -356,6 +749,63 @@ class prompt_cusps(cosmology):
         verbose=False,
     ):
 
+        r"""Compute the collapsed peak fraction and individual prompt-cusp annihilation integrals.
+
+        Parameters
+        ----------
+        f_surv : float
+            Dimensionless survival factor used in internal population luminosity diagnostics.
+        z : float
+            Dimensionless observation redshift; the small-scale growth approximation is assumed.
+        mc_length : int
+            Number of generated peaks if a cache is not reused.
+        mc_cache_file : path-like or None
+            Five-column peak cache; None selects the data-directory default.
+        regenerate_mc : bool
+            Regenerate rather than reuse the peak cache.
+        rng_seed : int or None
+            Seed used only when generating the Monte Carlo sample.
+        verbose : bool
+            Print generation/cache status.
+
+        Returns
+        -------
+        f_coll : float
+            Fraction of sampled peaks passing the epoch and shape collapse conditions.
+        J_cusp : numpy.ndarray
+            Integral of rho**2 over physical volume for each collapsed cusp, in internal mass**2/length**3.
+
+        Notes
+        -----
+        The prompt-cusp prescription is Ando et al., Sections 2.1-2.3. Its sharp-k mapping
+        alpha=1.8 is a large-mass top-hat matching choice, explicitly not a direct microhalo-
+        simulation calibration.
+
+        Peak-height/curvature weighting and spectral moments use the BBKS Gaussian-peak
+        statistics; finite grids and Monte Carlo sizes are numerical choices.
+
+        The thermal benchmark and cusp/core prescription follow Delos & White; the luminosity
+        constant 0.531 follows Stucker et al. and Ando et al., Eq. (2.8). The retained
+        diagnostic fit with coefficient 0.08 is from Delos & White; it is evaluated internally
+        but is not returned by cusp_properties.
+
+        The cusp normalization is A=24*rho_dm0*a_coll**(-3/2)*R**(3/2), the outer radius is 0.11*a_coll*R, and the phase-space core uses the coefficient 3e-5. The luminosity uses 4*pi*A**2*[0.531+ln(rcusp/rcore)]. Internal population-average and 0.08 fit diagnostics are not return values. The historical implementation assumes a nonempty collapsed sample; its empty-sample path is not repaired by this documentation change.
+
+        References
+        ----------
+
+        .. [cite-prompt] Ando, Moro-Gonzalez & Li (2026), Prompt cusps in hierarchical dark matter halos: Implications for annihilation boost, Sections 2.1-2.3.
+            https://arxiv.org/abs/2601.19863
+
+        .. [cite-bbks] Bardeen, Bond, Kaiser & Szalay (1986), The Statistics of Peaks of Gaussian Random Fields, Appendix A.
+            https://doi.org/10.1086/164143
+
+        .. [cite-delos] Delos & White (2023), Prompt cusps and the dark matter annihilation signal.
+            https://arxiv.org/abs/2209.11237
+
+        .. [cite-stucker] Stucker et al. (2023), The effect of stellar encounters on the dark matter annihilation signal from prompt cusps.
+            https://arxiv.org/abs/2301.04670
+        """
         x_random, nu_random, e_random, p_random, fec_random = self._load_or_generate_prompt_cusp_mc(
             length=mc_length,
             mc_cache_file=mc_cache_file,
@@ -369,17 +819,115 @@ class prompt_cusps(cosmology):
 
         #num same as the one used in the sampling  
         def f_x(x):
+            r"""Evaluate the BBKS curvature weighting of maxima in a Gaussian density field.
+
+            Parameters
+            ----------
+            x : array_like
+                Dimensionless positive normalized peak curvature.
+
+            Returns
+            -------
+            weight : array_like
+                Dimensionless BBKS f(x), broadcast over x.
+
+            Notes
+            -----
+            The prompt-cusp prescription is Ando et al., Sections 2.1-2.3. Its sharp-k mapping
+            alpha=1.8 is a large-mass top-hat matching choice, explicitly not a direct microhalo-
+            simulation calibration.
+
+            Peak-height/curvature weighting and spectral moments use the BBKS Gaussian-peak
+            statistics; finite grids and Monte Carlo sizes are numerical choices.
+
+            The polynomial, error-function and exponential coefficients are those of BBKS Appendix A.
+
+            References
+            ----------
+
+            .. [cite-prompt] Ando, Moro-Gonzalez & Li (2026), Prompt cusps in hierarchical dark matter halos: Implications for annihilation boost, Sections 2.1-2.3.
+                https://arxiv.org/abs/2601.19863
+
+            .. [cite-bbks] Bardeen, Bond, Kaiser & Szalay (1986), The Statistics of Peaks of Gaussian Random Fields, Appendix A.
+                https://doi.org/10.1086/164143
+            """
             return (x**3-3.*x)/2.*(erf(np.sqrt(5./2.)*x)+erf(np.sqrt(5./8.)*x)) \
                     +np.sqrt(2./(5.*np.pi))*((31./4.*x**2+8./5.)*np.exp(-(5./8.*x**2)) \
                     +(x**2/2.-8./5.)*np.exp(-(5./2.*x**2)))
 
         def ddn(nu,x):
+            r"""Evaluate the joint Gaussian peak density per height and curvature.
+
+            Parameters
+            ----------
+            nu : array_like
+                Dimensionless density height delta/sigma_0.
+            x : array_like
+                Dimensionless negative Laplacian divided by sigma_2; must broadcast with nu.
+
+            Returns
+            -------
+            density : array_like
+                d**2 n/(dnu dx) in inverse internal comoving volume.
+
+            Notes
+            -----
+            The prompt-cusp prescription is Ando et al., Sections 2.1-2.3. Its sharp-k mapping
+            alpha=1.8 is a large-mass top-hat matching choice, explicitly not a direct microhalo-
+            simulation calibration.
+
+            Peak-height/curvature weighting and spectral moments use the BBKS Gaussian-peak
+            statistics; finite grids and Monte Carlo sizes are numerical choices.
+
+            The enclosing spectral moments set R_s and gamma; the Gaussian conditional curvature law and BBKS f(x) determine the peak density.
+
+            References
+            ----------
+
+            .. [cite-prompt] Ando, Moro-Gonzalez & Li (2026), Prompt cusps in hierarchical dark matter halos: Implications for annihilation boost, Sections 2.1-2.3.
+                https://arxiv.org/abs/2601.19863
+
+            .. [cite-bbks] Bardeen, Bond, Kaiser & Szalay (1986), The Statistics of Peaks of Gaussian Random Fields, Appendix A.
+                https://doi.org/10.1086/164143
+            """
             return np.exp(-nu**2/2.)/((2.*np.pi)**2*R_s**3)*f_x(x) \
                     *np.exp(-0.5*(x-gamma*nu)**2/(1.-gamma**2)) \
                     /np.sqrt(2.*np.pi*(1.-gamma**2))
         
         #Differential number density of peaks
         def n_peaks(nu=np.linspace(1.e-10,10.,num=1000),x=np.linspace(1.e-10,10.,num=1001)):
+            r"""Integrate the BBKS peak density over the selected positive height/curvature domain.
+
+            Parameters
+            ----------
+            nu, x : numpy.ndarray
+                One-dimensional increasing dimensionless height and curvature grids.
+
+            Returns
+            -------
+            number_density : float
+                Number of peaks per internal comoving volume over these finite bounds.
+
+            Notes
+            -----
+            The prompt-cusp prescription is Ando et al., Sections 2.1-2.3. Its sharp-k mapping
+            alpha=1.8 is a large-mass top-hat matching choice, explicitly not a direct microhalo-
+            simulation calibration.
+
+            Peak-height/curvature weighting and spectral moments use the BBKS Gaussian-peak
+            statistics; finite grids and Monte Carlo sizes are numerical choices.
+
+            Simpson integration uses the joint BBKS density. Changing bounds changes the included peak population; grid refinement alone cannot correct omitted tails.
+
+            References
+            ----------
+
+            .. [cite-prompt] Ando, Moro-Gonzalez & Li (2026), Prompt cusps in hierarchical dark matter halos: Implications for annihilation boost, Sections 2.1-2.3.
+                https://arxiv.org/abs/2601.19863
+
+            .. [cite-bbks] Bardeen, Bond, Kaiser & Szalay (1986), The Statistics of Peaks of Gaussian Random Fields, Appendix A.
+                https://doi.org/10.1086/164143
+            """
             dndnudx_ = ddn(nu,x.reshape(-1,1))
             n_peaks  = simpson(simpson(dndnudx_,nu,axis=-1),x)
             return n_peaks
