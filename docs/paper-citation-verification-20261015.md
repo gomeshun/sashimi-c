@@ -2,6 +2,12 @@
 
 Audit date: 2026-10-15 (JST). This supersedes the equation-attribution conclusions of the 2026-10-14 citation index; the old index remains a historical snapshot.
 
+**Follow-up:** the kinetic-decoupling scale factor is now supported by a literal
+paper value and an independent entropy calculation; see the
+[2026-10-15 follow-up](#kinetic-decoupling-follow-up-2026-10-15). The original
+counts, source comparisons and companion JSON below describe the initial audit,
+including its then-unresolved attribution. They are preserved as that snapshot.
+
 Inspected source revision: `9ed57a0fb689d1d79a8e9e2fdd1f9ff01651cf5e`. All cited definitions include private helpers, nested functions and tests. A moved function is traced through its retained qualified name; a move does not imply a new physical prescription.
 
 Comparison baseline: `upstream/main` at `e07ef8fa13503bd80818995c0d366311104fb644` (author upstream).
@@ -112,3 +118,75 @@ Compared all 44 tracked Python files in this checkout after stripping only leadi
 Original qualified-name links record the author/owner baseline even when the current file or containing class moved. A missing one-to-one name mapping is reported as such; it is not evidence that a physical equation is new. The companion JSON preserves baseline source-file hashes.
 
 The retained test results from the previous citation audit belong to their recorded source revisions. They are not relabelled as new physical runs. This audit checks documentation, paper correspondence and executable-source identity; it does not establish convergence, observational calibration or validity outside the published domains. Source-file hashes can change when documentation changes, so persisted output/restart identity checks must not be bypassed.
+
+## Kinetic-decoupling follow-up: 2026-10-15
+
+Starting source: `72664ba3d2a64da9639b13db254d3b8b60931eac`; author
+`upstream/main`: `e07ef8fa13503bd80818995c0d366311104fb644`. The original
+`prompt_cusps` class and its constructor remain inherited definitions, now at
+[`src/sashimi_c/prompt_cusps.py`](../src/sashimi_c/prompt_cusps.py). Their
+benchmark values and executable calculations are unchanged.
+
+[Stucker et al. (2023), arXiv:2301.04670v2, Section 2.1, PDF p. 3](https://arxiv.org/pdf/2301.04670v2)
+explicitly give `T_d=30 MeV` and `a_d=5.33e-12`. Thus the retained
+`a_kd=5.3e-12` is consistent with the two-significant-digit rounding of a
+published benchmark. This newly inspected passage resolves the initial audit's
+four unresolved citation uses in the class and constructor. It does not mean
+that the numerical value is literally printed in the Ando or Delos passages
+previously cited for those uses.
+
+Independently, entropy conservation in an adiabatically expanding thermal
+history gives, with `a_today=1`,
+
+```text
+a_kd = (k_B T_gamma0 / T_kd) * [g_star_s0 / g_star_s(T_kd)]^(1/3).
+```
+
+Here `T_kd` denotes an energy, so `k_B T_gamma0` must use the same units.
+[Husdal (2016), arXiv:1609.04979v3](https://arxiv.org/pdf/1609.04979v3)
+provides the entropy integrals in Eqs. (6)-(8), (11)-(13), conservation in
+Eq. (28), and `g_star_s0=43/11` in Eq. (39). Use `T_gamma0=2.7255 K`, rounded
+from [Fixsen (2009)](https://arxiv.org/abs/0911.1955). Once the present photon
+temperature and thermal history are specified, this relation does not require
+H0 or Omega_m. These late-time background parameters alone would not specify
+the entropy history.
+
+At 30 MeV, integrate ideal-gas Fermi-Dirac/Bose-Einstein distributions from
+zero to infinite `p/T`, with zero chemical potentials. Photons and three
+neutrino flavours are massless; the electron, muon and pion masses and
+degeneracies are from Husdal Tables 1-2. The resulting entropy degrees of
+freedom are a calculation, not an interpolation of a tabulated 30-MeV row:
+
+| Contribution | g_star_s |
+|---|---:|
+| Photons | 2 |
+| Three neutrino flavours and antineutrinos | 5.25 |
+| Electrons and positrons, mass 0.511 MeV | 3.499889765 |
+| Muons and antimuons, mass 105.7 MeV | 1.149666089 |
+| Neutral pions, mass 135.0 MeV | 0.164221543 |
+| Charged pions, mass 139.6 MeV | 0.298657493 |
+| Total | 12.362434890 |
+
+This yields `a_kd=5.333615918e-12`, consistent with the published `5.33e-12`
+and stored `5.3e-12` at their respective rounding precisions. Dropping the
+entropy factor gives `7.828847269e-12`; using `g_star_s=10.75` gives
+`5.587963868e-12`. The thermally suppressed muon and pion contributions
+therefore matter at the precision of the stored benchmark.
+
+Exactly one new test,
+[`test_prompt_cusp_decoupling_scale_factor_obeys_entropy_conservation`](../tests/test_prompt_cusp_thermal_benchmark.py#L51),
+performs the independent quadrature and checks the real constructor's stored
+temperature and scale factor. Its absolute tolerances, `5e-15` and `5e-14`,
+are half-last-digit rounding intervals for the published and stored values,
+respectively. They are not estimates of physical uncertainty. The two simpler
+thermal histories above are negative controls. The quadrature targets
+`epsabs=epsrel=1e-10` control numerical integration, not model accuracy.
+
+The class, constructor and `cusp_properties` docstrings identify the direct
+source; the class and constructor also describe the independent derivation.
+The new test and its private integration helper each have their own NumPy
+References section. No existing test is removed or weakened. The calculation
+assumes instantaneous neutrino decoupling and neglects plasma interactions,
+chemical potentials and late entropy production. It establishes consistency
+of this fixed benchmark, not precision thermal-history accuracy or a new
+calibration of prompt-cusp luminosities.

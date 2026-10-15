@@ -1,5 +1,10 @@
 # Literature citation audit: sashimi-c — started 2026-10-14 UTC
 
+This is a historical audit snapshot. The initial unresolved a_kd attribution
+below is superseded by the [2026-10-15 kinetic-decoupling follow-up](paper-citation-verification-20261015.md#kinetic-decoupling-follow-up-2026-10-15):
+Stucker et al. explicitly report 5.33e-12, and an independent entropy calculation
+agrees with the stored 5.3e-12 at its rounding precision.
+
 Inventoried **238 active definitions**, including inherited/moved functions, private/nested helpers, constructors and tests. Updated **90 docstrings**, of which **59** receive or complete local paper references. The remaining edits clarify units, assumptions or NumPy structure.
 
 The executable baseline before this citation edit is `53523abbd0cb863fb7af1bdf2fd9abe700385970`. Comparison baseline: author upstream/main `e07ef8fa13503bd80818995c0d366311104fb644`. Moving a definition does not make it new; this citation pass also includes inherited definitions.

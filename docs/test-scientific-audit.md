@@ -1,5 +1,9 @@
 # Scientific test review: sashimi-c — 2026-10-14
 
+The 72-definition review below is the original snapshot. One additional
+physical-consistency test is reviewed in the [2026-10-15 follow-up](#follow-up-2026-10-15-kinetic-decoupling-benchmark);
+its addition does not enact any proposed consolidation or relaxation below.
+
 Reviewed **72 test definitions** individually. This count is not the number of parametrized cases. The review proposes future changes; all test bodies, assertions and tolerances are retained.
 
 Executable-code baseline before this documentation change: `bc6667571021e664ad5dab1eb1a3f84ad2891760`.
@@ -801,3 +805,49 @@ Exact equality remains appropriate for lossless serialization, unchanged input i
 **Fail.** Any stated comparison/identity mismatch, missing expected exception/warning, or unexpected calculation error fails the case.
 **Necessity / proposal.** Retain because mixing host mass definitions changes every accretion and stripping history.
 **Limit.** This controlled calculation does not calibrate a subhalo population against simulations or observations.
+
+## Follow-up: 2026-10-15 kinetic-decoupling benchmark
+
+#### 73. `test_prompt_cusp_decoupling_scale_factor_obeys_entropy_conservation`
+
+[Source](../tests/test_prompt_cusp_thermal_benchmark.py#L51) · **Add and retain** ·
+Role: independent thermal consistency.
+
+**Purpose.** Check that the scale factor entering the primordial maximum
+phase-space density agrees with the adopted 30-MeV kinetic-decoupling
+temperature. An inconsistent scale factor changes the inferred cusp core.
+
+**Reference and setup.** The real constructor supplies T_kd and a_kd. Independent
+Fermi-Dirac/Bose-Einstein momentum quadrature computes entropy degrees of
+freedom for photons, electrons, muons, pions and three neutrino flavours, using
+Husdal's ideal-gas relations and particle values. The present photon temperature
+comes from Fixsen. Stucker et al., Section 2.1, supplies an additional published
+benchmark. Exact paper identifiers and assumptions are in the test and in the
+[derivation](paper-citation-verification-20261015.md#kinetic-decoupling-follow-up-2026-10-15).
+
+**Pass.** The independent a_kd agrees with 5.33e-12 within 5e-15 and the stored
+value within 5e-14. The temperature-only and g_star_s=10.75 estimates lie outside
+the stored-value interval. The absolute bounds reflect three- and
+two-significant-digit rounding, respectively.
+
+**Fail.** Either benchmark mismatch, a negative control entering the stated
+interval, or a numerical integration/constructor error fails the case.
+
+**Necessity and duplication.** No existing test independently reconstructs this
+thermal relation. This protects against silently changing T_kd or a_kd to an
+inconsistent pair; it does not duplicate catalogue golden outputs. It depends
+on the physical state exposed by the constructor, not on cache identity or
+private production algorithms. It serves numerical reproducibility, while
+packaging is covered separately.
+
+**Helper review.** The private `_entropy_momentum_integrand` expresses
+`s=(rho+P)/T` independently of production code and uses a stable exponential
+occupation. It has its own NumPy Parameters, Returns, Notes and References.
+Its numerical purpose and zero-chemical-potential domain are explicit.
+
+**Removal risk and limits.** Removing this test would leave the thermal
+consistency of the phase-space benchmark untested. No retirement or
+consolidation is proposed. The ideal-gas calculation does not validate
+finite-temperature plasma corrections, non-instantaneous neutrino decoupling,
+alternative dark sectors or cusp-luminosity calibration. Existing tests and
+their assertions remain unchanged.

@@ -180,7 +180,8 @@ class prompt_cusps(cosmology):
     m_chi, T_kd : float
         Particle mass and kinetic-decoupling temperature in the internal mass/energy convention.
     a_kd : float
-        Adopted kinetic-decoupling scale factor.
+        Dimensionless kinetic-decoupling scale factor, with a_today=1;
+        the stored 5.3e-12 is a rounded thermal benchmark.
     k_fs : float
         Comoving cutoff in inverse internal length.
 
@@ -195,7 +196,23 @@ class prompt_cusps(cosmology):
     diagnostic fit with coefficient 0.08 is from Delos & White; it is evaluated internally
     but is not returned by cusp_properties.
 
-    The state fixes a 100 GeV particle, 30 MeV kinetic-decoupling benchmark and a_kd=5.3e-12. The latter is a retained upstream benchmark value; its exact numerical provenance has not been independently recovered from the cited paper. Use powerspectrum and sigma_function before sampling or evaluating cusp_properties. This is the small-scale cusp prescription, not a new calibration.
+    The state fixes a 100 GeV particle and 30 MeV kinetic-decoupling temperature.
+    The stored a_kd=5.3e-12 is consistent with rounding the a_d=5.33e-12 value
+    explicitly given for this temperature by Stucker et al., Section 2.1, p. 3.
+    Independently, adiabatic expansion conserves g_star_s*T**3*a**3, giving
+    a_kd=(T_gamma0/T_kd)*(g_star_s0/g_star_s_kd)**(1/3), with both temperatures
+    expressed in the same energy units. T_gamma0=2.7255 K (rounded from Fixsen),
+    g_star_s0=43/11 and ideal-gas photon, electron, muon, pion and three-neutrino
+    entropy integrals (Husdal) give g_star_s_kd about 12.36 and a_kd about
+    5.33e-12. The muon and pion tails matter at 30 MeV; setting g_star_s=10.75
+    instead gives about 5.59e-12.
+
+    This consistency check assumes zero chemical potentials, instantaneous
+    neutrino decoupling and no later entropy production; it does not establish
+    precision accuracy including plasma-interaction corrections. The stored
+    value remains a fixed benchmark, not a recalculation for arbitrary thermal
+    histories. Use powerspectrum and sigma_function before sampling or
+    evaluating cusp_properties. This is not a new cusp calibration.
 
     Stucker et al. Eq. (14) gives the 0.531 luminosity approximation for r > 10*r_core.
     The retained implementation evaluates it at r_cusp without enforcing that separation;
@@ -211,7 +228,15 @@ class prompt_cusps(cosmology):
         https://arxiv.org/abs/2209.11237
 
     .. [cite-stucker] Stucker et al. (2023), The effect of stellar encounters on the dark matter annihilation signal from prompt cusps.
+        Section 2.1, p. 3 (30 MeV and a_d=5.33e-12); Eq. (14) (luminosity).
         https://arxiv.org/abs/2301.04670
+
+    .. [cite-entropy] Husdal (2016), On Effective Degrees of Freedom in the Early
+        Universe, Tables 1-2 and Eqs. (11)-(13), (28), (39).
+        https://arxiv.org/abs/1609.04979
+
+    .. [cite-cmb] Fixsen (2009), The Temperature of the Cosmic Microwave Background.
+        https://arxiv.org/abs/0911.1955
     """
     def __init__(self, k_fs, *, data_dir=None):
         r"""Set the thermal benchmark and data location for the prompt-cusp calculation.
@@ -234,7 +259,21 @@ class prompt_cusps(cosmology):
         diagnostic fit with coefficient 0.08 is from Delos & White; it is evaluated internally
         but is not returned by cusp_properties.
 
-        The benchmark fixes m_chi=100 GeV, T_kd=0.03 GeV and a_kd=5.3e-12. The precise source of a_kd has not been independently recovered; it is preserved as an upstream input, not newly attributed to a paper.
+        The benchmark fixes m_chi=100 GeV, T_kd=0.03 GeV and a_kd=5.3e-12.
+        Stucker et al., Section 2.1, p. 3 explicitly give a_d=5.33e-12 at
+        T_d=30 MeV, consistent with this stored value after rounding.
+        An independent entropy-conservation calculation gives
+        a_kd=(T_gamma0/T_kd)*(g_star_s0/g_star_s_kd)**(1/3), with temperatures
+        converted to the same energy units. Using T_gamma0=2.7255 K (Fixsen),
+        g_star_s0=43/11, and the ideal-gas photon/electron/muon/pion/neutrino
+        entropy integrals in Husdal yields g_star_s_kd about 12.36 and
+        a_kd about 5.33e-12. Retaining muon and pion tails distinguishes this
+        result from the g_star_s=10.75 estimate, about 5.59e-12.
+
+        The check assumes adiabatic expansion, zero chemical potentials and
+        instantaneous neutrino decoupling. It does not include precision
+        plasma-interaction corrections or recompute the fixed benchmark when
+        a different thermal history is desired.
 
         Stucker et al. Eq. (14) gives the 0.531 luminosity approximation for r > 10*r_core.
         The retained implementation evaluates it at r_cusp without enforcing that separation;
@@ -250,7 +289,15 @@ class prompt_cusps(cosmology):
             https://arxiv.org/abs/2209.11237
 
         .. [cite-stucker] Stucker et al. (2023), The effect of stellar encounters on the dark matter annihilation signal from prompt cusps.
+            Section 2.1, p. 3 (30 MeV and a_d=5.33e-12); Eq. (14) (luminosity).
             https://arxiv.org/abs/2301.04670
+
+        .. [cite-entropy] Husdal (2016), On Effective Degrees of Freedom in the Early
+            Universe, Tables 1-2 and Eqs. (11)-(13), (28), (39).
+            https://arxiv.org/abs/1609.04979
+
+        .. [cite-cmb] Fixsen (2009), The Temperature of the Cosmic Microwave Background.
+            https://arxiv.org/abs/0911.1955
         """
         cosmology.__init__(self, data_dir=data_dir)
         
@@ -805,6 +852,11 @@ class prompt_cusps(cosmology):
         but is not returned by cusp_properties.
 
         The cusp normalization is A=24*rho_dm0*a_coll**(-3/2)*R**(3/2), the outer radius is 0.11*a_coll*R, and the phase-space core uses the coefficient 3e-5. The luminosity uses 4*pi*A**2*[0.531+ln(rcusp/rcore)]. Internal population-average and 0.08 fit diagnostics are not return values. The historical implementation assumes a nonempty collapsed sample; its empty-sample path is not repaired by this documentation change.
+
+        The primordial phase-space bound uses the constructor's fixed
+        T_kd=30 MeV and a_kd=5.3e-12 benchmark. The latter agrees, at its stored
+        precision, with a_d=5.33e-12 explicitly stated by Stucker et al.,
+        Section 2.1, p. 3, for that kinetic-decoupling temperature.
 
         Stucker et al. Eq. (14) gives the 0.531 luminosity approximation for r > 10*r_core.
         The retained implementation evaluates it at r_cusp without enforcing that separation;
