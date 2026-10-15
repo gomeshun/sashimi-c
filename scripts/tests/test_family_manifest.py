@@ -20,7 +20,24 @@ FAMILY_SOURCE = os.environ.get("FAMILY_TEST_ROOT")
 
 @unittest.skipUnless(FAMILY_SOURCE, "Set FAMILY_TEST_ROOT to a sashimi-family checkout")
 class FamilyManifestTests(unittest.TestCase):
+    """Check candidate isolation and attribution against the real family validation scripts.
+
+    Notes
+    -----
+    These tests protect reproducibility of a five-package scientific run. Passing requires
+    exact requested revisions and unchanged canonical data; malformed or misleading
+    manifest/artifact identities must be rejected. They do not test halo physics.
+    """
+
     def setUp(self):
+        """Construct an isolated five-component manifest and matching Git links for failure-path
+        checks.
+
+        Notes
+        -----
+        This fixture/helper supports the controlled checks in this test module; its synthetic
+        values are not a calibrated halo model.
+        """
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
@@ -67,16 +84,65 @@ class FamilyManifestTests(unittest.TestCase):
         self.candidate = "a" * 40
 
     def git(self, *args):
+        """Query or prepare the isolated family checkout used by the attribution tests.
+
+        Parameters
+        ----------
+        *args : tuple
+            Additional positional parameters forwarded unchanged to the supplied numerical or
+            physical callback.
+
+        Returns
+        -------
+        str
+            Git command output within the temporary family fixture.
+
+        Notes
+        -----
+        This fixture/helper supports the controlled checks in this test module; its synthetic
+        values are not a calibrated halo model.
+        """
         return subprocess.check_output(
             ["git", "-C", str(self.family), *args], text=True
         ).strip()
 
     def prepare(self, **kwargs):
+        """Derive a controlled F candidate manifest without modifying the canonical fixture.
+
+        Parameters
+        ----------
+        **kwargs : dict
+            Additional keyword options forwarded to the called routine; reserved scientific
+            controls remain owned by that routine.
+
+        Returns
+        -------
+        tuple
+            Base revision and effective manifest from the production preparation helper.
+
+        Notes
+        -----
+        This fixture/helper supports the controlled checks in this test module; its synthetic
+        values are not a calibrated halo model.
+        """
         return MODULE.prepare(
             self.family, self.output, "sashimi-f", self.candidate, **kwargs
         )
 
     def test_candidate_only_replaces_one_revision_and_records_base(self):
+        """Keep a candidate family calculation separate from the recorded compatible release.
+
+        Notes
+        -----
+        Pass criteria: Only the candidate revision changes in the effective manifest; siblings,
+        canonical manifest and recorded base remain intact.
+
+        Failure criteria: any mismatch with the stated value, shape or identity requirements
+        fails the test.
+
+        Scope: These checks identify the tested dependency set; they do not establish physical
+        model accuracy.
+        """
         original = (self.family / "compatibility.toml").read_bytes()
         base_ref, effective = self.prepare()
         self.assertEqual(base_ref, self.git("rev-parse", "HEAD"))
@@ -92,6 +158,19 @@ class FamilyManifestTests(unittest.TestCase):
     def test_coordinated_core_candidate_is_recorded_without_changing_other_siblings(
         self,
     ):
+        """Record a coordinated core-and-variant candidate without moving other physical models.
+
+        Notes
+        -----
+        Pass criteria: The effective manifest changes ITAMAE and F only and records both
+        overrides while C remains fixed.
+
+        Failure criteria: any mismatch with the stated value, shape or identity requirements
+        fails the test.
+
+        Scope: This controlled calculation does not calibrate a subhalo population against
+        simulations or observations.
+        """
         revision = "b" * 40
         _, effective = self.prepare(overrides={"itamae": revision})
         self.assertEqual(effective["itamae"]["ref"], revision)
@@ -102,6 +181,19 @@ class FamilyManifestTests(unittest.TestCase):
         )
 
     def test_coordinated_overrides_are_immutable_and_unambiguous(self):
+        """Reject candidate sets that cannot identify one reproducible source combination.
+
+        Notes
+        -----
+        Pass criteria: Unknown packages, moving refs, conflicting candidate overrides and
+        overrides in promoted mode raise ValueError.
+
+        Failure criteria: a stated numerical/identity mismatch, a missing required exception or
+        warning, or an unexpected calculation failure fails the test.
+
+        Scope: This controlled calculation does not calibrate a subhalo population against
+        simulations or observations.
+        """
         for overrides in (
             {"unknown": "b" * 40},
             {"itamae": "main"},
@@ -113,10 +205,35 @@ class FamilyManifestTests(unittest.TestCase):
             self.prepare(mode="promoted", overrides={"itamae": "b" * 40})
 
     def test_promoted_mode_keeps_every_canonical_revision(self):
+        """Validate the exact recorded family when no candidate override is intended.
+
+        Notes
+        -----
+        Pass criteria: Promoted mode reproduces the complete canonical manifest unchanged.
+
+        Failure criteria: any mismatch with the stated value, shape or identity requirements
+        fails the test.
+
+        Scope: These checks identify the tested dependency set; they do not establish physical
+        model accuracy.
+        """
         _, effective = self.prepare(mode="promoted")
         self.assertEqual(effective, self.base)
 
     def test_c_candidate_keeps_f_and_other_sibling_revisions(self):
+        """Avoid moving sibling physical models during a CDM-only candidate validation.
+
+        Notes
+        -----
+        Pass criteria: Only sashimi-c changes; F and every other sibling retain their recorded
+        revisions.
+
+        Failure criteria: any mismatch with the stated value, shape or identity requirements
+        fails the test.
+
+        Scope: These checks identify the tested dependency set; they do not establish physical
+        model accuracy.
+        """
         _, effective = MODULE.prepare(
             self.family, self.output, "sashimi-c", self.candidate
         )
@@ -126,6 +243,19 @@ class FamilyManifestTests(unittest.TestCase):
                 self.assertEqual(effective[name], self.base[name])
 
     def test_refuses_canonical_output_path(self):
+        """Protect the persistent compatibility record from a temporary candidate calculation.
+
+        Notes
+        -----
+        Pass criteria: Attempting to write the effective manifest over compatibility.toml raises
+        ValueError.
+
+        Failure criteria: a stated numerical/identity mismatch, a missing required exception or
+        warning, or an unexpected calculation failure fails the test.
+
+        Scope: These checks identify the tested dependency set; they do not establish physical
+        model accuracy.
+        """
         with self.assertRaisesRegex(ValueError, "overwrite"):
             MODULE.prepare(
                 self.family,
@@ -135,6 +265,18 @@ class FamilyManifestTests(unittest.TestCase):
             )
 
     def test_rejects_non_immutable_candidate_ref(self):
+        """Require a fixed source revision for a reproducible candidate calculation.
+
+        Notes
+        -----
+        Pass criteria: Branch names, abbreviated or malformed SHAs are rejected.
+
+        Failure criteria: a stated numerical/identity mismatch, a missing required exception or
+        warning, or an unexpected calculation failure fails the test.
+
+        Scope: These checks identify the tested dependency set; they do not establish physical
+        model accuracy.
+        """
         for value in ("main", "abc123", "A" * 40, "a" * 39 + "\n"):
             with (
                 self.subTest(value=value),
@@ -143,6 +285,19 @@ class FamilyManifestTests(unittest.TestCase):
                 MODULE.prepare(self.family, self.output, "sashimi-f", value)
 
     def test_non_candidate_gitlink_mismatch_fails_before_output(self):
+        """Detect an inconsistent sibling source before reporting a candidate family as valid.
+
+        Notes
+        -----
+        Pass criteria: A noncandidate gitlink differing from the manifest causes validation
+        failure and no output manifest.
+
+        Failure criteria: a stated numerical/identity mismatch, a missing required exception or
+        warning, or an unexpected calculation failure fails the test.
+
+        Scope: These checks identify the tested dependency set; they do not establish physical
+        model accuracy.
+        """
         self.git("update-index", "--cacheinfo", "160000," + "b" * 40 + ",sashimi-si")
         self.git(
             "-c",
@@ -159,6 +314,19 @@ class FamilyManifestTests(unittest.TestCase):
         self.assertFalse(self.output.exists())
 
     def test_candidate_base_mismatch_is_not_hidden_by_override(self):
+        """Validate the original recorded family before applying a candidate override.
+
+        Notes
+        -----
+        Pass criteria: A mismatched candidate base reference fails and writes no effective
+        manifest.
+
+        Failure criteria: a stated numerical/identity mismatch, a missing required exception or
+        warning, or an unexpected calculation failure fails the test.
+
+        Scope: These checks identify the tested dependency set; they do not establish physical
+        model accuracy.
+        """
         path = self.family / "compatibility.toml"
         path.write_text(path.read_text().replace("5" * 40, "c" * 40))
         with self.assertRaises(subprocess.CalledProcessError):
@@ -166,6 +334,19 @@ class FamilyManifestTests(unittest.TestCase):
         self.assertFalse(self.output.exists())
 
     def test_wrong_candidate_wheel_provenance_is_rejected(self):
+        """Ensure the tested binary package contains the source selected in the family manifest.
+
+        Notes
+        -----
+        Pass criteria: A wheel carrying the base SHA fails provenance checking; the candidate
+        SHA passes.
+
+        Failure criteria: a stated numerical/identity mismatch, a missing required exception or
+        warning, or an unexpected calculation failure fails the test.
+
+        Scope: These checks identify the tested dependency set; they do not establish physical
+        model accuracy.
+        """
         self.prepare()
         artifact = self.root / "sashimi_f-0.1.0a1-py3-none-any.whl"
         checker = self.family / "scripts/check_artifact_provenance.py"

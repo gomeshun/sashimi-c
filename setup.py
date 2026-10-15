@@ -17,14 +17,50 @@ _TARGET = f"{_MODULE}.py"
 
 
 def _valid_revision(value: str | None) -> str | None:
-    """Return a full lowercase source SHA or ``None``."""
+    """Return a full lowercase source SHA or ``None``.
+
+    Parameters
+    ----------
+    value : array_like
+        Numerical input to be checked before use; shape and physical interpretation are set
+        by the caller and retained by the validation helper.
+
+    Returns
+    -------
+    str or None
+        Full lowercase 40-character source revision if valid, otherwise None.
+
+    Notes
+    -----
+    This supports scientific source attribution in wheels and source archives. Only the
+    package own checkout or an explicit non-conflicting archive/build identity may identify
+    its equations; an enclosing unrelated Git repository must not relabel a result.
+    """
     if value is not None:
         value = value.strip()
     return value if value and _SOURCE_REVISION_PATTERN.fullmatch(value) else None
 
 
 def _existing_revision(root: Path) -> str | None:
-    """Preserve a revision carried by an exported source archive."""
+    """Preserve a revision carried by an exported source archive.
+
+    Parameters
+    ----------
+    root : pathlib.Path
+        Package checkout or isolated test repository whose own source identity is under
+        examination.
+
+    Returns
+    -------
+    str or None
+        Exact source revision embedded in the exported archive, if present.
+
+    Notes
+    -----
+    This supports scientific source attribution in wheels and source archives. Only the
+    package own checkout or an explicit non-conflicting archive/build identity may identify
+    its equations; an enclosing unrelated Git repository must not relabel a result.
+    """
     path = root / "src" / _TARGET
     if not path.is_file():
         path = root / _TARGET  # Archives produced before the src layout.
@@ -38,7 +74,25 @@ def _existing_revision(root: Path) -> str | None:
 
 
 def _git_checkout_revision(root: Path) -> str | None:
-    """Read Git only when the source root is the repository root."""
+    """Read Git only when the source root is the repository root.
+
+    Parameters
+    ----------
+    root : pathlib.Path
+        Package checkout or isolated test repository whose own source identity is under
+        examination.
+
+    Returns
+    -------
+    str or None
+        HEAD only when the package root is its own Git root.
+
+    Notes
+    -----
+    This supports scientific source attribution in wheels and source archives. Only the
+    package own checkout or an explicit non-conflicting archive/build identity may identify
+    its equations; an enclosing unrelated Git repository must not relabel a result.
+    """
     try:
         root_result = subprocess.run(
             ["git", "-C", str(root), "rev-parse", "--show-toplevel"],
@@ -62,7 +116,25 @@ def _git_checkout_revision(root: Path) -> str | None:
 
 
 def _resolve_revision(root: Path) -> str:
-    """Preserve archive identity and reject conflicting build overrides."""
+    """Preserve archive identity and reject conflicting build overrides.
+
+    Parameters
+    ----------
+    root : pathlib.Path
+        Package checkout or isolated test repository whose own source identity is under
+        examination.
+
+    Returns
+    -------
+    str
+        Required exact package revision, with conflicting overrides rejected.
+
+    Notes
+    -----
+    This supports scientific source attribution in wheels and source archives. Only the
+    package own checkout or an explicit non-conflicting archive/build identity may identify
+    its equations; an enclosing unrelated Git repository must not relabel a result.
+    """
     supplied = os.environ.get("SASHIMI_C_SOURCE_REVISION")
     explicit = _valid_revision(supplied)
     if supplied is not None and explicit is None:
@@ -86,12 +158,26 @@ def _resolve_revision(root: Path) -> str:
 
 
 class _ProvenanceBuildPy(_build_py):
-    """Write provenance into the isolated build directory."""
+    """Write provenance into the isolated build directory.
+
+    Notes
+    -----
+    This supports scientific source attribution in wheels and source archives. Only the
+    package own checkout or an explicit non-conflicting archive/build identity may identify
+    its equations; an enclosing unrelated Git repository must not relabel a result.
+    """
 
     _provenance_output: Path | None = None
 
     def run(self) -> None:
-        """Build normal modules, then add the generated provenance module."""
+        """Build normal modules, then add the generated provenance module.
+
+        Notes
+        -----
+        This supports scientific source attribution in wheels and source archives. Only the
+        package own checkout or an explicit non-conflicting archive/build identity may identify
+        its equations; an enclosing unrelated Git repository must not relabel a result.
+        """
         original_modules = self.py_modules
         self.py_modules = [module for module in original_modules if module != _MODULE]
         try:
@@ -105,7 +191,24 @@ class _ProvenanceBuildPy(_build_py):
         )
 
     def get_outputs(self, include_bytecode: bool = True) -> list[str]:
-        """Include the generated module in setuptools' install file list."""
+        """Include the generated module in setuptools' install file list.
+
+        Parameters
+        ----------
+        include_bytecode : bool
+            Whether setuptools includes compiled Python outputs in its artifact file inventory.
+
+        Returns
+        -------
+        list of str
+            Distribution output paths including the generated source-attribution module.
+
+        Notes
+        -----
+        This supports scientific source attribution in wheels and source archives. Only the
+        package own checkout or an explicit non-conflicting archive/build identity may identify
+        its equations; an enclosing unrelated Git repository must not relabel a result.
+        """
         outputs = super().get_outputs(include_bytecode=include_bytecode)
         if self._provenance_output is not None:
             output = str(self._provenance_output)
@@ -115,10 +218,32 @@ class _ProvenanceBuildPy(_build_py):
 
 
 class _ProvenanceSdist(_sdist):
-    """Add provenance to the isolated source-distribution tree."""
+    """Add provenance to the isolated source-distribution tree.
+
+    Notes
+    -----
+    This supports scientific source attribution in wheels and source archives. Only the
+    package own checkout or an explicit non-conflicting archive/build identity may identify
+    its equations; an enclosing unrelated Git repository must not relabel a result.
+    """
 
     def make_release_tree(self, base_dir: str, files: list[str]) -> None:
-        """Copy normal files and add a durable provenance module."""
+        """Copy normal files and add a durable provenance module.
+
+        Parameters
+        ----------
+        base_dir : str
+            Isolated source-distribution staging directory where durable source attribution is
+            written.
+        files : list of str
+            Files selected by setuptools for the source-distribution release tree.
+
+        Notes
+        -----
+        This supports scientific source attribution in wheels and source archives. Only the
+        package own checkout or an explicit non-conflicting archive/build identity may identify
+        its equations; an enclosing unrelated Git repository must not relabel a result.
+        """
         super().make_release_tree(base_dir, files)
         target = Path(base_dir) / "src" / _TARGET
         if not target.is_file():

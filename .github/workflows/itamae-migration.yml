@@ -152,7 +152,7 @@ jobs:
         assert source_revision('itamae') == os.environ['ITAMAE_REF']
         PY
     - name: Lint migration code
-      run: uv run --no-sync ruff check src/sashimi_c/__init__.py src/sashimi_c/_physics.py src/sashimi_c/_data.py
+      run: uv run --no-sync ruff check src/sashimi_c/__init__.py src/sashimi_c/_physics.py src/sashimi_c/picard_tidal_stripping.py src/sashimi_c/_data.py
         src/sashimi_c/_boost.py src/sashimi_c/boost_iteration.py src/sashimi_c/boost_iteration_prompt_cusps.py src/sashimi_c/_itamae.py
         src/sashimi_c/_itamae_catalog.py src/sashimi_c/_itamae_components.py src/sashimi_c/_itamae_migration.py
         src/sashimi_c/_itamae_variance.py tests scripts
@@ -198,4 +198,4 @@ concurrency:
     == 'workflow_dispatch' && github.run_id || github.ref }}
   cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' }}
 env:
-  ITAMAE_REF: 23d01e8758a88b061b87de9e488c38ec89fd8e4f
+  ITAMAE_REF: b7a9fde9d6d8b380c94512337c806851ac5c78f7

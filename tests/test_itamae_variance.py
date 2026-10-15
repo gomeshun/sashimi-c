@@ -7,7 +7,19 @@ from sashimi_c_itamae_variance import make_variance_model
 
 
 def test_c_variance_adapter_matches_legacy_model() -> None:
-    """The common interface must preserve sigma, variance, and dS/dM."""
+    """Expose the CDM variance fit through ITAMAE without changing its physical values.
+
+    Notes
+    -----
+    Pass criteria: At the three mass/redshift pairs, sigma and dS/dM are exactly forwarded
+    and variance equals sigma squared to rtol=2e-15.
+
+    Failure criteria: any mismatch with the stated value, shape or identity requirements
+    fails the test.
+
+    Scope: This controlled calculation does not calibrate a subhalo population against
+    simulations or observations.
+    """
 
     legacy = halo_model()
     variance = make_variance_model(legacy)

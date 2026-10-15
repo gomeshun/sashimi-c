@@ -39,6 +39,7 @@ from ._physics import (
 CALCULATION_SPECIFICATION = "sashimi-c:cdm:2026-09-10:v1"
 _STRIPPING_METHODS = (
     "picard_table",
+    "dop853",
     "odeint",
     "pert0",
     "pert1",
@@ -46,7 +47,7 @@ _STRIPPING_METHODS = (
     "pert2_shanks",
     "pert3",
 )
-_DEFAULT_STRIPPING_METHOD = "pert2_shanks"
+_DEFAULT_STRIPPING_METHOD = "picard_table"
 _DEFAULT_CT_THRESHOLD = 0.0
 _SHANKS_SMALL_CORRECTION_THRESHOLD = 0.02
 
@@ -57,7 +58,35 @@ class StrippingDiagnostics:
 
     The diagnostic is intentionally separate from catalog generation. Running
     a direct ODE solve for every catalog node would change the established
-    performance characteristics of the default ``pert2_shanks`` calculation.
+    performance characteristics of the historical ``pert2_shanks`` calculation.
+
+    Parameters
+    ----------
+    mass_at_accretion : numpy.ndarray
+        Aligned subhalo masses at accretion or after the named stripping calculation, in the
+        internal mass unit.
+    mass_pert2_shanks : numpy.ndarray
+        Aligned subhalo masses at accretion or after the named stripping calculation, in the
+        internal mass unit.
+    mass_odeint : numpy.ndarray
+        Aligned subhalo masses at accretion or after the named stripping calculation, in the
+        internal mass unit.
+    relative_difference : numpy.ndarray
+        Absolute fractional Shanks-versus-ODE mass difference, normalized by the direct ODE
+        mass.
+    host_mass : float
+        Reference host M200 in the variant internal mass unit. M0 normally refers to z=0;
+        explicit epoch flags are described by the caller.
+    accretion_redshift : float
+        Scalar dimensionless start or final epoch for the stripping comparison; accretion
+        must precede the target in cosmic time.
+    target_redshift : float
+        Scalar dimensionless start or final epoch for the stripping comparison; accretion
+        must precede the target in cosmic time.
+    calculation_specification : str
+        Versioned identifier of the current physical and numerical calculation choices.
+    backend_identifier : str
+        Identity of the cosmology, unit and array backends used for this calculation.
 
     Attributes
     ----------
@@ -77,6 +106,13 @@ class StrippingDiagnostics:
         ITAMAE migration physics convention.
     backend_identifier
         Stable cosmology backend identifier.
+
+    Notes
+    -----
+    The CDM population combines EPS accretion, lognormal concentration scatter, the selected
+    tidal solver and the strict c_t survival cut. Named catalogues retain abundance,
+    concentration and survival as separate factors; changing a numerical solver does not by
+    itself recalibrate any fitted physical relation.
     """
 
     mass_at_accretion: np.ndarray
@@ -90,7 +126,15 @@ class StrippingDiagnostics:
     backend_identifier: str
 
     def __post_init__(self) -> None:
-        """Freeze aligned diagnostic arrays."""
+        """Freeze aligned diagnostic arrays.
+
+        Notes
+        -----
+        The CDM population combines EPS accretion, lognormal concentration scatter, the selected
+        tidal solver and the strict c_t survival cut. Named catalogues retain abundance,
+        concentration and survival as separate factors; changing a numerical solver does not by
+        itself recalibrate any fitted physical relation.
+        """
         arrays = {}
         for name in (
             "mass_at_accretion",
@@ -109,11 +153,38 @@ class StrippingDiagnostics:
 
     @property
     def max_relative_difference(self) -> float:
-        """Return the largest Shanks-versus-ODE fractional difference."""
+        """Return the largest Shanks-versus-ODE fractional difference.
+
+        Returns
+        -------
+        float
+            Maximum absolute fractional mass discrepancy relative to the direct ODE output.
+
+        Notes
+        -----
+        The CDM population combines EPS accretion, lognormal concentration scatter, the selected
+        tidal solver and the strict c_t survival cut. Named catalogues retain abundance,
+        concentration and survival as separate factors; changing a numerical solver does not by
+        itself recalibrate any fitted physical relation.
+        """
         return float(np.max(self.relative_difference, initial=0.0))
 
     def summary(self) -> Mapping[str, Any]:
-        """Return immutable JSON-compatible diagnostic provenance."""
+        """Return immutable JSON-compatible diagnostic provenance.
+
+        Returns
+        -------
+        Mapping[str, object]
+            Immutable comparison settings and maximum discrepancy; not a physical-model accuracy
+            certificate.
+
+        Notes
+        -----
+        The CDM population combines EPS accretion, lognormal concentration scatter, the selected
+        tidal solver and the strict c_t survival cut. Named catalogues retain abundance,
+        concentration and survival as separate factors; changing a numerical solver does not by
+        itself recalibrate any fitted physical relation.
+        """
         return MappingProxyType(
             {
                 "comparison": "pert2_shanks-vs-odeint",
@@ -129,13 +200,46 @@ class StrippingDiagnostics:
 
 
 class TidalStrippingSolver(CDMTidalKernels):
-    """C stripping solvers with the common Shanks primitive."""
+    """C stripping solvers with the common Shanks primitive.
+
+    Notes
+    -----
+    The CDM population combines EPS accretion, lognormal concentration scatter, the selected
+    tidal solver and the strict c_t survival cut. Named catalogues retain abundance,
+    concentration and survival as separate factors; changing a numerical solver does not by
+    itself recalibrate any fitted physical relation.
+    """
 
     def subhalo_mass_stripped_pert2_shanks(self, ma, za, z):
         """Evaluate second-order stripping with ITAMAE Shanks acceleration.
 
         The SASHIMI-specific two-percent stability criterion is retained around
         ITAMAE's generic sequence transformation.
+
+        Parameters
+        ----------
+        ma : float or array_like
+            Positive subhalo mass at accretion, in the same units as reference_mass; endpoint
+            queries broadcast over mass and redshift.
+        za : float or array_like
+            Dimensionless accretion redshift. History integration requires one scalar accretion
+            epoch.
+        z : float or array_like
+            Dimensionless redshift. The cosmological background requires z > -1; population
+            nodes use nonnegative redshifts.
+
+        Returns
+        -------
+        float or numpy.ndarray
+            Final bound masses in the ma unit; this endpoint interface does not return a
+            redshift/mass tuple.
+
+        Notes
+        -----
+        The CDM population combines EPS accretion, lognormal concentration scatter, the selected
+        tidal solver and the strict c_t survival cut. Named catalogues retain abundance,
+        concentration and survival as separate factors; changing a numerical solver does not by
+        itself recalibrate any fitted physical relation.
         """
 
         eps_0 = self.eps_0(za, z)
@@ -157,13 +261,94 @@ class TidalStrippingSolver(CDMTidalKernels):
 
 
 class SubhaloProperties(CDMPhysics):
-    """Generate named, weighted CDM catalogs through ITAMAE."""
+    """Generate named, weighted CDM catalogs through ITAMAE.
+
+    Notes
+    -----
+    The CDM population combines EPS accretion, lognormal concentration scatter, the selected
+    tidal solver and the strict c_t survival cut. Named catalogues retain abundance,
+    concentration and survival as separate factors; changing a numerical solver does not by
+    itself recalibrate any fitted physical relation.
+    """
 
     def Ffunc(self, dela, s1, s2):
-        """Returns Eq. (12) of Yang et al. (2011)"""
+        r"""Evaluate the Yang et al. EPS kernel before support normalization.
+
+        Parameters
+        ----------
+        dela : float or array_like
+            Dimensionless linear-collapse barrier at the indicated epoch, extrapolated in the
+            same growth convention.
+        s1 : float or array_like
+            Dimensionless linear variance S=sigma**2 at the indicated host/subhalo/support mass.
+            Active EPS terms require positive variance gaps.
+        s2 : float or array_like
+            Dimensionless linear variance S=sigma**2 at the indicated host/subhalo/support mass.
+            Active EPS terms require positive variance gaps.
+
+        Returns
+        -------
+        array_like
+            delta_a/[sqrt(2*pi)*(s2-s1)**(3/2)], on positive variance support.
+
+        Notes
+        -----
+        The EPS accretion kernel and, where used, host-history scatter 0.12-0.15*log10(Ma/M0)
+        follow Yang et al., Eqs. (12)-(14), (21). Finite-gap normalization and zero-barrier
+        limits are numerical treatments of that kernel, not new empirical fits.
+
+        The CDM population combines EPS accretion, lognormal concentration scatter, the selected
+        tidal solver and the strict c_t survival cut. Named catalogues retain abundance,
+        concentration and survival as separate factors; changing a numerical solver does not by
+        itself recalibrate any fitted physical relation.
+
+        References
+        ----------
+
+        .. [cite-yang] Yang et al. (2011), An Analytical Model for the Accretion of Dark Matter Subhalos, Eqs. (7)-(16), (21).
+            https://arxiv.org/abs/1104.1757
+        """
         return 1 / np.sqrt(2.0 * np.pi) * dela / (s2 - s1) ** 1.5
 
     def Gfunc(self, dela, s1, s2):
+        r"""Evaluate the retained empirical multiplicative correction to the EPS kernel.
+
+        Parameters
+        ----------
+        dela : float or array_like
+            Dimensionless linear-collapse barrier at the indicated epoch, extrapolated in the
+            same growth convention.
+        s1 : float or array_like
+            Dimensionless linear variance S=sigma**2 at the indicated host/subhalo/support mass.
+            Active EPS terms require positive variance gaps.
+        s2 : float or array_like
+            Dimensionless linear variance S=sigma**2 at the indicated host/subhalo/support mass.
+            Active EPS terms require positive variance gaps.
+
+        Returns
+        -------
+        array_like
+            0.57*(sqrt(s2/s1))**0.38*(delta_a/sqrt(s1))**(-0.01), dimensionless.
+
+        Notes
+        -----
+        The empirical correction G0=0.57, gamma1=0.38, gamma2=-0.01 is from Parkinson et al.,
+        Section 3.1, and is adopted in Yang et al., Eq. (13).
+
+        The CDM population combines EPS accretion, lognormal concentration scatter, the selected
+        tidal solver and the strict c_t survival cut. Named catalogues retain abundance,
+        concentration and survival as separate factors; changing a numerical solver does not by
+        itself recalibrate any fitted physical relation.
+
+        References
+        ----------
+
+        .. [cite-parkinson] Parkinson, Cole & Helly (2008), Generating Dark Matter Halo Merger Trees, Section 3.1.
+            https://arxiv.org/abs/0708.1382
+
+        .. [cite-yang] Yang et al. (2011), An Analytical Model for the Accretion of Dark Matter Subhalos, Eqs. (7)-(16), (21).
+            https://arxiv.org/abs/1104.1757
+        """
         G0 = 0.57
         gamma1 = 0.38
         gamma2 = -0.01
@@ -172,7 +357,45 @@ class SubhaloProperties(CDMPhysics):
         return G0 * pow(sig2 / sig1, gamma1) * pow(dela / sig1, gamma2)
 
     def Ffunc_Yang(self, delc1, delc2, s1, s2):
-        """Returns Eq. (14) of Yang et al. (2011)"""
+        r"""Evaluate the conditional EPS kernel with its collapse-barrier difference.
+
+        Parameters
+        ----------
+        delc1 : float or array_like
+            Dimensionless linear-collapse barrier at the indicated epoch, extrapolated in the
+            same growth convention.
+        delc2 : float or array_like
+            Dimensionless linear-collapse barrier at the indicated epoch, extrapolated in the
+            same growth convention.
+        s1 : float or array_like
+            Dimensionless linear variance S=sigma**2 at the indicated host/subhalo/support mass.
+            Active EPS terms require positive variance gaps.
+        s2 : float or array_like
+            Dimensionless linear variance S=sigma**2 at the indicated host/subhalo/support mass.
+            Active EPS terms require positive variance gaps.
+
+        Returns
+        -------
+        array_like
+            Gaussian first-crossing density in variance, before support normalization.
+
+        Notes
+        -----
+        The EPS accretion kernel and, where used, host-history scatter 0.12-0.15*log10(Ma/M0)
+        follow Yang et al., Eqs. (12)-(14), (21). Finite-gap normalization and zero-barrier
+        limits are numerical treatments of that kernel, not new empirical fits.
+
+        The CDM population combines EPS accretion, lognormal concentration scatter, the selected
+        tidal solver and the strict c_t survival cut. Named catalogues retain abundance,
+        concentration and survival as separate factors; changing a numerical solver does not by
+        itself recalibrate any fitted physical relation.
+
+        References
+        ----------
+
+        .. [cite-yang] Yang et al. (2011), An Analytical Model for the Accretion of Dark Matter Subhalos, Eqs. (7)-(16), (21).
+            https://arxiv.org/abs/1104.1757
+        """
         return (
             1.0
             / np.sqrt(2.0 * np.pi)
@@ -182,32 +405,83 @@ class SubhaloProperties(CDMPhysics):
         )
 
     def _normalized_yang_kernel(self, delc1, delc2, s1, s2, smin):
-        """Yang Eq. (14) divided by its mass-support integral, including gap=0.
+        r"""Yang Eq. (14) divided by its mass-support integral, including gap=0.
 
         For x=delta/sqrt(2*(smin-s1)), erf(x)/x tends to 2/sqrt(pi).
         The small-x series evaluates that ratio before the vanishing factors
         are divided. This is the same normalized kernel, with no weight cut.
+
+        Parameters
+        ----------
+        delc1 : float or array_like
+            Dimensionless linear-collapse barrier at the indicated epoch, extrapolated in the
+            same growth convention.
+        delc2 : float or array_like
+            Dimensionless linear-collapse barrier at the indicated epoch, extrapolated in the
+            same growth convention.
+        s1 : float or array_like
+            Dimensionless linear variance S=sigma**2 at the indicated host/subhalo/support mass.
+            Active EPS terms require positive variance gaps.
+        s2 : float or array_like
+            Dimensionless linear variance S=sigma**2 at the indicated host/subhalo/support mass.
+            Active EPS terms require positive variance gaps.
+        smin : float or array_like
+            Dimensionless linear variance S=sigma**2 at the indicated host/subhalo/support mass.
+            Active EPS terms require positive variance gaps.
+
+        Returns
+        -------
+        numpy.ndarray
+            Conditional variance kernel divided by its finite-support integral, including the
+            zero-barrier-gap limit.
+
+        Notes
+        -----
+        The EPS accretion kernel and, where used, host-history scatter 0.12-0.15*log10(Ma/M0)
+        follow Yang et al., Eqs. (12)-(14), (21). Finite-gap normalization and zero-barrier
+        limits are numerical treatments of that kernel, not new empirical fits.
+
+        The CDM population combines EPS accretion, lognormal concentration scatter, the selected
+        tidal solver and the strict c_t survival cut. Named catalogues retain abundance,
+        concentration and survival as separate factors; changing a numerical solver does not by
+        itself recalibrate any fitted physical relation.
+
+        Yang et al. Eqs. (8)-(9) specify support normalization, and Eqs. (12)-(14) give the
+        kernels. The incomplete-gamma evaluation and continuous zero-barrier-gap limit used
+        here are derived evaluations, not additional closed formulas printed in that paper.
+
+        References
+        ----------
+
+        .. [cite-yang] Yang et al. (2011), An Analytical Model for the Accretion of Dark Matter Subhalos, Eqs. (7)-(16), (21).
+            https://arxiv.org/abs/1104.1757
         """
         d1, d2, a, b, minimum = np.broadcast_arrays(delc1, delc2, s1, s2, smin)
         gap, ds, dsmin = d2 - d1, b - a, minimum - a
         if np.any(gap < 0) or np.any(ds <= 0) or np.any(dsmin <= 0):
-            raise ValueError("Normalized Yang kernel requires nonnegative barrier gap and positive variance gaps.")
+            raise ValueError(
+                "Normalized Yang kernel requires nonnegative barrier gap and positive variance gaps."
+            )
         x2 = gap**2 / (2.0 * dsmin)
         small = x2 < 1e-8
         result = np.empty_like(x2, dtype=float)
         x = x2[small]
         integral = 1.0 - x / 3.0 + x**2 / 10.0 - x**3 / 42.0 + x**4 / 216.0
         result[small] = (
-            np.sqrt(dsmin[small]) / (2.0 * ds[small]**1.5)
-            * np.exp(-gap[small]**2 / (2.0 * ds[small])) / integral
+            np.sqrt(dsmin[small])
+            / (2.0 * ds[small] ** 1.5)
+            * np.exp(-(gap[small] ** 2) / (2.0 * ds[small]))
+            / integral
         )
         regular = ~small
         norm = special.gamma(0.5) * special.gammainc(0.5, x2[regular]) / np.sqrt(np.pi)
-        result[regular] = self.Ffunc_Yang(d1[regular], d2[regular], a[regular], b[regular]) / norm
+        result[regular] = (
+            self.Ffunc_Yang(d1[regular], d2[regular], a[regular], b[regular]) / norm
+        )
         return result
 
     def Na_calc(self, ma, zacc, Mhost, z0=0.0, N_herm=200, Nrand=1000, Na_model=3):
-        """Evaluate the Yang et al. accretion rate with ITAMAE quadrature.
+        r"""Evaluate the Yang et al. accretion rate with ITAMAE quadrature.
 
         Parameters
         ----------
@@ -230,7 +504,25 @@ class SubhaloProperties(CDMPhysics):
         Returns
         -------
         numpy.ndarray
-            Differential accretion abundance with shape ``(len(zacc), len(ma))``.
+            Expected accretion rate per d ln(ma) d ln(1+zacc), after host-scatter averaging;
+            first axis is redshift.
+
+        Notes
+        -----
+        The EPS accretion kernel and, where used, host-history scatter 0.12-0.15*log10(Ma/M0)
+        follow Yang et al., Eqs. (12)-(14), (21). Finite-gap normalization and zero-barrier
+        limits are numerical treatments of that kernel, not new empirical fits.
+
+        The CDM population combines EPS accretion, lognormal concentration scatter, the selected
+        tidal solver and the strict c_t survival cut. Named catalogues retain abundance,
+        concentration and survival as separate factors; changing a numerical solver does not by
+        itself recalibrate any fitted physical relation.
+
+        References
+        ----------
+
+        .. [cite-yang] Yang et al. (2011), An Analytical Model for the Accretion of Dark Matter Subhalos, Eqs. (7)-(16), (21).
+            https://arxiv.org/abs/1104.1757
         """
 
         zacc_2d = np.asarray(zacc).reshape(-1, 1)
@@ -265,7 +557,9 @@ class SubhaloProperties(CDMPhysics):
             xmin = self.s_func(mmax) - self.s_func(M200)
             d_norm, s_norm, x_norm = np.broadcast_arrays(delca, sM, xmin)
             if np.any(x_norm < 0):
-                raise ValueError("EPS normalization requires a nonnegative variance support gap.")
+                raise ValueError(
+                    "EPS normalization requires a nonnegative variance support gap."
+                )
             positive = x_norm > 0
             normB = np.full(x_norm.shape, np.inf)
             d_pos, s_pos, x_pos = d_norm[positive], s_norm[positive], x_norm[positive]
@@ -277,11 +571,17 @@ class SubhaloProperties(CDMPhysics):
                 / x_pos**0.5
                 * special.hyp2f1(0.5, 0.0, 1.5, -s_pos / x_pos)
             )
-            d, s1, s2, norm, allowed = np.broadcast_arrays(delca, sM, sa, normB, mmax > ma)
+            d, s1, s2, norm, allowed = np.broadcast_arrays(
+                delca, sM, sa, normB, mmax > ma
+            )
             if np.any((s2 - s1)[allowed] <= 0):
-                raise ValueError("EPS accretion requires positive variance gaps in its active mass domain.")
+                raise ValueError(
+                    "EPS accretion requires positive variance gaps in its active mass domain."
+                )
             Phi = np.zeros(s2.shape)
-            Phi[allowed] = self.Ffunc(d[allowed], s1[allowed], s2[allowed]) / norm[allowed]
+            Phi[allowed] = (
+                self.Ffunc(d[allowed], s1[allowed], s2[allowed]) / norm[allowed]
+            )
         elif Na_model == 2:
             delca = self.deltac_func(zacc_2d)
             sM = self.s_func(M200)
@@ -289,7 +589,9 @@ class SubhaloProperties(CDMPhysics):
             xmin = self.s_func(mmax) - self.s_func(M200)
             d_norm, s_norm, x_norm = np.broadcast_arrays(delca, sM, xmin)
             if np.any(x_norm < 0):
-                raise ValueError("EPS normalization requires a nonnegative variance support gap.")
+                raise ValueError(
+                    "EPS normalization requires a nonnegative variance support gap."
+                )
             positive = x_norm > 0
             normB = np.full(x_norm.shape, np.inf)
             d_pos, s_pos, x_pos = d_norm[positive], s_norm[positive], x_norm[positive]
@@ -302,11 +604,17 @@ class SubhaloProperties(CDMPhysics):
                 * (2.0 / (1.0 - 0.38))
                 * s_pos ** (-0.38 / 2.0)
                 * x_pos ** (0.5 * (0.38 - 1.0))
-                * special.hyp2f1(0.5 * (1 - 0.38), -0.38 / 2.0, 0.5 * (3.0 - 0.38), -s_pos / x_pos)
+                * special.hyp2f1(
+                    0.5 * (1 - 0.38), -0.38 / 2.0, 0.5 * (3.0 - 0.38), -s_pos / x_pos
+                )
             )
-            d, s1, s2, norm, allowed = np.broadcast_arrays(delca, sM, sa, normB, mmax > ma)
+            d, s1, s2, norm, allowed = np.broadcast_arrays(
+                delca, sM, sa, normB, mmax > ma
+            )
             if np.any((s2 - s1)[allowed] <= 0):
-                raise ValueError("EPS accretion requires positive variance gaps in its active mass domain.")
+                raise ValueError(
+                    "EPS accretion requires positive variance gaps in its active mass domain."
+                )
             Phi = np.zeros(s2.shape)
             Phi[allowed] = (
                 self.Ffunc(d[allowed], s1[allowed], s2[allowed])
@@ -316,7 +624,9 @@ class SubhaloProperties(CDMPhysics):
         else:
             raise ValueError("Na_model must be 1, 2, or 3.")
         if not np.all(np.isfinite(Phi)):
-            raise ValueError("Non-finite EPS accretion kernel inside its active mass domain.")
+            raise ValueError(
+                "Non-finite EPS accretion kernel inside its active mass domain."
+            )
         F2 = np.sum(Phi * host_weight, axis=0)
         return F2 * self.dsdm(ma, 0.0) * self.dMdz(Mhost, zacc_2d, z0) * (1.0 + zacc_2d)
 
@@ -336,10 +646,56 @@ class SubhaloProperties(CDMPhysics):
         ct_th=0.0,
         profile_change=True,
         M0_at_redshift=False,
-        method="pert2_shanks",
+        method="picard_table",
         **kwargs,
     ) -> WeightedSubhaloCatalog:
-        """Generate an ITAMAE weighted catalog while preserving SASHIMI physics.
+        r"""Generate an ITAMAE weighted catalog while preserving SASHIMI physics.
+
+        Parameters
+        ----------
+        M0 : float
+            Reference host M200 in the variant internal mass unit. M0 normally refers to z=0;
+            explicit epoch flags are described by the caller.
+        redshift : float
+            Nonnegative target redshift of the subhalo population.
+        dz : float
+            Positive nominal spacing of the accretion-redshift quadrature grid.
+        zmax : float
+            Largest requested accretion redshift, above the target epoch; the actual grid
+            convention belongs to this variant.
+        N_ma : int
+            Number of logarithmically spaced accretion-mass nodes.
+        sigmalogc : float
+            Nonnegative standard deviation of log10 concentration, in dex.
+        N_herm : int
+            Positive Gauss-Hermite quadrature order for the scatter integrated by this routine:
+            concentration in catalogue stages or host history in Na_calc.
+        logmamin : float, optional
+            Lower or upper log10(M200_acc/Msun) bound. A None upper bound uses the model
+            host-relative mass limit.
+        logmamax : float, optional
+            Lower or upper log10(M200_acc/Msun) bound. A None upper bound uses the model
+            host-relative mass limit.
+        N_hermNa : int
+            Positive Gauss-Hermite order for the host-history scatter in the EPS accretion rate.
+        Na_model : {1, 2, 3}
+            Yang EPS accretion/normalization prescription. This is a physical model selection,
+            not a numerical tolerance.
+        ct_th : float
+            Dimensionless tidal truncation threshold r_t/r_s; the specified strict survival rule
+            is applied once through its mask.
+        profile_change : bool
+            Apply the variant tidal response of scale radius and density in addition to
+            bound-mass loss.
+        M0_at_redshift : bool
+            Interpret the input host mass at the target redshift and invert the prescribed
+            history to obtain its z=0 reference value.
+        method : str
+            Explicit tidal integration method: picard_table, dop853, odeint or a retained
+            perturbative approximation.
+        **kwargs : dict
+            Additional keyword options forwarded to the called routine; reserved scientific
+            controls remain owned by that routine.
 
         Returns
         -------
@@ -348,6 +704,35 @@ class SubhaloProperties(CDMPhysics):
             weights. The product of population and concentration weights equals
             the historical tuple ``weight``; survival remains an independent
             factor for diagnostics and reweighting.
+
+        Notes
+        -----
+        The retained default scatter sigma(log10(c)) = 0.128 dex is the Ishiyama et al. Eq. (7),
+        Fig. 10 value for z=0 halos of 1e9 to 1e10 solar masses; Hiroshima et al. adopt the
+        rounded value 0.13 dex. Using one value across masses and redshifts is a model
+        assumption, not a quadrature error or a new calibration. The literature threshold rt/rs
+        > 0.77 follows the Hayashi et al. disruption prescription adopted by Hiroshima et al. A
+        caller-supplied threshold takes precedence in variants that expose it (C and SI
+        currently default to 0). This is a model selection rule; an exact-boundary test does not
+        calibrate disruption physics.
+
+        Catalogue masses and lengths are Msun and Mpc in this C implementation, densities
+        Msun/Mpc^3. All accretion nodes are retained; weight_final includes the survival mask.
+        The legacy tuple exposes the same nodes with a separate mask. The z grid uses the
+        retained arange(target+dz,zmax+dz,dz) convention, so a non-aligned zmax can be exceeded
+        by less than one nominal step.
+
+        References
+        ----------
+
+        .. [cite-scatter] Ishiyama et al. (2013), The Cosmogrid Simulation: Statistical Properties of Small Dark Matter Halos, Eq. (7), Fig. 10.
+            https://arxiv.org/abs/1101.2020
+
+        .. [cite-structure] Hiroshima, Ando & Ishiyama (2018), Modeling evolution of dark matter substructure and annihilation boost, Section II, Eqs. (4)-(9), (28), (34).
+            https://arxiv.org/abs/1803.07691
+
+        .. [cite-survival] Hayashi et al. (2003), The Structural Evolution of Substructure, Section 2.1.
+            https://arxiv.org/abs/astro-ph/0203004
         """
         if "physics_mode" in kwargs:
             raise TypeError(
@@ -446,17 +831,14 @@ class SubhaloProperties(CDMPhysics):
             else 0.0
         )
         backend_identifier = f"array=numpy;cosmology={self.itamae_cosmology.identifier};units=canonical-Msun-Mpc-km-s"
+        picard_diagnostics = None
         picard_table_settings = None
         if method == "picard_table":
-            table = solver._get_picard_table(redshift)
-            picard_table_settings = {
-                "n_iterations": int(table.n_iterations),
-                "n_z_acc": int(table.n_z_acc),
-                "n_log_ratio": int(table.n_log_ratio),
-                "log10_ratio_min": float(table.log10_ratio_min),
-                "log10_ratio_max": float(table.log10_ratio_max),
-                "n_integration": int(table.n_integration),
-            }
+            from .picard_tidal_stripping import get_picard_solver
+
+            picard_diagnostics = get_picard_solver(solver).diagnostics()
+            if picard_diagnostics["tables"]:
+                picard_table_settings = picard_diagnostics["tables"][0]
         metadata = build_calculation_metadata(
             variant="sashimi-c",
             distribution_name="sashimi-c",
@@ -467,7 +849,7 @@ class SubhaloProperties(CDMPhysics):
             source_identifier="sashimi-c:standard-api:v1",
             variance_identifier="sashimi-c:analytic-cdm-fit:v1",
             power_identifier="sashimi-c:cdm-linear-power:v1",
-            solver_identifier=f"sashimi-c:tidal-stripping:{method}:v1",
+            solver_identifier=f"sashimi-c:tidal-stripping:{method}:itamae:v2",
             extra={
                 "cosmology_backend": self.itamae_cosmology.identifier,
                 "cosmology_parameters": {
@@ -500,6 +882,8 @@ class SubhaloProperties(CDMPhysics):
                 "stripping_method": method,
                 "default_stripping_method": _DEFAULT_STRIPPING_METHOD,
                 "picard_table_settings": picard_table_settings,
+                "picard_diagnostics": picard_diagnostics,
+                "solver_options": dict(kwargs),
                 "shanks_small_correction_threshold": _SHANKS_SMALL_CORRECTION_THRESHOLD,
                 "ct_threshold": float(ct_th),
                 "default_ct_threshold": _DEFAULT_CT_THRESHOLD,
@@ -537,7 +921,52 @@ class SubhaloProperties(CDMPhysics):
         ct_th: Any,
         method: Any,
     ) -> None:
-        """Reject inputs outside the physical and numerical catalog domain."""
+        """Reject inputs outside the physical and numerical catalog domain.
+
+        Parameters
+        ----------
+        M0 : float
+            Reference host M200 in the variant internal mass unit. M0 normally refers to z=0;
+            explicit epoch flags are described by the caller.
+        redshift : float
+            Nonnegative target redshift of the subhalo population.
+        dz : float
+            Positive nominal spacing of the accretion-redshift quadrature grid.
+        zmax : float
+            Largest requested accretion redshift, above the target epoch; the actual grid
+            convention belongs to this variant.
+        N_ma : int
+            Number of logarithmically spaced accretion-mass nodes.
+        sigmalogc : float
+            Nonnegative standard deviation of log10 concentration, in dex.
+        N_herm : int
+            Positive Gauss-Hermite quadrature order for the scatter integrated by this routine:
+            concentration in catalogue stages or host history in Na_calc.
+        logmamin : float, optional
+            Lower or upper log10(M200_acc/Msun) bound. A None upper bound uses the model
+            host-relative mass limit.
+        logmamax : float, optional
+            Lower or upper log10(M200_acc/Msun) bound. A None upper bound uses the model
+            host-relative mass limit.
+        N_hermNa : int
+            Positive Gauss-Hermite order for the host-history scatter in the EPS accretion rate.
+        Na_model : {1, 2, 3}
+            Yang EPS accretion/normalization prescription. This is a physical model selection,
+            not a numerical tolerance.
+        ct_th : float
+            Dimensionless tidal truncation threshold r_t/r_s; the specified strict survival rule
+            is applied once through its mask.
+        method : str
+            Explicit tidal integration method: picard_table, dop853, odeint or a retained
+            perturbative approximation.
+
+        Notes
+        -----
+        The CDM population combines EPS accretion, lognormal concentration scatter, the selected
+        tidal solver and the strict c_t survival cut. Named catalogues retain abundance,
+        concentration and survival as separate factors; changing a numerical solver does not by
+        itself recalibrate any fitted physical relation.
+        """
         scalar_values = {
             "M0": M0,
             "redshift": redshift,
@@ -588,7 +1017,51 @@ class SubhaloProperties(CDMPhysics):
             raise ValueError("logmamin must be smaller than logmamax.")
 
     def subhalo_properties_calc(self, *args: Any, **kwargs: Any):
-        """Return the historical tuple from the ITAMAE catalog calculation."""
+        r"""Return the historical tuple from the ITAMAE catalog calculation.
+
+        Parameters
+        ----------
+        *args : tuple
+            Additional positional parameters forwarded unchanged to the supplied numerical or
+            physical callback.
+        **kwargs : dict
+            Additional keyword options forwarded to the called routine; reserved scientific
+            controls remain owned by that routine.
+
+        Returns
+        -------
+        tuple of numpy.ndarray
+            Historical ten arrays: M200_acc, z_acc, r_s_acc, rho_s_acc, m_bound, r_s, rho_s,
+            c_t, generation weight and survival mask. The weight excludes survival.
+
+        Notes
+        -----
+        The retained default scatter sigma(log10(c)) = 0.128 dex is the Ishiyama et al. Eq. (7),
+        Fig. 10 value for z=0 halos of 1e9 to 1e10 solar masses; Hiroshima et al. adopt the
+        rounded value 0.13 dex. Using one value across masses and redshifts is a model
+        assumption, not a quadrature error or a new calibration. The literature threshold rt/rs
+        > 0.77 follows the Hayashi et al. disruption prescription adopted by Hiroshima et al. A
+        caller-supplied threshold takes precedence in variants that expose it (C and SI
+        currently default to 0). This is a model selection rule; an exact-boundary test does not
+        calibrate disruption physics.
+
+        The CDM population combines EPS accretion, lognormal concentration scatter, the selected
+        tidal solver and the strict c_t survival cut. Named catalogues retain abundance,
+        concentration and survival as separate factors; changing a numerical solver does not by
+        itself recalibrate any fitted physical relation.
+
+        References
+        ----------
+
+        .. [cite-scatter] Ishiyama et al. (2013), The Cosmogrid Simulation: Statistical Properties of Small Dark Matter Halos, Eq. (7), Fig. 10.
+            https://arxiv.org/abs/1101.2020
+
+        .. [cite-structure] Hiroshima, Ando & Ishiyama (2018), Modeling evolution of dark matter substructure and annihilation boost, Section II, Eqs. (4)-(9), (28), (34).
+            https://arxiv.org/abs/1803.07691
+
+        .. [cite-survival] Hayashi et al. (2003), The Structural Evolution of Substructure, Section 2.1.
+            https://arxiv.org/abs/astro-ph/0203004
+        """
         catalog = self.subhalo_catalog_calc(*args, **kwargs)
         self.catalog = catalog
         quadrature_weight = np.asarray(catalog.weights["weight_base"]) * np.asarray(
@@ -610,7 +1083,78 @@ class SubhaloProperties(CDMPhysics):
 
 
 class SubhaloObservables(SubhaloProperties, CDMObservableKernels):
-    """CDM catalog plus existing mass, satellite and annihilation observables."""
+    """CDM catalog plus existing mass, satellite and annihilation observables.
+
+    Parameters
+    ----------
+    M0_per_Msun : float
+        Host M200 numerical value in solar masses, normally at z=0. M0_at_redshift=True
+        instead assigns it to the target epoch.
+    redshift : float
+        Nonnegative target redshift of the subhalo population.
+    dz : float
+        Positive nominal spacing of the accretion-redshift quadrature grid.
+    zmax : float
+        Largest requested accretion redshift, above the target epoch; the actual grid
+        convention belongs to this variant.
+    N_ma : int
+        Number of logarithmically spaced accretion-mass nodes.
+    sigmalogc : float
+        Nonnegative standard deviation of log10 concentration, in dex.
+    N_herm : int
+        Positive Gauss-Hermite quadrature order for the scatter integrated by this routine:
+        concentration in catalogue stages or host history in Na_calc.
+    logmamin : float, optional
+        Lower or upper log10(M200_acc/Msun) bound. A None upper bound uses the model
+        host-relative mass limit.
+    logmamax : float, optional
+        Lower or upper log10(M200_acc/Msun) bound. A None upper bound uses the model
+        host-relative mass limit.
+    N_hermNa : int
+        Positive Gauss-Hermite order for the host-history scatter in the EPS accretion rate.
+    Na_model : {1, 2, 3}
+        Yang EPS accretion/normalization prescription. This is a physical model selection,
+        not a numerical tolerance.
+    ct_th : float
+        Dimensionless tidal truncation threshold r_t/r_s; the specified strict survival rule
+        is applied once through its mask.
+    profile_change : bool
+        Apply the variant tidal response of scale radius and density in addition to
+        bound-mass loss.
+    M0_at_redshift : bool
+        Interpret the input host mass at the target redshift and invert the prescribed
+        history to obtain its z=0 reference value.
+    prompt_cusps : bool
+        Enable the variant prompt-cusp prescription and its explicitly supplied spectrum
+        inputs.
+    k_fs_Mpc : float
+        Free-streaming wavenumber numerical value in Mpc^-1 for the prompt-cusp spectrum
+        prescription.
+    filter : str
+        Named physical smoothing/filter prescription used in the prompt-cusp calculation.
+    alpha : float
+        Dimensionless shape parameter of the selected prompt-cusp filter/transfer
+        prescription.
+    method : str
+        Explicit tidal integration method: picard_table, dop853, odeint or a retained
+        perturbative approximation.
+    cosmology_backend : CosmologyBackend, optional
+        ITAMAE background provider. The variant checks compatibility with the cosmology of
+        its fitted halo relations.
+    data_dir : pathlib.Path or str, optional
+        Explicit root of the required scientific input tables or generated products; no
+        substitute spectrum is selected implicitly.
+    **kwargs : dict
+        Additional keyword options forwarded to the called routine; reserved scientific
+        controls remain owned by that routine.
+
+    Notes
+    -----
+    The CDM population combines EPS accretion, lognormal concentration scatter, the selected
+    tidal solver and the strict c_t survival cut. Named catalogues retain abundance,
+    concentration and survival as separate factors; changing a numerical solver does not by
+    itself recalibrate any fitted physical relation.
+    """
 
     def __init__(
         self,
@@ -632,80 +1176,118 @@ class SubhaloObservables(SubhaloProperties, CDMObservableKernels):
         k_fs_Mpc=1.06e6,
         filter="Sharp-k",
         alpha=1.8,
-        method="pert2_shanks",
+        method="picard_table",
         cosmology_backend=None,
         data_dir=None,
         **kwargs,
     ):
-        """
-        This class computes various subhalo observables in a host halo.
+        r"""Compute a CDM population and retain surviving nodes for the standard observable
+        reductions.
 
+        Parameters
+        ----------
+        M0_per_Msun : float
+            Host M200 numerical value in solar masses, normally at z=0. M0_at_redshift=True
+            instead assigns it to the target epoch.
+        redshift : float
+            Nonnegative target redshift of the subhalo population.
+        dz : float
+            Positive nominal spacing of the accretion-redshift quadrature grid.
+        zmax : float
+            Largest requested accretion redshift, above the target epoch; the actual grid
+            convention belongs to this variant.
+        N_ma : int
+            Number of logarithmically spaced accretion-mass nodes.
+        sigmalogc : float
+            Nonnegative standard deviation of log10 concentration, in dex.
+        N_herm : int
+            Positive Gauss-Hermite quadrature order for the scatter integrated by this routine:
+            concentration in catalogue stages or host history in Na_calc.
+        logmamin : float, optional
+            Lower or upper log10(M200_acc/Msun) bound. A None upper bound uses the model
+            host-relative mass limit.
+        logmamax : float, optional
+            Lower or upper log10(M200_acc/Msun) bound. A None upper bound uses the model
+            host-relative mass limit.
+        N_hermNa : int
+            Positive Gauss-Hermite order for the host-history scatter in the EPS accretion rate.
+        Na_model : {1, 2, 3}
+            Yang EPS accretion/normalization prescription. This is a physical model selection,
+            not a numerical tolerance.
+        ct_th : float
+            Dimensionless tidal truncation threshold r_t/r_s; the specified strict survival rule
+            is applied once through its mask.
+        profile_change : bool
+            Apply the variant tidal response of scale radius and density in addition to
+            bound-mass loss.
+        M0_at_redshift : bool
+            Interpret the input host mass at the target redshift and invert the prescribed
+            history to obtain its z=0 reference value.
+        prompt_cusps : bool
+            Enable the variant prompt-cusp prescription and its explicitly supplied spectrum
+            inputs.
+        k_fs_Mpc : float
+            Free-streaming wavenumber numerical value in Mpc^-1 for the prompt-cusp spectrum
+            prescription.
+        filter : str
+            Named physical smoothing/filter prescription used in the prompt-cusp calculation.
+        alpha : float
+            Dimensionless shape parameter of the selected prompt-cusp filter/transfer
+            prescription.
+        method : str
+            Explicit tidal integration method: picard_table, dop853, odeint or a retained
+            perturbative approximation.
+        cosmology_backend : CosmologyBackend, optional
+            ITAMAE background provider. The variant checks compatibility with the cosmology of
+            its fitted halo relations.
+        data_dir : pathlib.Path or str, optional
+            Explicit root of the required scientific input tables or generated products; no
+            substitute spectrum is selected implicitly.
+        **kwargs : dict
+            Additional keyword options forwarded to the called routine; reserved scientific
+            controls remain owned by that routine.
+
+        Notes
         -----
-        Input
-        -----
-        M0_per_Msun:               Mass of the host halo defined as M_{200} (200 times critial density)
-                                   at z = 0, in units of solar mass, Msun. Note that this is *not* the
-                                   host mass at the given redshift! It can be obtained via Mzi(M0,redshift).
-                                   If you want to give this parameter as the mass at the given redshift,
-                                   then turn 'M0_at_redshift' parameter on (see below).
+        The NFW profile is from Navarro et al. The rounded factors rmax/rs = 2.163 (2.1626 where
+        explicitly used) and 4.625 are NFW maximum-circular-speed identities, as written in
+        Hiroshima et al., Eqs. (5)-(7), rather than independent empirical fits.
 
-        (Optional) redshift:       Redshift of interest. (default: 0)
-        (Optional) dz:             Grid of redshift of halo accretion. (default 0.1)
-        (Optional) zmax:           Maximum redshift to start the calculation of evolution from. (default: 7.)
-        (Optional) N_ma:           Number of logarithmic grid of subhalo mass at accretion defined as M_{200}.
-                                   (default: 500)
-        (Optional) sigmalogc:      rms scatter of concentration parameter defined for log_{10}(c).
-                                   (default: 0.128)
-        (Optional) N_herm:         Number of grid in Gauss-Hermite quadrature for integral over concentration.
-                                   (default: 5)
-        (Optional) logmamin:       Minimum value of subhalo mass at accretion defined as log_{10}(m_{min}/Msun).
-                                   (default: -6)
-        (Optional) logmamax:       Maximum value of subhalo mass at accretion defined as log_{10}(m_{max}/Msun).
-                                   If None, m_{max}=0.1*M0. (default: None)
-        (Optional) N_hermNa:       Number of grid in Gauss-Hermite quadrature for integral over host evoluation,
-                                   used in Na_calc. (default: 200)
-        (Optional) Na_model:       Model number of EPS defined in Yang et al. (2011). (default: 3)
-        (Optional) ct_th:          Threshold value for c_t(=r_t/r_s) parameter, below which a subhalo is assumed to
-                                   be completely disrupted. Suggested values: 0.77 (disruption) or 0.0
-                                   (no disruption; default).
-        (Optional) profile_change: Whether we implement the evolution of subhalo density profile through tidal
-                                   mass loss. (default: True)
-        (Optional) M0_at_redshift: If True, M0 is regarded as the mass at a given redshift, instead of z=0.
-        (Optional) method:         Method to calculate the subhalo mass stripping. (default: "pert2_shanks")
-                                   - "odeint" : use odeint to solve the differential equation.
-                                   - "pert0" : use perturbative method with zeroth-order correction.
-                                   - "pert1" : use perturbative method with first-order correction.
-                                   - "pert2" : use perturbative method with second-order correction.
-                                   - "pert2_shanks" : use perturbative method with second-order correction
-                                     and Shanks transformation.
-                                   - "pert3" : use perturbative method with third-order correction.
-        (Optional) kwargs:         Additional arguments for the odeint function.
+        The retained default scatter sigma(log10(c)) = 0.128 dex is the Ishiyama et al. Eq. (7),
+        Fig. 10 value for z=0 halos of 1e9 to 1e10 solar masses; Hiroshima et al. adopt the
+        rounded value 0.13 dex. Using one value across masses and redshifts is a model
+        assumption, not a quadrature error or a new calibration. The literature threshold rt/rs
+        > 0.77 follows the Hayashi et al. disruption prescription adopted by Hiroshima et al. A
+        caller-supplied threshold takes precedence in variants that expose it (C and SI
+        currently default to 0). This is a model selection rule; an exact-boundary test does not
+        calibrate disruption physics.
 
+        If prompt cusps are enabled, the benchmark cutoff k_fs=1.06e6 Mpc**(-1) and sharp-k
+        multiplier alpha=1.8 follow the prompt-cusp model of Ando et al.; these are separate
+        from the CDM variance fit used by default.
 
+        The CDM population combines EPS accretion, lognormal concentration scatter, the selected
+        tidal solver and the strict c_t survival cut. Named catalogues retain abundance,
+        concentration and survival as separate factors; changing a numerical solver does not by
+        itself recalibrate any fitted physical relation.
 
-        When called with these input parameters, this class initially creates a list of subhalos, characterized
-        by the following output parameters.
+        References
+        ----------
 
-        ------
-        Output
-        ------
+        .. [cite-nfw] Navarro, Frenk & White (1997), A Universal Density Profile from Hierarchical Clustering.
+            https://arxiv.org/abs/astro-ph/9611107
 
-        ma200:    Mass m_{200} at accretion.
-        z_a:      Redshift at accretion.
-        rs_a:     Scale radius r_s at accretion.
-        rhos_a:   Characteristic density \rho_s at accretion.
-        m0:       Mass up to tidal truncation radius at a given redshift.
-        rs0:      Scale radius r_s at a given redshift.
-        rhos0:    Characteristic density \rho_s at a given redshift.
-        ct0:      Tidal truncation radius in units of r_s at a given redshift.
-        weight:   Effective number of subhalos that are characterized by the same set of the parameters above.
-        survive:  If that subhalo survive against tidal disruption or not.
+        .. [cite-structure] Hiroshima, Ando & Ishiyama (2018), Modeling evolution of dark matter substructure and annihilation boost, Section II, Eqs. (4)-(9), (28), (34).
+            https://arxiv.org/abs/1803.07691
 
-        Vmax:     Maximum circular velocity at a given redshift.
-        rmax:     Radius at which the orbital speed reaches Vmax.
-        Vpeak:    Maximum circular velocity at accretion.
-        rpeak:    Radius at which the orbital speed reaches Vpeak.
+        .. [cite-scatter] Ishiyama et al. (2013), The Cosmogrid Simulation: Statistical Properties of Small Dark Matter Halos, Eq. (7), Fig. 10.
+            https://arxiv.org/abs/1101.2020
 
+        .. [cite-survival] Hayashi et al. (2003), The Structural Evolution of Substructure, Section 2.1.
+            https://arxiv.org/abs/astro-ph/0203004
+
+        .. [cite-prompt] Ando, Moro-Gonzalez & Li (2026), Prompt cusps in hierarchical dark matter halos: Implications for annihilation boost, Sections 2.1-2.3 and 3.1.
+            https://arxiv.org/abs/2601.19863
         """
 
         SubhaloProperties.__init__(
@@ -764,7 +1346,8 @@ def diagnose_stripping_approximation(
     cosmology_backend: Any | None = None,
     odeint_options: Mapping[str, Any] | None = None,
 ) -> StrippingDiagnostics:
-    """Compare the default Shanks approximation with direct ODE integration.
+    """Compare the explicitly selected Shanks approximation with the same tidal law integrated
+    by odeint.
 
     Parameters
     ----------
@@ -790,7 +1373,12 @@ def diagnose_stripping_approximation(
     -----
     This function does not select or modify the catalog stripping method. It is
     an explicit validation tool; catalog generation remains
-    ``method="pert2_shanks"`` by default.
+    ``method="picard_table"`` by default; this diagnostic explicitly compares Shanks and odeint.
+
+    The CDM population combines EPS accretion, lognormal concentration scatter, the selected
+    tidal solver and the strict c_t survival cut. Named catalogues retain abundance,
+    concentration and survival as separate factors; changing a numerical solver does not by
+    itself recalibrate any fitted physical relation.
     """
     masses = np.atleast_1d(np.asarray(mass_at_accretion, dtype=float))
     if masses.ndim > 1 or masses.size == 0:
@@ -831,7 +1419,7 @@ def diagnose_stripping_approximation(
         masses,
         accretion_redshift_value,
         target_redshift_value,
-        method=_DEFAULT_STRIPPING_METHOD,
+        method="pert2_shanks",
     )
     ode_mass = solver.subhalo_mass_stripped(
         masses,

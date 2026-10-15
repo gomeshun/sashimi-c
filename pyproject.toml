@@ -17,7 +17,7 @@ authors = [
   {name = "Ariane Dekker"},
 ]
 dependencies = [
-  "sashimi-itamae>=0.2.0rc1,<0.3",
+  "sashimi-itamae>=0.2.0rc2,<0.3",
   "numpy>=1.26",
   "scipy>=1.11",
   "tqdm>=4.66",
@@ -64,4 +64,4 @@ testpaths = ["tests"]
 addopts = "-ra --strict-markers --strict-config"
 
 [tool.uv.sources]
-sashimi-itamae = {git = "https://github.com/gomeshun/itamae.git", rev = "23d01e8758a88b061b87de9e488c38ec89fd8e4f"}
+sashimi-itamae = {git = "https://github.com/gomeshun/itamae.git", rev = "b7a9fde9d6d8b380c94512337c806851ac5c78f7"}

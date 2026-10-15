@@ -73,7 +73,7 @@ from sashimi_c import SubhaloProperties
 model = SubhaloProperties()
 catalog = model.subhalo_catalog_calc(
     M0=1e12, dz=0.5, zmax=2.0, N_ma=24, N_herm=3, N_hermNa=8,
-    logmamin=6.0, logmamax=10.0, method="pert2_shanks", ct_th=0.0,
+    logmamin=6.0, logmamax=10.0, method="picard_table", ct_th=0.0,
 )
 print(catalog.columns.keys(), catalog.weight_final.sum())
 ```
@@ -86,8 +86,8 @@ historical ten-column tuple; it cannot execute old physics.
 
 The calibrated background remains `OmegaM=0.315`, `h=0.674`. Incompatible
 backgrounds are rejected because host history, EPS and concentration are
-calibrated together. The default remains `pert2_shanks` with `ct_th=0.0`;
-Picard and direct ODE integration remain explicit solver choices.
+calibrated together. The default is shared ITAMAE `picard_table` with `ct_th=0.0`;
+`pert2_shanks`, `odeint` and `dop853` remain explicit solver choices.
 
 See the [API migration guide](docs/standard-api-migration.md), the
 [usage walkthrough](notebooks/usage_walkthrough.ipynb), and the separate
@@ -176,7 +176,7 @@ M0: Mass of the host halo defined as M_{200} (200 times critial density) at *z =
 (Optional) profile_change: Whether we implement the evolution of subhalo density profile through tidal
                            mass loss. (default: True)
 (Optional) M0_at_redshift: If True, M0 is regarded as the mass at a given redshift, instead of z=0.
-(Optional) method:         Method to calculate the subhalo mass stripping. (default: "pert2_shanks")
+(Optional) method:         Method to calculate the subhalo mass stripping. (default: "picard_table")
                            - "odeint" : use odeint to solve the differential equation.
                            - "pert0" : use perturbative method with zeroth-order correction.
                            - "pert1" : use perturbative method with first-order correction.
@@ -206,11 +206,10 @@ These outputs are adopted further in various functions of 'subhalo_observables' 
 
 ### Tidal-stripping solver compatibility
 
-The historical and migration defaults remain `method="pert2_shanks"`. The
-precomputed third-order Picard solver synchronized from `main` is available as
-an explicit `method="picard_table"` option. This synchronization does **not**
-adopt the proposed default change from PR #5; changing the public scientific
-default requires separate PHY-C review.
+The migration default is now `method="picard_table"`, using the shared ITAMAE
+backend with convergence checks and direct log-mass fallback. See the
+[shared Picard contract](docs/shared-picard.md) for controls, provenance and
+numerical limits. Pass `method="pert2_shanks"` to retain the prior solver.
 
 Historical migration fixtures continue to use repository revision
 `9f6713b686805645da459e99522e2049e7dea793`, `method="pert2_shanks"`,

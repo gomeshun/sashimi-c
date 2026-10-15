@@ -12,6 +12,19 @@ from sashimi_c_itamae_components import (
 
 
 def test_truncation_threshold_survival_preserves_strict_legacy_cut():
+    """Apply the declared strict disruption cut at c_t=c_threshold.
+
+    Notes
+    -----
+    Pass criteria: Values below or equal to 0.1 and NaN are rejected; the next representable
+    value above 0.1 and 0.2 survive.
+
+    Failure criteria: a stated numerical/identity mismatch, a missing required exception or
+    warning, or an unexpected calculation failure fails the test.
+
+    Scope: This controlled calculation does not calibrate a subhalo population against
+    simulations or observations.
+    """
     component = TruncationThresholdSurvival(ct_threshold=0.1)
     c_t = np.array([0.0, 0.1, np.nextafter(0.1, np.inf), 0.2, np.nan])
 
@@ -27,6 +40,34 @@ def test_truncation_threshold_survival_preserves_strict_legacy_cut():
 
 
 def test_cdm_stages_preserve_node_identity_and_initial_enclosed_mass():
+    r"""Transport a known half-mass stripping law without altering accretion-node identity.
+
+    Notes
+    -----
+    The retained default scatter sigma(log10(c)) = 0.128 dex is the Ishiyama et al. Eq. (7),
+    Fig. 10 value for z=0 halos of 1e9 to 1e10 solar masses; Hiroshima et al. adopt the
+    rounded value 0.13 dex. Using one value across masses and redshifts is a model
+    assumption, not a quadrature error or a new calibration.
+
+    Pass criteria: Initial NFW enclosed mass matches virial accretion mass, bound mass is
+    halved, fixed profile parameters are preserved, and the recovered truncated mass agrees
+    within 2e-12.
+
+    Failure criteria: any mismatch with the stated value, shape or identity requirements
+    fails the test.
+
+    Scope: This controlled calculation does not calibrate a subhalo population against
+    simulations or observations.
+
+    References
+    ----------
+
+    .. [cite-scatter] Ishiyama et al. (2013), The Cosmogrid Simulation: Statistical Properties of Small Dark Matter Halos, Eq. (7), Fig. 10.
+        https://arxiv.org/abs/1101.2020
+
+    .. [cite-structure] Hiroshima, Ando & Ishiyama (2018), Modeling evolution of dark matter substructure and annihilation boost, Section II, Eqs. (4)-(9), (28), (34).
+        https://arxiv.org/abs/1803.07691
+    """
     model = subhalo_properties()
     mass = np.geomspace(1.0e6, 1.0e8, 3)
     batch, context = CDMAccretionSlices(
@@ -53,7 +94,50 @@ def test_cdm_stages_preserve_node_identity_and_initial_enclosed_mass():
     assert "m_bound" not in initial
 
     class HalfMassSolver:
+        """Provide exact half-mass stripping to isolate structural response and population
+        ordering.
+
+        Notes
+        -----
+        Transport a known half-mass stripping law without altering accretion-node identity. Pass
+        criteria: Initial NFW enclosed mass matches virial accretion mass, bound mass is halved,
+        fixed profile parameters are preserved, and the recovered truncated mass agrees within
+        2e-12. Failure occurs when the stated comparison or expected rejection is not met. This
+        controlled calculation does not calibrate a subhalo population against simulations or
+        observations.
+        """
+
         def subhalo_mass_stripped(self, mass, za, redshift, *, method):
+            """Return half the accretion mass after checking the intended toy evolution interval.
+
+            Parameters
+            ----------
+            mass : float or array_like
+                Positive halo mass. Use solar masses with the canonical backend; a supplied variance
+                prescription must use the same mass convention and factors of h.
+            za : float or array_like
+                Dimensionless accretion redshift. History integration requires one scalar accretion
+                epoch.
+            redshift : float
+                Nonnegative target redshift of the subhalo population.
+            method : str
+                Explicit tidal integration method: picard_table, dop853, odeint or a retained
+                perturbative approximation.
+
+            Returns
+            -------
+            numpy.ndarray
+                0.5*mass, with unchanged mass shape.
+
+            Notes
+            -----
+            Transport a known half-mass stripping law without altering accretion-node identity. Pass
+            criteria: Initial NFW enclosed mass matches virial accretion mass, bound mass is halved,
+            fixed profile parameters are preserved, and the recovered truncated mass agrees within
+            2e-12. Failure occurs when the stated comparison or expected rejection is not met. This
+            controlled calculation does not calibrate a subhalo population against simulations or
+            observations.
+            """
             assert za == 0.5 and redshift == 0.0 and method == "test-half"
             return 0.5 * mass
 

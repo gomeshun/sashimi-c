@@ -29,6 +29,20 @@ SMALL = {
 
 
 def test_corrected_full_catalog_matches_independent_reference_b():
+    """Preserve the corrected CDM calculation on a frozen independently produced reference
+    case.
+
+    Notes
+    -----
+    Pass criteria: The reference hash is valid; every tuple array matches at rtol=5e-12 and
+    Boolean masks exactly; metadata record the current prescription.
+
+    Failure criteria: any mismatch with the stated value, shape or identity requirements
+    fails the test.
+
+    Scope: This controlled calculation does not calibrate a subhalo population against
+    simulations or observations.
+    """
     path = Path(__file__).parent / "references/B-all.npz"
     metadata = json.loads(path.with_suffix(".json").read_text())
     assert metadata["role"] == "B"
@@ -53,6 +67,24 @@ def test_corrected_full_catalog_matches_independent_reference_b():
 
 @pytest.mark.parametrize("mode", ["legacy", "consistent", "hybrid"])
 def test_removed_mode_cannot_select_a_hidden_calculation(mode):
+    """Avoid accepting an obsolete mode that would imply an unrecorded physical prescription.
+
+    Parameters
+    ----------
+    mode : str
+        Obsolete physical-mode label that the current public interface must reject.
+
+    Notes
+    -----
+    Pass criteria: All public constructors and catalogue creation reject legacy, consistent
+    or hybrid physics_mode arguments.
+
+    Failure criteria: a stated numerical/identity mismatch, a missing required exception or
+    warning, or an unexpected calculation failure fails the test.
+
+    Scope: This controlled calculation does not calibrate a subhalo population against
+    simulations or observations.
+    """
     for cls, args in (
         (HaloModel, ()),
         (SubhaloProperties, ()),
@@ -66,6 +98,19 @@ def test_removed_mode_cannot_select_a_hidden_calculation(mode):
 
 
 def test_standard_import_and_tuple_conversion_use_the_same_population():
+    """Ensure named catalogues and legacy tuples represent the same physical nodes.
+
+    Notes
+    -----
+    Pass criteria: Tuple fields, base/concentration weights and survival equal the canonical
+    catalogue; aliases resolve consistently.
+
+    Failure criteria: any mismatch with the stated value, shape or identity requirements
+    fails the test.
+
+    Scope: This controlled calculation does not calibrate a subhalo population against
+    simulations or observations.
+    """
     assert sashimi_c.subhalo_properties is SubhaloProperties is ItamaeSubhaloProperties
     model = SubhaloProperties()
     arrays = model.subhalo_properties_calc(**SMALL)
@@ -91,6 +136,19 @@ def test_standard_import_and_tuple_conversion_use_the_same_population():
 
 
 def test_cosmology_units_and_growth_derivative_are_consistent():
+    """Use one background density and growth history throughout CDM evolution.
+
+    Notes
+    -----
+    Pass criteria: Critical density equals 3H**2/(8*pi*G) and the backend density; dD/dz
+    agrees with a finite difference at 2e-9; D(0)=1.
+
+    Failure criteria: any mismatch with the stated value, shape or identity requirements
+    fails the test.
+
+    Scope: This controlled calculation does not calibrate a subhalo population against
+    simulations or observations.
+    """
     model = HaloModel()
     z = np.array([0.0, 0.5, 1.0, 3.0])
     np.testing.assert_allclose(
@@ -106,6 +164,20 @@ def test_cosmology_units_and_growth_derivative_are_consistent():
 
 
 def test_target_redshift_host_mass_keeps_the_recorded_mass_definition():
+    """Interpret a supplied host mass at the requested epoch consistently with its z=0
+    equivalent.
+
+    Notes
+    -----
+    Pass criteria: A catalogue using M0_at_redshift=True equals one using the recorded
+    converted z=0 host mass, while retaining the original input mass in metadata.
+
+    Failure criteria: any mismatch with the stated value, shape or identity requirements
+    fails the test.
+
+    Scope: This controlled calculation does not calibrate a subhalo population against
+    simulations or observations.
+    """
     parameters = {**SMALL, "redshift": 1.0, "zmax": 2.0}
     catalog = SubhaloProperties().subhalo_catalog_calc(
         **parameters, M0_at_redshift=True
