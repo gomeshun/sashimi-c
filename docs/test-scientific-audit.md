@@ -2,7 +2,9 @@
 
 The 72-definition review below is the original snapshot. One additional
 physical-consistency test is reviewed in the [2026-10-15 follow-up](#follow-up-2026-10-15-kinetic-decoupling-benchmark);
-its addition does not enact any proposed consolidation or relaxation below.
+three collapse/luminosity regression definitions are reviewed in the
+[2026-10-22 follow-up](#follow-up-2026-10-22-empty-collapsed-peak-samples).
+These additions do not enact any proposed consolidation or relaxation below.
 
 Reviewed **72 test definitions** individually. This count is not the number of parametrized cases. The review proposes future changes; all test bodies, assertions and tolerances are retained.
 
@@ -851,3 +853,102 @@ consolidation is proposed. The ideal-gas calculation does not validate
 finite-temperature plasma corrections, non-instantaneous neutrino decoupling,
 alternative dark sectors or cusp-luminosity calibration. Existing tests and
 their assertions remain unchanged.
+
+## Follow-up: 2026-10-22 empty collapsed-peak samples
+
+Correction baseline: owner PR #27 head
+`de061d456c4803d0682c661da5fdbada3dfcfac4`, with ITAMAE pinned at
+`b7a9fde9d6d8b380c94512337c806851ac5c78f7`. Author-maintained upstream/main
+was independently fetched as `e07ef8fa13503bd80818995c0d366311104fb644`.
+The moved upstream function is `prompt_cusps.prompt_cusps.cusp_properties`;
+the active package definition is `sashimi_c.prompt_cusps.prompt_cusps.cusp_properties`.
+Historical run archives, audit JSON, existing test bodies and tolerances
+remain unchanged.
+
+The three new definitions below expand to 12 cases. The pre-fix empty cases
+were run against the owner baseline and all three failed with
+`UnboundLocalError` at `J_cusps_M = J_cusp_mean*N_cusps_M`. The correction adds
+only `J_cusp_mean = 0.` in the existing empty branch, plus return-contract
+documentation. A nonempty peak sample with zero selected cusps has zero
+sampled collapse fraction and population luminosity. The returned scalar
+zero preserves the intended caller contract; it is not an empty array whose
+mean would be undefined. A zero fraction in a finite sample does not prove
+the true collapse probability is zero. Zero requested Monte Carlo draws are
+outside this correction because their fraction has no denominator.
+
+#### 74. `test_no_collapsed_peaks_return_finite_scalar_zero`
+
+[Source](../tests/test_prompt_cusp_collapse.py) · **Add and retain** ·
+Role: empty-population numerical contract (3 cases).
+
+**Purpose and setup.** Load a real two-peak cache and use controlled spectral
+moments; reject all peaks separately through the observation epoch, the shape
+cut, and failed-root NaNs. This reproduces the reported branch without relying
+on random sampling or root-finder behavior.
+
+**Pass/fail.** Require finite scalar `f_coll=0` and Python-float `J_cusp=0.0`,
+both with shape `()`, a finite zero mean and zero weighted luminosity. Any
+exception, RuntimeWarning or invalid/divide/overflow operation fails. Exact
+zeros express the empty-population identity, not an empirical accuracy bound.
+
+**Necessity, overlap and removal risk.** The thermal benchmark does not exercise
+collapse or luminosities. The three causes share a public zero contract but
+protect distinct collapse-mask inputs; parametrization avoids duplicate test
+bodies. Removing this coverage leaves the previously crashing branch untested.
+The fixture substitutes only spectral moments, not the collapse or luminosity
+code. It does not validate the spectrum or collapse prescription physically.
+
+#### 75. `test_nonempty_cusp_luminosities_preserve_baseline`
+
+[Source](../tests/test_prompt_cusp_collapse.py) · **Add and retain** ·
+Role: normal-case historical regression (8 cases).
+
+**Purpose and setup.** A three-peak cache selects either one or two peaks. Check
+both z=0 and z=5, after those peaks collapse, and survival factors zero and one.
+The two expected individual luminosities were calculated at the unmodified
+owner baseline with the same controlled moments and caches.
+
+**Pass/fail.** Require scalar `f_coll=N_collapsed/3`, a floating array of shape
+`(N_collapsed,)` in the retained order, and baseline luminosities within
+`rtol=2e-13, atol=0`. The tolerance permits near-roundoff/platform differences;
+it is not an independent physical accuracy claim. This also retains the
+one-element array contract and the distinction between individual cusp
+luminosity and the population survival factor. Any numerical or shape
+mismatch fails.
+
+**Necessity, overlap and removal risk.** This positive control prevents fixing
+the empty branch by suppressing valid cusps or returning scalar zeros for
+every input. It covers a different invariant from the empty test and thermal
+benchmark. Removing it loses direct evidence that formed-cusp outputs are
+preserved. No consolidation, relaxation or physical recalibration is proposed.
+
+#### 76. `test_no_collapsed_cusps_give_zero_boost_contributions`
+
+[Source](../tests/test_prompt_cusp_collapse.py) · **Add and retain** ·
+Role: real observable-consumer integration (1 case).
+
+**Purpose and setup.** An isolated default-location cache rejects both peaks
+through the shape cut. Construct a small real CDM catalogue and call the actual
+order-zero prompt-cusp boost method; its internal cusp model uses the same
+scoped fixed spectral moments.
+
+**Pass/fail.** The six-scalar observable tuple remains finite, with positive
+smooth subhalo boost and exactly zero dressed/naked cusp boosts. The total
+equals `1-f_sh**2+B_sh` within relative `1e-14`, a rounding allowance for an
+algebraic identity. RuntimeWarning and invalid/divide/overflow errors fail.
+
+**Necessity, overlap and removal risk.** The direct return test alone cannot
+establish that the actual consumer handles the zero sentinel without NaNs.
+This case would catch replacement with an empty array even if a future direct
+test allowed one. Removing it loses coverage of the downstream scientific
+consequence. It does not test recursive tables or calibrate any cusp counts,
+luminosities or population model.
+
+**Helper and fixture review.** `_fixed_spectral_moments` supplies synthetic
+moments satisfying `0 < gamma < 1`, with explicit units and no claim to a
+published spectrum. `cusp_model` uses the real constructor and per-case cache
+directory, replacing only that spectral provider for deterministic tests.
+Both have NumPy-style Parameters, Returns and Notes. Real cache loading,
+BBKS quadrature and collapse/core/luminosity calculations remain active.
+This isolation is necessary for reproducible tests without external power
+tables; it is not a substitute for full-spectrum validation.

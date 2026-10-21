@@ -833,9 +833,14 @@ class prompt_cusps(cosmology):
         Returns
         -------
         f_coll : float
-            Fraction of sampled peaks passing the epoch and shape collapse conditions.
-        J_cusp : numpy.ndarray
-            Integral of rho**2 over physical volume for each collapsed cusp, in internal mass**2/length**3.
+            Fraction of sampled peaks passing the epoch and shape collapse
+            conditions; zero if none of a nonempty peak sample collapse.
+        J_cusp : numpy.ndarray or float
+            Integral of rho**2 over physical volume for each collapsed cusp,
+            in internal mass**2/length**3. Nonempty results are a one-dimensional
+            array of length equal to the number of collapsed peaks. If none
+            collapse, return the scalar 0.0 (shape ()), preserving the zero
+            sentinel used by callers that evaluate np.mean(J_cusp).
 
         Notes
         -----
@@ -851,7 +856,16 @@ class prompt_cusps(cosmology):
         diagnostic fit with coefficient 0.08 is from Delos & White; it is evaluated internally
         but is not returned by cusp_properties.
 
-        The cusp normalization is A=24*rho_dm0*a_coll**(-3/2)*R**(3/2), the outer radius is 0.11*a_coll*R, and the phase-space core uses the coefficient 3e-5. The luminosity uses 4*pi*A**2*[0.531+ln(rcusp/rcore)]. Internal population-average and 0.08 fit diagnostics are not return values. The historical implementation assumes a nonempty collapsed sample; its empty-sample path is not repaired by this documentation change.
+        The cusp normalization is A=24*rho_dm0*a_coll**(-3/2)*R**(3/2), the outer radius is 0.11*a_coll*R, and the phase-space core uses the coefficient 3e-5. The luminosity uses 4*pi*A**2*[0.531+ln(rcusp/rcore)]. Internal population-average and 0.08 fit diagnostics are not return values.
+
+        If no sampled peaks collapse, f_coll and the sampled cusp abundance
+        are zero. Set both the returned luminosity sentinel and the internal
+        mean used for the population luminosity to zero, without taking a
+        mean of an empty array. This is an empty-population convention, not
+        a physical luminosity assigned to a formed cusp or proof that the
+        true collapse probability is zero. The input peak sample is assumed
+        nonempty; requesting zero Monte Carlo draws is not covered by this
+        convention.
 
         The primordial phase-space bound uses the constructor's fixed
         T_kd=30 MeV and a_kd=5.3e-12 benchmark. The latter agrees, at its stored
@@ -1052,6 +1066,7 @@ class prompt_cusps(cosmology):
         idx = np.where(collapsed)[0]
         if idx.size==0:
             J_cusp = 0.
+            J_cusp_mean = 0.
         else:
             J_cusp       = 4*np.pi*Aec**2*(0.531+np.log(rcusp/rcore))
             J_cusp_mean  = np.mean(J_cusp)
