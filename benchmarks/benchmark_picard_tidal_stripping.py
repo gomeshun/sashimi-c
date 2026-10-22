@@ -23,10 +23,59 @@ from sashimi_c import TidalStrippingSolver
 
 
 def reference_log_ode_mass(solver, ma, z_acc, z_final=0.0):
+    """Integrate ln(m) directly with DOP853 for a sampled tidal endpoint comparison.
+
+    Parameters
+    ----------
+    solver : TidalStrippingSolver or object
+        C-owned tidal coefficient provider exposing Phi(z), zetaMz(z), Mzvir(z) and its
+        mutable physical state.
+    ma : float or array_like
+        Positive subhalo mass at accretion, in the same units as reference_mass; endpoint
+        queries broadcast over mass and redshift.
+    z_acc : float or array_like
+        Dimensionless accretion redshift. History integration requires one scalar accretion
+        epoch.
+    z_final : float or array_like, optional
+        Target redshift no greater than the accretion redshift. Explicit tables use one
+        scalar target; None selects solver.z_min.
+
+    Returns
+    -------
+    float
+        Endpoint mass in the input unit using rtol=1e-11 and atol=1e-12 in log mass.
+
+    Notes
+    -----
+    Comparisons use identical model inputs for the named numerical solvers. Timing and
+    sampled mass differences are numerical diagnostics; they do not establish global
+    convergence or empirical accuracy of the tidal-loss prescription.
+    """
+
     def rhs(z, y):
+        """Evaluate the one-state log-mass tidal derivative at the current redshift.
+
+        Parameters
+        ----------
+        z : float or array_like
+            Dimensionless redshift. The cosmological background requires z > -1; population
+            nodes use nonnegative redshifts.
+        y : array_like
+            One-element natural-log mass state in the fixed internal mass unit.
+
+        Returns
+        -------
+        list of float
+            One derivative d ln(m)/dz, for the SciPy reference integration.
+
+        Notes
+        -----
+        Comparisons use identical model inputs for the named numerical solvers. Timing and
+        sampled mass differences are numerical diagnostics; they do not establish global
+        convergence or empirical accuracy of the tidal-loss prescription.
+        """
         return [
-            solver.Phi(z)
-            * np.exp(solver.zetaMz(z) * (y[0] - np.log(solver.Mzvir(z))))
+            solver.Phi(z) * np.exp(solver.zetaMz(z) * (y[0] - np.log(solver.Mzvir(z))))
         ]
 
     result = solve_ivp(
@@ -41,6 +90,15 @@ def reference_log_ode_mass(solver, ma, z_acc, z_final=0.0):
 
 
 def main():
+    """Measure explicit table construction/lookup costs and sampled endpoint differences
+    against DOP853.
+
+    Notes
+    -----
+    Comparisons use identical model inputs for the named numerical solvers. Timing and
+    sampled mass differences are numerical diagnostics; they do not establish global
+    convergence or empirical accuracy of the tidal-loss prescription.
+    """
     solver = TidalStrippingSolver(M0=1.0e12, z_min=0.0, z_max=7.0, n_z_interp=64)
 
     start = time.perf_counter()
@@ -82,7 +140,9 @@ def main():
             reference = reference_log_ode_mass(solver, ma, za)
             errors.append(abs(table.mass(ma, za) / reference - 1.0))
             current = solver.subhalo_mass_stripped(ma, za, 0.0, method="pert2_shanks")
-            current_errors.append(abs(float(np.asarray(current).squeeze()) / reference - 1.0))
+            current_errors.append(
+                abs(float(np.asarray(current).squeeze()) / reference - 1.0)
+            )
 
     print(f"Picard table build:        {build_time:.6f} s")
     print(f"Picard lookup, 350k pts:  {lookup_time:.6f} s")

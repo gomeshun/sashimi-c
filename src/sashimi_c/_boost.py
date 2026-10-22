@@ -29,13 +29,50 @@ MODEL_KEYS = (
 
 
 def validate_order(order):
-    """Reject invalid iteration counts before accessing tables or computing cusps."""
+    """Reject invalid iteration counts before accessing tables or computing cusps.
+
+    Parameters
+    ----------
+    order : int
+        Number/order of terms or quadrature nodes specified by the owning numerical method;
+        see its Notes for interpretation.
+
+    Notes
+    -----
+    Recursive annihilation luminosity uses tables from the same physical calculation
+    specification. File hashes and model metadata protect that interpretation. Undefined
+    interpolation is an error unless the historical approximation is explicitly requested
+    and reported.
+    """
     if isinstance(order, bool) or not isinstance(order, (int, np.integer)) or order < 0:
         raise ValueError("Boost order n must be a nonnegative integer.")
 
 
 def model_contract(model, **extra):
-    """Select the physical assumptions that must agree with the supplied tables."""
+    """Select the physical assumptions that must agree with the supplied tables.
+
+    Parameters
+    ----------
+    model : object
+        Variant halo/population object supplying its own background, units, structure and
+        accretion prescriptions.
+    **extra : Mapping, optional
+        Additional named model/provenance information; reserved standard fields cannot be
+        overridden.
+
+    Returns
+    -------
+    dict
+        Physical choices and, when needed, spectrum hashes required to reuse the recursive
+        boost tables.
+
+    Notes
+    -----
+    Recursive annihilation luminosity uses tables from the same physical calculation
+    specification. File hashes and model metadata protect that interpretation. Undefined
+    interpolation is an error unless the historical approximation is explicitly requested
+    and reported.
+    """
     contract = {key: model.catalog.metadata[key] for key in MODEL_KEYS}
     contract["prompt_cusps"] = bool(model.prompt_cusps)
     if model.prompt_cusps or extra:
@@ -61,6 +98,37 @@ def interpolate_boost_tables(
     ``fields`` maps each output to its filename and the historical additive
     offset before log10. The historical zero-fill requires explicit opt-in and
     exposes its invalid points; it is not a calibrated boundary model.
+
+    Parameters
+    ----------
+    model : object
+        Variant halo/population object supplying its own background, units, structure and
+        accretion prescriptions.
+    directory : pathlib.Path or str, optional
+        Explicit root of the required scientific input tables or generated products; no
+        substitute spectrum is selected implicitly.
+    fields : Mapping
+        Output field names mapped to (table filename, additive log-interpolation offset)
+        under the preserved table convention.
+    extra_contract : Mapping, optional
+        Additional physical table assumptions, such as cusp survival fractions, that must
+        match the requested calculation.
+    allow_incomplete_tables : bool
+        Explicit opt-in to the historical undefined-interpolation-to-zero approximation,
+        with invalid-point diagnostics. It is not a calibrated low-mass boundary.
+
+    Returns
+    -------
+    dict[str, numpy.ndarray]
+        Requested recursive fields aligned with model.ma200 and model.z_a; lookup provenance
+        is saved on the model.
+
+    Notes
+    -----
+    Recursive annihilation luminosity uses tables from the same physical calculation
+    specification. File hashes and model metadata protect that interpretation. Undefined
+    interpolation is an error unless the historical approximation is explicitly requested
+    and reported.
     """
     if not isinstance(allow_incomplete_tables, (bool, np.bool_)):
         raise TypeError("allow_incomplete_tables must be an explicit boolean.")
@@ -104,6 +172,26 @@ def interpolate_boost_tables(
         )
 
     def read(filename):
+        """Read one scientific table only if its bytes match the declared calculation manifest.
+
+        Parameters
+        ----------
+        filename : str
+            Required scientific table name within the selected directory; its bytes are checked
+            against the manifest.
+
+        Returns
+        -------
+        numpy.ndarray
+            Finite table values after exact file-content hash verification.
+
+        Notes
+        -----
+        Recursive annihilation luminosity uses tables from the same physical calculation
+        specification. File hashes and model metadata protect that interpretation. Undefined
+        interpolation is an error unless the historical approximation is explicitly requested
+        and reported.
+        """
         raw = require_input(directory / filename).read_bytes()
         if hashlib.sha256(raw).hexdigest() != hashes.get(filename):
             raise ValueError(f"Boost table hash mismatch: {filename}.")
@@ -205,6 +293,30 @@ def generate_boost_tables(configuration, *, data_dir=None, prompt_cusps=False):
     observable formulas and requires every requested population to be nonempty
     and every previous-order interpolation to be defined. Unsupported low-mass
     boundaries fail; they are not replaced with a new physical prescription.
+
+    Parameters
+    ----------
+    configuration : Mapping
+        Explicit generation grid and calculation settings. Includes redshift_grid,
+        mass_grid_Msun, calculation_parameters and max_order.
+    data_dir : pathlib.Path or str, optional
+        Explicit root of the required scientific input tables or generated products; no
+        substitute spectrum is selected implicitly.
+    prompt_cusps : bool
+        Enable the variant prompt-cusp prescription and its explicitly supplied spectrum
+        inputs.
+
+    Returns
+    -------
+    pathlib.Path
+        New boost-table directory with arrays, manifest and generation diagnostics.
+
+    Notes
+    -----
+    Recursive annihilation luminosity uses tables from the same physical calculation
+    specification. File hashes and model metadata protect that interpretation. Undefined
+    interpolation is an error unless the historical approximation is explicitly requested
+    and reported.
     """
     from sashimi_c import SubhaloObservables
 
@@ -432,7 +544,21 @@ def generate_boost_tables(configuration, *, data_dir=None, prompt_cusps=False):
 
 
 def generation_cli(*, prompt_cusps=False):
-    """Run explicit JSON-configured table generation from an installed package."""
+    """Run explicit JSON-configured table generation from an installed package.
+
+    Parameters
+    ----------
+    prompt_cusps : bool
+        Enable the variant prompt-cusp prescription and its explicitly supplied spectrum
+        inputs.
+
+    Notes
+    -----
+    Recursive annihilation luminosity uses tables from the same physical calculation
+    specification. File hashes and model metadata protect that interpretation. Undefined
+    interpolation is an error unless the historical approximation is explicitly requested
+    and reported.
+    """
     import argparse
 
     parser = argparse.ArgumentParser(

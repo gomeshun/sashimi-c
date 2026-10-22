@@ -11,6 +11,23 @@ def data_directory(path=None) -> Path:
 
     An explicit path wins, followed by SASHIMI_C_DATA_DIR, then the user's cache
     directory. Scientific input files are never downloaded or substituted.
+
+    Parameters
+    ----------
+    path : str or pathlib.Path
+        Location of the scientific data archive; no pickle evaluation is used by the NPZ
+        readers.
+
+    Returns
+    -------
+    pathlib.Path
+        Resolved input/output root, without creating files.
+
+    Notes
+    -----
+    Data location is explicit so changing the process working directory cannot silently
+    select different power spectra or recursive boost tables. Missing scientific inputs fail
+    with their required paths.
     """
     if path is not None:
         return Path(path).expanduser().resolve()
@@ -22,7 +39,26 @@ def data_directory(path=None) -> Path:
 
 
 def require_input(path) -> Path:
-    """Fail with the exact required scientific input instead of a cwd lookup."""
+    """Fail with the exact required scientific input instead of a cwd lookup.
+
+    Parameters
+    ----------
+    path : str or pathlib.Path
+        Location of the scientific data archive; no pickle evaluation is used by the NPZ
+        readers.
+
+    Returns
+    -------
+    pathlib.Path
+        Resolved existing input file; missing data raise RuntimeError with the required
+        location.
+
+    Notes
+    -----
+    Data location is explicit so changing the process working directory cannot silently
+    select different power spectra or recursive boost tables. Missing scientific inputs fail
+    with their required paths.
+    """
     path = Path(path).expanduser().resolve()
     if not path.is_file():
         raise RuntimeError(

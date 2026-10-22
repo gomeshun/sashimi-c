@@ -17,7 +17,39 @@ PACKAGES = ("itamae", "sashimi-c", "sashimi-si", "sashimi-w", "sashimi-f")
 def prepare(
     family_root, output, candidate, candidate_ref, mode="candidate", overrides=None
 ):
-    """Preserve the base set and record every explicitly coordinated candidate."""
+    """Preserve the base set and record every explicitly coordinated candidate.
+
+    Parameters
+    ----------
+    family_root : pathlib.Path
+        Validated sashimi-family checkout containing the canonical compatibility manifest
+        and five Git links.
+    output : pathlib.Path
+        Separate effective-manifest path; the canonical compatibility.toml must not be
+        overwritten.
+    candidate : str
+        One named family component whose exact candidate revision is being evaluated.
+    candidate_ref : str
+        Full lowercase 40-character candidate Git revision, never a moving branch label.
+    mode : {"candidate", "promoted"}
+        Candidate mode records explicit trial revisions; promoted mode checks the unchanged
+        canonical revision set.
+    overrides : dict
+        Deliberate changes to the otherwise valid controlled model, stage or numerical
+        settings.
+
+    Returns
+    -------
+    tuple
+        Base family revision and effective manifest mapping, also written with a JSON
+        provenance sidecar.
+
+    Notes
+    -----
+    A family result depends on five exact component revisions. The base manifest is
+    validated against its Git links before applying explicit candidate overrides; candidate
+    provenance does not mean that the canonical family set was promoted.
+    """
     family_root, output = Path(family_root).resolve(), Path(output).resolve()
     source = family_root / "compatibility.toml"
     if output == source:
@@ -92,6 +124,14 @@ def prepare(
 
 
 def main():
+    """Write an explicit family-validation manifest and report its five exact revisions.
+
+    Notes
+    -----
+    A family result depends on five exact component revisions. The base manifest is
+    validated against its Git links before applying explicit candidate overrides; candidate
+    provenance does not mean that the canonical family set was promoted.
+    """
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--family-root", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
