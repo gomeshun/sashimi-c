@@ -6,6 +6,7 @@ import unittest
 from unittest.mock import patch
 
 import numpy as np
+from scipy.optimize import brentq
 
 import prompt_cusps as pc
 from sashimi_c import cosmology
@@ -17,6 +18,18 @@ class PromptCuspTests(unittest.TestCase):
         self.addCleanup(directory.cleanup)
         self.directory = Path(directory.name)
         self.model = pc.prompt_cusps(k_fs=1.e6)
+
+    def test_lower_collapse_root(self):
+        # Include the spherical limit and the last float below the shape cut.
+        shapes = np.r_[0., np.geomspace(1.e-12, 0.25, 30), np.nextafter(0.26, 0.)]
+
+        def residual(f, q):
+            return f - 1. - 0.47 * (5. * q * f**2)**0.615
+
+        scalar_roots = [brentq(residual, 1., 5., args=(q,), xtol=1.e-14) for q in shapes]
+        factors = pc._ellipsoidal_collapse_factor(shapes)
+        self.assertEqual(factors[0], 1.)
+        np.testing.assert_allclose(factors, scalar_roots, rtol=1.e-13, atol=0.)
 
     def test_seeded_bbks_draw(self):
         # Reference grid indices and scalar roots from e07ef8f.

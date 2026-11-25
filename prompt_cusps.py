@@ -26,7 +26,6 @@ from tempfile import TemporaryDirectory
 import numpy as np
 from scipy.integrate import simpson
 from scipy.interpolate import interp1d
-from scipy.optimize import root
 from scipy.special import erf
 
 from sashimi_c import cosmology
@@ -122,6 +121,24 @@ def _variance_samples(table, length_unit, solar_mass, radius_denominator, k_fs, 
         raise ValueError(f"Unknown prompt-cusp variance window: {window!r}.")
 
     return np.log10(mass / solar_mass), np.sqrt(sigma_squared), derivative
+
+
+def _ellipsoidal_collapse_factor(shape):
+    """Lower root for accepted peak shapes q = e**2 - p*abs(p) in [0, 0.26)."""
+    # For f - 1 - C*f**b the lower root is bracketed by 1 and b/(b-1)
+    # up to the double root. The shape cut lies below that critical q.
+    # 48 bisections give a bracket narrower than 2e-14.
+    exponent = 0.615
+    power = 2.0 * exponent
+    coefficient = 0.47 * (5.0 * shape) ** exponent
+    lower = np.ones_like(shape)
+    upper = np.full_like(shape, power / (power - 1.0))
+    for _ in range(48):
+        middle = (lower + upper) * 0.5
+        below_root = middle - 1.0 - coefficient * middle ** power <= 0.0
+        lower = np.where(below_root, middle, lower)
+        upper = np.where(below_root, upper, middle)
+    return lower
 
 
 def _bbks_peak_density(nu, x, R_s, gamma):
@@ -291,29 +308,12 @@ class prompt_cusps(cosmology):
         p_random = e_random * u_random
 
         # -------------------------------------------------------------------------
-        # --- collapse factor f_ec (keep your existing definition/condition) -------
-        def fec_fun(fec, e, p):
-            return fec - 1.0 - 0.47 * (5.0 * (e**2 - p * np.abs(p)) * fec**2) ** 0.615
-
+        shape = e_random**2 - p_random * np.abs(p_random)
+        accepted = shape < 0.26
         fec_random = np.full(int(length), np.nan, dtype=float)
-
-        # Condition used in your code: e^2 - p|p| < 0.26
-        cond = (e_random**2 - p_random * np.abs(p_random)) < 0.26
-        idx_solve = np.where(cond)[0]
         if verbose:
-            print(f"cusps_Monte_Carlo: solving f_ec for {idx_solve.size}/{length} samples")
-
-        for j in idx_solve:
-            ej = float(e_random[j])
-            pj = float(p_random[j])
-            try:
-                sol = root(lambda f: fec_fun(f, ej, pj), x0=1.0)
-                if sol.success and np.isfinite(sol.x[0]) and sol.x[0] > 0.0:
-                    fec_random[j] = float(sol.x[0])
-                else:
-                    fec_random[j] = np.nan
-            except Exception:
-                fec_random[j] = np.nan
+            print(f"cusps_Monte_Carlo: solving f_ec for {accepted.sum()}/{length} samples")
+        fec_random[accepted] = _ellipsoidal_collapse_factor(shape[accepted])
 
         return x_random, nu_random, e_random, p_random, fec_random
         
